@@ -3,7 +3,7 @@ var router = express.Router();
 
 /* GET home page. */
 router.get("/", function (req, res, next) {
-  res.status(200).send({ title: "Express" });
+  res.status(200).send({ title: "Leads Socket API Server" });
 });
 
 module.exports = router;

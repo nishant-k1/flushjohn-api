@@ -2,7 +2,6 @@ var express = require("express");
 
 var router = express.Router();
 const Leads = require("../models/Leads");
-const corsHandle = require("../lib/corsHandle")
 
 /* GET leads listing. */
 router.post("/", async function (req, res, next) {
