@@ -1,7 +1,9 @@
 var createError = require("http-errors");
 var express = require("express");
+require("dotenv").config();
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
+const dbConnect = require("./lib/dbConnect");
 
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
@@ -18,6 +20,13 @@ app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/leads", leadsRouter);
 
+// Connect DB
+
+const handleDbConnect = () => {
+  dbConnect();
+};
+
+handleDbConnect();
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404));

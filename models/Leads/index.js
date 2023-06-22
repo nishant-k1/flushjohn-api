@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const LeadsSchema = new mongoose.Schema({
   // Tracking
@@ -85,4 +85,4 @@ const LeadsSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.models.Leads || mongoose.model("Leads", LeadsSchema);
+module.exports = mongoose.models.Leads || mongoose.model("Leads", LeadsSchema);
