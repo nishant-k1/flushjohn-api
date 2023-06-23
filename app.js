@@ -86,6 +86,13 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use("/", indexRouter);
+
+// Attach io to the response object using middleware
+app.use(function (req, res, next) {
+  res.io = io; // Attach io to the response object
+  next();
+});
+
 app.use("/leads", leadsRouter);
 
 // Connect DB
