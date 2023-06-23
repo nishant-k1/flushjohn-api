@@ -13,8 +13,8 @@ router.post("/", async function (req, res, next) {
     const newLeadNo = latestLeadNo + 1;
     const leadNo = newLeadNo;
     const postValue = { ...req.body, createdAt, leadNo };
-    const lead = await Leads.create(postValue);
 
+    const lead = await Leads.create(postValue);
     res.io.emit("create-lead", lead);
     res.status(201).json({ success: true, data: lead.data });
   } catch (error) {
