@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const LeadsSchema = new mongoose.Schema({
-  // Tracking
+  // Official Details
   createdAt: {
     type: Date,
     default: Date.now,
@@ -10,11 +10,26 @@ const LeadsSchema = new mongoose.Schema({
     type: Number,
     default: 999,
   },
-
-  // Personal Details
-  fullName: {
+  leadSource: {
     type: String,
   },
+  status: {
+    type: String,
+    default: "None",
+  },
+  assignedTo: {
+    type: String,
+  },
+
+  // Requirement Details
+  usageType: {
+    type: String,
+  },
+  products: {
+    type: Array,
+  },
+
+  // Personal Details
   fName: {
     type: String,
   },
@@ -33,8 +48,20 @@ const LeadsSchema = new mongoose.Schema({
   fax: {
     type: String,
   },
+  contactPersonName: {
+    type: String,
+  },
+  contactPersonPhone: {
+    type: String,
+  },
 
-  // Address Details
+  // Delivery Details
+  deliveryDate: {
+    type: String,
+  },
+  pickupDate: {
+    type: String,
+  },
   streetAddress: {
     type: String,
   },
@@ -51,36 +78,7 @@ const LeadsSchema = new mongoose.Schema({
     type: String,
     default: "USA",
   },
-
-  // Onsite Details
-  products: {
-    type: Array,
-  },
-  deliveryDate: {
-    type: String,
-  },
-  pickupDate: {
-    type: String,
-  },
-  contactPersonName: {
-    type: String,
-  },
-  contactPersonPhone: {
-    type: String,
-  },
   instructions: {
-    type: String,
-  },
-
-  // Official Details
-  leadSource: {
-    type: String,
-  },
-  status: {
-    type: String,
-    default: "None",
-  },
-  assignedTo: {
     type: String,
   },
 });
