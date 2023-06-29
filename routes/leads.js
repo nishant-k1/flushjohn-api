@@ -36,7 +36,7 @@ router.post("/", async function (req, res, next) {
     const latestLead = await Leads.findOne({}, "leadNo").sort({
       leadNo: -1,
     });
-    const latestLeadNo = latestLead ? latestLead.leadNo : 0;
+    const latestLeadNo = latestLead ? latestLead.leadNo : 999;
     const newLeadNo = latestLeadNo + 1;
     const leadNo = newLeadNo;
     const weblead = leadData({ ...req.body, createdAt, leadNo });

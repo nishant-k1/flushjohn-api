@@ -8,12 +8,11 @@ const LeadsSchema = new mongoose.Schema({
   },
   leadNo: {
     type: Number,
-    default: 999,
   },
   leadSource: {
     type: String,
   },
-  status: {
+  leadStatus: {
     type: String,
     default: "None",
   },
