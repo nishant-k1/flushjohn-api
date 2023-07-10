@@ -1,35 +1,21 @@
 const mongoose = require("mongoose");
 
-const LeadsSchema = new mongoose.Schema({
-  // Official Details
+const QuotesSchema = new mongoose.Schema({
+  // Tracking
   createdAt: {
     type: Date,
     default: Date.now,
   },
-  leadNo: {
+  quoteNo: {
     type: Number,
   },
-  leadSource: {
+  customerNo: {
+    type: Number,
+  },
+  emailStatus: {
     type: String,
+    default: "Pending",
   },
-
-  leadStatus: {
-    type: String,
-    default: "None",
-  },
-
-  assignedTo: {
-    type: String,
-  },
-
-  // Requirement Details
-  usageType: {
-    type: String,
-  },
-  products: {
-    type: Array,
-  },
-
   // Personal Details
   fName: {
     type: String,
@@ -49,20 +35,8 @@ const LeadsSchema = new mongoose.Schema({
   fax: {
     type: String,
   },
-  contactPersonName: {
-    type: String,
-  },
-  contactPersonPhone: {
-    type: String,
-  },
 
-  // Delivery Details
-  deliveryDate: {
-    type: String,
-  },
-  pickupDate: {
-    type: String,
-  },
+  // Address Details
   streetAddress: {
     type: String,
   },
@@ -79,9 +53,35 @@ const LeadsSchema = new mongoose.Schema({
     type: String,
     default: "USA",
   },
+
+  // Onsite Details
+  usageType: {
+    type: String,
+  },
+  products: {
+    type: Array,
+  },
+  deliveryDate: {
+    type: String,
+  },
+  pickupDate: {
+    type: String,
+  },
+  contactPersonName: {
+    type: String,
+  },
+  contactPersonPhone: {
+    type: String,
+  },
   instructions: {
+    type: String,
+  },
+
+  // Official Details
+  note: {
     type: String,
   },
 });
 
-module.exports = mongoose.models.Leads || mongoose.model("Leads", LeadsSchema);
+module.exports =
+  mongoose.models.Quotes || mongoose.model("Quotes", QuotesSchema);

@@ -8,6 +8,8 @@ var logger = require("morgan");
 const dbConnect = require("./lib/dbConnect");
 var indexRouter = require("./routes/index");
 const leadsRouter = require("./routes/leads.js");
+const jobOrdersPDF = require("./routes/jobOrdersPDF");
+
 const cors = require("cors");
 
 var debug = require("debug")("crm-rp-socket:server");
@@ -95,6 +97,7 @@ app.use(function (req, res, next) {
 });
 
 app.use("/leads", leadsRouter);
+app.use("/jobOrdersPDF", jobOrdersPDF);
 
 // Connect DB
 dbConnect();

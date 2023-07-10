@@ -1,33 +1,13 @@
 const mongoose = require("mongoose");
 
-const LeadsSchema = new mongoose.Schema({
-  // Official Details
+const CustomersSchema = new mongoose.Schema({
+  // Tracking
   createdAt: {
     type: Date,
     default: Date.now,
   },
-  leadNo: {
+  customerNo: {
     type: Number,
-  },
-  leadSource: {
-    type: String,
-  },
-
-  leadStatus: {
-    type: String,
-    default: "None",
-  },
-
-  assignedTo: {
-    type: String,
-  },
-
-  // Requirement Details
-  usageType: {
-    type: String,
-  },
-  products: {
-    type: Array,
   },
 
   // Personal Details
@@ -49,20 +29,8 @@ const LeadsSchema = new mongoose.Schema({
   fax: {
     type: String,
   },
-  contactPersonName: {
-    type: String,
-  },
-  contactPersonPhone: {
-    type: String,
-  },
 
-  // Delivery Details
-  deliveryDate: {
-    type: String,
-  },
-  pickupDate: {
-    type: String,
-  },
+  // Address Details
   streetAddress: {
     type: String,
   },
@@ -79,9 +47,32 @@ const LeadsSchema = new mongoose.Schema({
     type: String,
     default: "USA",
   },
+
+  // Onsite Details
+  deliveryDate: {
+    type: String,
+  },
+  pickupDate: {
+    type: String,
+  },
+  contactPersonName: {
+    type: String,
+  },
+  contactPersonPhone: {
+    type: String,
+  },
+  products: {
+    type: Array,
+  },
   instructions: {
+    type: String,
+  },
+
+  // Official Details
+  note: {
     type: String,
   },
 });
 
-module.exports = mongoose.models.Leads || mongoose.model("Leads", LeadsSchema);
+module.exports =
+  mongoose.models.Customers || mongoose.model("Customers", CustomersSchema);
