@@ -23,9 +23,9 @@ const corsOptions = {
     "http://localhost:8080",
     "http://localhost:3000",
     "http://localhost:3001",
-    "https://www.reliableportable.com",
-    "http://www.reliableportable.com",
-    /\.reliableportable\.com$/,
+    "https://www.flushjohn.com",
+    "http://www.flushjohn.com",
+    /\.flushjohn\.com$/,
   ],
   methods: ["GET", "POST", "PUT", "DELETE"], // Specify the allowed HTTP methods
   allowedHeaders: ["Content-Type", "Authorization"], // Specify the allowed headers
