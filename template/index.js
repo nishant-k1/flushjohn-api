@@ -38,7 +38,7 @@ const totalAmount = (products) => {
 const htmlTemplate = (jobOrderData) => {
   if (!jobOrderData) return;
   // const { cName, address, homepage, email, phone, phone_link } = quengenesis;
-  // const { CRM_RP_SERVICES_BASE_URL } = apiBaseUrls;
+  // const { CRM_BASE_URL } = apiBaseUrls;
 
   const createdAt = new Date(jobOrderData.createdAt).toLocaleDateString(
     "en-US",

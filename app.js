@@ -12,7 +12,7 @@ const jobOrdersPDF = require("./routes/jobOrdersPDF");
 
 const cors = require("cors");
 
-var debug = require("debug")("crm-rp-socket:server");
+var debug = require("debug")("flushjohn-api:server");
 var http = require("http");
 
 var port = normalizePort(process.env.PORT || "3000");
