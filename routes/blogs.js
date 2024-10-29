@@ -25,7 +25,7 @@ router.post("/", async function (req, res) {
 // GET: Retrieve blogs, single or all
 router.get("/", async function (req, res) {
   try {
-    const { _id } = req.query._id;
+    const { _id } = req.query?._id;
     if (_id) {
       const blog = await Blogs.findById(_id);
       res.status(200).json({ success: true, data: blog });
@@ -53,7 +53,7 @@ router.get("/:slug", async function (req, res) {
 // PUT: Update a blog by _id
 router.put("/", async function (req, res) {
   try {
-    const _id = req.query._id;
+    const _id = req.query?._id;
     const blog = await Blogs.findByIdAndUpdate(_id, req.body, { new: true });
     res.status(200).json({ success: true, data: blog });
   } catch (error) {
@@ -65,7 +65,7 @@ router.put("/", async function (req, res) {
 // DELETE: Delete a blog by _id
 router.delete("/", async function (req, res) {
   try {
-    const _id = req.query._id;
+    const _id = req.query?._id;
     const blog = await Blogs.findByIdAndDelete(_id);
     res.status(200).json({ success: true, data: blog });
   } catch (error) {
