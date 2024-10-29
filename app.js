@@ -8,6 +8,7 @@ var logger = require("morgan");
 const dbConnect = require("./lib/dbConnect");
 var indexRouter = require("./routes/index");
 const leadsRouter = require("./routes/leads.js");
+const blogsRouter = require("./routes/blogs.js");
 const jobOrdersPDF = require("./routes/jobOrdersPDF");
 
 const cors = require("cors");
@@ -15,7 +16,7 @@ const cors = require("cors");
 var debug = require("debug")("flushjohn-api:server");
 var http = require("http");
 
-var port = normalizePort(process.env.PORT || "3000");
+var port = normalizePort(process.env.PORT || "8080");
 app.set("port", port);
 
 const corsOptions = {
@@ -97,6 +98,7 @@ app.use(function (req, res, next) {
 });
 
 app.use("/leads", leadsRouter);
+app.use("/blogs", blogsRouter);
 app.use("/jobOrdersPDF", jobOrdersPDF);
 
 // Connect DB
