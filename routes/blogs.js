@@ -25,9 +25,25 @@ router.post("/", async function (req, res) {
 // GET: Retrieve blogs, single or all
 router.get("/", async function (req, res) {
   try {
-    const _id = req.query._id;
+    const { _id } = req.query._id;
     if (_id) {
       const blog = await Blogs.findById(_id);
+      res.status(200).json({ success: true, data: blog });
+    } else {
+      const blogs = await Blogs.find().sort({ _id: -1 });
+      res.status(200).json({ success: true, data: blogs });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get("/:slug", async function (req, res) {
+  try {
+    const slug = req.params.slug;
+    if (slug) {
+      const blog = await Blogs.findOne({ slug });
       res.status(200).json({ success: true, data: blog });
     } else {
       const blogs = await Blogs.find().sort({ _id: -1 });
