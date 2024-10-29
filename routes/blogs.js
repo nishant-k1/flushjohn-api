@@ -42,13 +42,8 @@ router.get("/", async function (req, res) {
 router.get("/:slug", async function (req, res) {
   try {
     const slug = req.params.slug;
-    if (slug) {
-      const blog = await Blogs.findOne({ slug });
-      res.status(200).json({ success: true, data: blog });
-    } else {
-      const blogs = await Blogs.find().sort({ _id: -1 });
-      res.status(200).json({ success: true, data: blogs });
-    }
+    const blogPost = await Blogs.findOne({ slug });
+    res.status(200).json({ success: true, data: blogPost });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
