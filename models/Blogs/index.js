@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 // Define the Blog schema
-const blogSchema = new Schema({
+const BlogsSchema = new Schema({
   title: {
     type: String,
     required: true,
