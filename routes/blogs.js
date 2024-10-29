@@ -14,7 +14,7 @@ router.post("/", async function (req, res) {
       ...req.body,
       createdAt,
       blogNo: newBlogNo,
-      slug: generateSlug(post.title),
+      slug: generateSlug(req.body?.title),
     };
     const blog = await Blogs.create(newBlogPostData);
     if (res.io) res.io.emit("create-blog", blog);
