@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Blogs = require("../models/Blogs");
+const { generateSlug } = require("../utils");
 
 // POST: Create a new blog
 router.post("/", async function (req, res) {
@@ -9,11 +10,13 @@ router.post("/", async function (req, res) {
     const latestBlog = await Blogs.findOne({}, "blogNo").sort({ blogNo: -1 });
     const latestBlogNo = latestBlog ? latestBlog.blogNo : 999;
     const newBlogNo = latestBlogNo + 1;
-
-    // Ensure blogData function is defined or adjust as necessary
-    const webblog = { ...req.body, createdAt, blogNo: newBlogNo };
-    const blog = await Blogs.create(webblog);
-
+    const newBlogPostData = {
+      ...req.body,
+      createdAt,
+      blogNo: newBlogNo,
+      slug: generateSlug(post.title),
+    };
+    const blog = await Blogs.create(newBlogPostData);
     if (res.io) res.io.emit("create-blog", blog);
     res.status(201).json({ success: true, data: blog });
   } catch (error) {
