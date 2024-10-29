@@ -7,8 +7,13 @@ const BlogsSchema = new Schema({
     type: String,
     required: true,
   },
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   content: {
-    type: Schema.Types.Mixed, // or `Object` if it's strictly JSON
+    type: Schema.Types.Mixed,
     required: true,
   },
   createdAt: {
