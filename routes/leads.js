@@ -51,7 +51,8 @@ router.post("/", async function (req, res, next) {
 router.get("/", async function (req, res, next) {
   try {
     // await corsHandle(req, res)
-    const { _id } = req.query;
+    const { searchParams } = new URL(req.url);
+    const _id = searchParams.get("_id");
     if (_id) {
       const leads = await Leads.findById(_id);
       res.status(200).json({ success: true, data: leads });
@@ -66,7 +67,8 @@ router.get("/", async function (req, res, next) {
 
 router.put("/", async function (req, res, next) {
   try {
-    const { _id } = req.query;
+    const { searchParams } = new URL(req.url);
+    const _id = searchParams.get("_id");
     const lead = await Leads.findByIdAndUpdate(_id, req.body);
     res.status(200).json({ success: true, data: lead });
   } catch (error) {
@@ -76,8 +78,9 @@ router.put("/", async function (req, res, next) {
 
 router.delete("/", async function (req, res, next) {
   try {
-    const { _id } = req.query;
-    const lead = await Leads.findByIdAndRemove(_id);
+    const { searchParams } = new URL(req.url);
+    const _id = searchParams.get("_id");
+    const lead = await Leads.findByIdAndDelete(_id);
     res.status(200).json({ success: true, data: lead });
   } catch (error) {
     console.log(error);
