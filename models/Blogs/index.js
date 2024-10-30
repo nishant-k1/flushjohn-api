@@ -3,6 +3,10 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const BlogsSchema = new Schema({
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
   title: {
     type: String,
     required: true,
@@ -12,18 +16,14 @@ const BlogsSchema = new Schema({
     required: true,
     unique: true,
   },
-  content: {
-    type: Schema.Types.Mixed,
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
   blogNo: {
     type: Number,
     required: true,
     unique: true,
+  },
+  content: {
+    type: String,
+    required: true,
   },
   // author: {
   //   type: Schema.Types.ObjectId,
