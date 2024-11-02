@@ -7,17 +7,21 @@ const BlogsSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+  blogNo: {
+    type: Number,
+    required: true,
+    unique: true,
+  },
+  coverImage: {
+    src: String,
+    alt: String,
+  },
   title: {
     type: String,
     required: true,
   },
   slug: {
     type: String,
-    required: true,
-    unique: true,
-  },
-  blogNo: {
-    type: Number,
     required: true,
     unique: true,
   },

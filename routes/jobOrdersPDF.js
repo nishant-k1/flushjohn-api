@@ -32,7 +32,6 @@ router.post("/", async function (req, res, next) {
   try {
     const { searchParams } = new URL(req.url);
     const _id = searchParams.get("_id");
-    console.log("IDDDDD", _id);
     const jobOrder = await JobOrders.findById(_id);
     if (!jobOrder) {
       return res.status(404).json({
