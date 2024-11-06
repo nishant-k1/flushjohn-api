@@ -28,6 +28,7 @@ router.post("/", async function (req, res) {
 router.get("/", async function (req, res) {
   try {
     const blogs = await Blogs.find().sort({ _id: -1 });
+    console.log("BLOGS", blogs);
     res.status(200).json({ success: true, data: blogs });
   } catch (error) {
     console.error(error);
