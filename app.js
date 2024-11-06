@@ -9,7 +9,7 @@ const dbConnect = require("./lib/dbConnect");
 var indexRouter = require("./routes/index");
 const leadsRouter = require("./routes/leads.js");
 const blogsRouter = require("./routes/blogs.js");
-const jobOrdersPDF = require("./routes/jobOrdersPDF");
+// const jobOrdersPDF = require("./routes/jobOrdersPDF");
 
 const cors = require("cors");
 
@@ -65,11 +65,9 @@ function onError(error) {
     case "EACCES":
       console.error(bind + " requires elevated privileges");
       process.exit(1);
-      break;
     case "EADDRINUSE":
       console.error(bind + " is already in use");
       process.exit(1);
-      break;
     default:
       throw error;
   }
@@ -99,7 +97,7 @@ app.use(function (req, res, next) {
 
 app.use("/leads", leadsRouter);
 app.use("/blogs", blogsRouter);
-app.use("/jobOrdersPDF", jobOrdersPDF);
+// app.use("/jobOrdersPDF", jobOrdersPDF);
 
 // Connect DB
 dbConnect();

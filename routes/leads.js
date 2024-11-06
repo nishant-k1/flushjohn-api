@@ -48,44 +48,45 @@ router.post("/", async function (req, res, next) {
   }
 });
 
-router.get("/", async function (req, res, next) {
-  try {
-    // await corsHandle(req, res)
-    const { searchParams } = new URL(req.url);
-    const _id = searchParams.get("_id");
-    if (_id) {
-      const leads = await Leads.findById(_id);
-      res.status(200).json({ success: true, data: leads });
-    } else {
-      const leads = await Leads.find().sort({ _id: -1 });
-      res.status(200).json({ success: true, data: leads });
-    }
-  } catch (error) {
-    console.log(error);
-  }
-});
+// router.get("/", async function (req, res, next) {
+//   try {
+//     // await corsHandle(req, res)
+//     const { searchParams } = new URL(req.url);
+//     const _id = searchParams.get("_id");
+//     if (_id) {
+//       const leads = await Leads.findById(_id);
+//       res.status(200).json({ success: true, data: leads });
+//     } else {
+//       const leadsList = await Leads.find().sort({ _id: -1 });
+//       res.status(200).json({ success: true, data: leadsList });
+//     }
+//   } catch (error) {
+//     console.log(error);
+//   }
+// });
 
-router.put("/", async function (req, res, next) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const _id = searchParams.get("_id");
-    const lead = await Leads.findByIdAndUpdate(_id, req.body);
-    res.status(200).json({ success: true, data: lead });
-  } catch (error) {
-    console.log(error);
-  }
-});
+// router.put("/", async function (req, res, next) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+//     const _id = searchParams.get("_id");
+//     const updatedLead = await Leads.findByIdAndUpdate(_id, req.body);
+//     res.status(200).json({ success: true, data: updatedLead });
+//   } catch (error) {
+//     console.log(error);
+//   }
+// });
 
-router.delete("/", async function (req, res, next) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const _id = searchParams.get("_id");
-    const lead = await Leads.findByIdAndDelete(_id);
-    res.status(200).json({ success: true, data: lead });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+// router.delete("/", async function (req, res, next) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+//     const _id = searchParams.get("_id");
+//     await Leads.findByIdAndDelete(_id);
+//     const leadsList = await Leads.find().sort({ _id: -1 });
+//     res.status(200).json({ success: true, data: leadsList });
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
 
 module.exports = router;

@@ -73,8 +73,9 @@ router.put("/", async function (req, res) {
 router.delete("/", async function (req, res) {
   try {
     const _id = req.query?._id;
-    const blog = await Blogs.findByIdAndDelete(_id);
-    res.status(200).json({ success: true, data: blog });
+    await Blogs.findByIdAndDelete(_id);
+    const blogs = await Blogs.find().sort({ _id: -1 });
+    res.status(200).json({ success: true, data: blogs });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
