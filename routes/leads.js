@@ -3,17 +3,17 @@ var router = express.Router();
 const Leads = require("../models/Leads");
 
 const productsData = (leadSource, products) => {
+  let transformedProductsData = [];
   if (leadSource === "Web Quick Lead") {
-    return products.map((item) => ({
+    transformedProductsData = products.map((item) => ({
       item: item,
       desc: "",
       qty: "",
       rate: "",
       amount: "",
     }));
-  }
-  if (leadSource === "Web Lead") {
-    return products.map((item) => ({
+  } else if (leadSource === "Web Lead") {
+    transformedProductsData = products.map((item) => ({
       item: item.name,
       desc: "",
       qty: item.qty,
@@ -21,12 +21,12 @@ const productsData = (leadSource, products) => {
       amount: "",
     }));
   }
-  return products;
+  return transformedProductsData;
 };
 
-const leadData = ({ leadSource, products, ...restArgs }) => ({
+const leadData = async ({ leadSource, products, ...restArgs }) => ({
   leadSource,
-  products: productsData(leadSource, products),
+  products: await productsData(leadSource, products),
   ...restArgs,
 });
 

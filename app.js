@@ -19,7 +19,7 @@ var http = require("http");
 var port = normalizePort(process.env.PORT || "8080");
 app.set("port", port);
 
-const corsOptions = {
+const corsOptionsAPI = {
   origin: [
     "http://localhost:8080",
     "http://localhost:3000",
@@ -32,8 +32,33 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization"], // Specify the allowed headers
   credentials: true,
 };
+
+const corsOptionsSocket = {
+  origin: [
+    "http://localhost:8080",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://www.flushjohn.com",
+    "http://www.flushjohn.com",
+  ],
+  methods: ["GET"], // ✅ WebSockets only use GET for connection upgrade
+  allowedHeaders: ["Content-Type", "Authorization"], // Specify the allowed headers
+  credentials: true,
+};
+
 var server = http.createServer(app);
-const io = require("socket.io")(server, { cors: corsOptions });
+
+// Socket.io doesn’t support regex (/\.flushjohn\.com$/) in cors options
+
+const io = require("socket.io")(server, { cors: corsOptionsSocket });
+io.on("connection", (socket) => {
+  console.log("New WebSocket connection:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("WebSocket disconnected:", socket.id);
+  });
+});
+
 server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
@@ -80,7 +105,7 @@ function onListening() {
 }
 
 // Apply CORS middleware
-app.use(cors(corsOptions));
+app.use(cors(corsOptionsAPI));
 
 app.use(logger("dev"));
 app.use(express.json());
