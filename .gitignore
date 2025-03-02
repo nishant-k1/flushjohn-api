@@ -2,7 +2,7 @@
 # Yarn PnP
 .pnp/
 .yarn/
-
+.vscode/
 # Yarn PnP Plugin
 .plugin/
 
