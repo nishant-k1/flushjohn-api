@@ -1,24 +1,27 @@
-var createError = require("http-errors");
-var express = require("express");
+import createError from "http-errors";
+import express, { json, urlencoded } from "express";
+import { config } from "dotenv";
+import debug from "debug";
+import cookieParser from "cookie-parser";
+import logger from "morgan";
+import cors from "cors";
+import { createServer } from "http";
 
-var app = express();
-require("dotenv").config();
-var cookieParser = require("cookie-parser");
-var logger = require("morgan");
-const dbConnect = require("./lib/dbConnect");
-var indexRouter = require("./routes/index");
-const leadsRouter = require("./routes/leads.js");
-const blogsRouter = require("./routes/blogs.js");
-// const jobOrdersPDF = require("./routes/jobOrdersPDF");
+import dbConnect from "./lib/dbConnect/index.js";
+import socketConnect from "./lib/socketConnect/index.js";
+import indexRouter from "./routes/index.js";
+import leadsRouter from "./routes/leads.js";
+import blogsRouter from "./routes/blogs.js";
 
-const cors = require("cors");
+config();
 
-var debug = require("debug")("flushjohn-api:server");
-var http = require("http");
+const app = express();
+const log = debug("flushjohn-api:server");
 
-var port = normalizePort(process.env.PORT || "8080");
+const port = normalizePort(process.env.PORT || "8080");
 app.set("port", port);
 
+// CORS configuration
 const corsOptionsAPI = {
   origin: [
     "http://localhost:8080",
@@ -28,64 +31,58 @@ const corsOptionsAPI = {
     "http://www.flushjohn.com",
     /\.flushjohn\.com$/,
   ],
-  methods: ["GET", "POST", "PUT", "DELETE"], // Specify the allowed HTTP methods
-  allowedHeaders: ["Content-Type", "Authorization"], // Specify the allowed headers
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-const corsOptionsSocket = {
-  origin: [
-    "http://localhost:8080",
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://www.flushjohn.com",
-    "http://www.flushjohn.com",
-  ],
-  methods: ["GET"], // ✅ WebSockets only use GET for connection upgrade
-  allowedHeaders: ["Content-Type", "Authorization"], // Specify the allowed headers
-  credentials: true,
-};
+// Create HTTP server
+const server = createServer(app);
+socketConnect(server);
 
-var server = http.createServer(app);
+// Middleware
+app.use(cors(corsOptionsAPI));
+app.use(logger("dev"));
+app.use(json());
+app.use(urlencoded({ extended: false }));
+app.use(cookieParser());
 
-// Socket.io doesn’t support regex (/\.flushjohn\.com$/) in cors options
+// Routes
+app.use("/", indexRouter);
+app.use("/leads", leadsRouter);
+app.use("/blogs", blogsRouter);
 
-const io = require("socket.io")(server, { cors: corsOptionsSocket });
-io.on("connection", (socket) => {
-  console.log("New WebSocket connection:", socket.id);
+// Connect Database
+dbConnect();
 
-  socket.on("disconnect", () => {
-    console.log("WebSocket disconnected:", socket.id);
-  });
+// Handle 404 errors
+app.use((req, res, next) => {
+  next(createError(404));
 });
 
+// Error handler
+app.use((err, req, res, next) => {
+  res.locals.message = err.message;
+  res.locals.error = req.app.get("env") === "development" ? err : {};
+  res.status(err.status || 500);
+});
+
+// Start Server
 server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
+
+// Normalize port function
 function normalizePort(val) {
-  var port = parseInt(val, 10);
-
-  if (isNaN(port)) {
-    // named pipe
-    return val;
-  }
-
-  if (port >= 0) {
-    // port number
-    return port;
-  }
-
-  return false;
+  const port = parseInt(val, 10);
+  return isNaN(port) ? val : port >= 0 ? port : false;
 }
 
+// Handle server errors
 function onError(error) {
-  if (error.syscall !== "listen") {
-    throw error;
-  }
+  if (error.syscall !== "listen") throw error;
+  const bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
 
-  var bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
-
-  // handle specific listen errors with friendly messages
   switch (error.code) {
     case "EACCES":
       console.error(bind + " requires elevated privileges");
@@ -98,48 +95,12 @@ function onError(error) {
   }
 }
 
+// Log when server is listening
 function onListening() {
-  var addr = server.address();
-  var bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
-  debug("Listening on " + bind);
+  const addr = server.address();
+  const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+  console.log("🚀 Listening on " + bind);
+  log("Listening on " + bind);
 }
 
-// Apply CORS middleware
-app.use(cors(corsOptionsAPI));
-
-app.use(logger("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-
-app.use("/", indexRouter);
-
-// Attach io to the response object using middleware
-app.use(function (req, res, next) {
-  res.io = io; // Attach io to the response object
-  next();
-});
-
-app.use("/leads", leadsRouter);
-app.use("/blogs", blogsRouter);
-// app.use("/jobOrdersPDF", jobOrdersPDF);
-
-// Connect DB
-dbConnect();
-
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
-  next(createError(404));
-});
-
-// error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-});
-
-module.exports = app;
+export default app;

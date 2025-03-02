@@ -1,7 +1,7 @@
-const express = require("express");
-const router = express.Router();
-const Blogs = require("../models/Blogs");
-const { generateSlug } = require("../utils");
+import { Router } from "express";
+const router = Router();
+import Blogs from "../models/Blogs/index.js";
+import { generateSlug } from "../utils/index.js";
 
 // POST: Create a new blog
 router.post("/", async function (req, res) {
@@ -16,8 +16,7 @@ router.post("/", async function (req, res) {
       blogNo: newBlogNo,
       slug: generateSlug(req.body?.title),
     };
-    const blog = await Blogs.create(newBlogPostData);
-    if (res.io) res.io.emit("create-blog", blog);
+    const blog = await create(newBlogPostData);
     res.status(201).json({ success: true, data: blog });
   } catch (error) {
     console.error(error);
@@ -73,7 +72,7 @@ router.put("/", async function (req, res) {
 router.delete("/", async function (req, res) {
   try {
     const _id = req.query?._id;
-    await Blogs.findByIdAndDelete(_id);
+    await findByIdAndDelete(_id);
     const blogs = await Blogs.find().sort({ _id: -1 });
     res.status(200).json({ success: true, data: blogs });
   } catch (error) {
@@ -82,4 +81,4 @@ router.delete("/", async function (req, res) {
   }
 });
 
-module.exports = router;
+export default router;

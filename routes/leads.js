@@ -1,6 +1,6 @@
-var express = require("express");
-var router = express.Router();
-const Leads = require("../models/Leads");
+import { Router } from "express";
+var router = Router();
+import Leads from "../models/Leads/index.js";
 
 const productsData = (leadSource, products) => {
   let transformedProductsData = [];
@@ -39,54 +39,52 @@ router.post("/", async function (req, res, next) {
     const latestLeadNo = latestLead ? latestLead.leadNo : 999;
     const newLeadNo = latestLeadNo + 1;
     const leadNo = newLeadNo;
-    const weblead = leadData({ ...req.body, createdAt, leadNo });
-    const lead = await Leads.create(weblead);
-    res.io.emit("create-lead", lead);
+    const webLead = leadData({ ...req.body, createdAt, leadNo });
+    const lead = await Leads.create(webLead);
     res.status(201).json({ success: true, data: lead.data });
   } catch (error) {
     console.log(error);
   }
 });
 
-// router.get("/", async function (req, res, next) {
-//   try {
-//     // await corsHandle(req, res)
-//     const { searchParams } = new URL(req.url);
-//     const _id = searchParams.get("_id");
-//     if (_id) {
-//       const leads = await Leads.findById(_id);
-//       res.status(200).json({ success: true, data: leads });
-//     } else {
-//       const leadsList = await Leads.find().sort({ _id: -1 });
-//       res.status(200).json({ success: true, data: leadsList });
-//     }
-//   } catch (error) {
-//     console.log(error);
-//   }
-// });
+router.get("/", async function (req, res, next) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const _id = searchParams.get("_id");
+    if (_id) {
+      const leads = await Leads.findById(_id);
+      res.status(200).json({ success: true, data: leads });
+    } else {
+      const leadsList = await Leads.find().sort({ _id: -1 });
+      res.status(200).json({ success: true, data: leadsList });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
 
-// router.put("/", async function (req, res, next) {
-//   try {
-//     const { searchParams } = new URL(req.url);
-//     const _id = searchParams.get("_id");
-//     const updatedLead = await Leads.findByIdAndUpdate(_id, req.body);
-//     res.status(200).json({ success: true, data: updatedLead });
-//   } catch (error) {
-//     console.log(error);
-//   }
-// });
+router.put("/", async function (req, res, next) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const _id = searchParams.get("_id");
+    const updatedLead = await Leads.findByIdAndUpdate(_id, req.body);
+    res.status(200).json({ success: true, data: updatedLead });
+  } catch (error) {
+    console.log(error);
+  }
+});
 
-// router.delete("/", async function (req, res, next) {
-//   try {
-//     const { searchParams } = new URL(req.url);
-//     const _id = searchParams.get("_id");
-//     await Leads.findByIdAndDelete(_id);
-//     const leadsList = await Leads.find().sort({ _id: -1 });
-//     res.status(200).json({ success: true, data: leadsList });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ success: false, error: error.message });
-//   }
-// });
+router.delete("/", async function (req, res, next) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const _id = searchParams.get("_id");
+    await Leads.findByIdAndDelete(_id);
+    const leadsList = await Leads.find().sort({ _id: -1 });
+    res.status(200).json({ success: true, data: leadsList });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
-module.exports = router;
+export default router;

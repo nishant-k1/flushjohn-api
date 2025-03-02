@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
+import { Schema, model } from "mongoose";
 
-const LeadsSchema = new mongoose.Schema({
+const LeadsSchema = new Schema({
   // Official Details
   createdAt: {
     type: Date,
@@ -12,12 +12,10 @@ const LeadsSchema = new mongoose.Schema({
   leadSource: {
     type: String,
   },
-
   leadStatus: {
     type: String,
     default: "None",
   },
-
   assignedTo: {
     type: String,
   },
@@ -84,4 +82,4 @@ const LeadsSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.models.Leads || mongoose.model("Leads", LeadsSchema);
+export default model("Leads", LeadsSchema);
