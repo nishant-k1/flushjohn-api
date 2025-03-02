@@ -1,34 +1,48 @@
 import Leads from "../models/Leads/index.js";
 
 const productsData = (leadSource, products) => {
+  if (!Array.isArray(products)) {
+    return;
+  }
   let transformedProductsData = [];
   if (leadSource === "Web Quick Lead") {
     transformedProductsData = products.map((item) => ({
-      item: item,
-      desc: "",
-      qty: "",
-      rate: "",
-      amount: "",
+      item: item.name || "",
+      desc: item.desc || "",
+      qty: item.qty || "",
+      rate: item.rate || "",
+      amount: item.amount || "",
     }));
   } else if (leadSource === "Web Lead") {
     transformedProductsData = products.map((item) => ({
-      item: item.name,
-      desc: "",
-      qty: item.qty,
-      rate: "",
-      amount: "",
+      item: item.name || "",
+      desc: item.desc || "",
+      qty: item.qty || "",
+      rate: item.rate || "",
+      amount: item.amount || "",
     }));
+  } else if (leadSource === "Call Lead") {
+    transformedProductsData = products.map(
+      ({ id, item, desc, qty, rate, amount }) => ({
+        id,
+        item,
+        desc,
+        qty,
+        rate,
+        amount,
+      })
+    );
   }
   return transformedProductsData;
 };
 
 const transformedLeadData = async ({ leadSource, products, ...restArgs }) => ({
   leadSource,
-  products: await productsData(leadSource, products),
+  products: productsData(leadSource, products),
   ...restArgs,
 });
 
-export function leadSocketHandler(socket) {
+export function leadSocketHandler(leadsNamespace, socket) {
   // // Create Lead
   socket.on("createLead", async (leadData) => {
     try {
@@ -39,10 +53,14 @@ export function leadSocketHandler(socket) {
       const latestLeadNo = latestLead ? latestLead.leadNo : 999;
       const newLeadNo = latestLeadNo + 1;
       const leadNo = newLeadNo;
-      const webLead = transformedLeadData({ ...leadData, createdAt, leadNo });
+      const webLead = await transformedLeadData({
+        ...leadData,
+        createdAt,
+        leadNo,
+      });
       await Leads.create(webLead);
       const leadsList = await Leads.find().sort({ _id: -1 });
-      socket.emit("leadCreated", leadsList);
+      leadsNamespace.emit("leadCreated", leadsList);
     } catch (error) {
       console.error("❌ Create Lead Error:", error);
     }
