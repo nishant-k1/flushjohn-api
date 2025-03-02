@@ -7,11 +7,11 @@ const productsData = (leadSource, products) => {
   let transformedProductsData = [];
   if (leadSource === "Web Quick Lead") {
     transformedProductsData = products.map((item) => ({
-      item: item.name || "",
-      desc: item.desc || "",
-      qty: item.qty || "",
-      rate: item.rate || "",
-      amount: item.amount || "",
+      item: item,
+      desc: item,
+      qty: 1,
+      rate: 0,
+      amount: 0,
     }));
   } else if (leadSource === "Web Lead") {
     transformedProductsData = products.map((item) => ({
