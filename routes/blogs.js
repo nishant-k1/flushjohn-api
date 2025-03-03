@@ -16,18 +16,9 @@ router.post("/", async function (req, res) {
       blogNo: newBlogNo,
       slug: generateSlug(req.body?.title),
     };
-    const blog = await create(newBlogPostData);
-    res.status(201).json({ success: true, data: blog });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.get("/", async function (req, res) {
-  try {
+    await Blogs.create(newBlogPostData);
     const blogsList = await Blogs.find().sort({ _id: -1 });
-    res.status(200).json({ success: true, data: blogsList });
+    res.status(201).json({ success: true, data: blogsList });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
@@ -37,19 +28,18 @@ router.get("/", async function (req, res) {
 router.get("/", async function (req, res) {
   try {
     const _id = req.query?._id;
-    const blog = await Blogs.findById(_id);
-    res.status(200).json({ success: true, data: blog });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+    const slug = req.query?.slug;
 
-router.get("/:slug", async function (req, res) {
-  try {
-    const slug = req.params.slug;
-    const blogPost = await Blogs.findOne({ slug });
-    res.status(200).json({ success: true, data: blogPost });
+    if (_id) {
+      const blog = await Blogs.findById(_id);
+      res.status(200).json({ success: true, data: blog });
+    } else if (slug) {
+      const blog = await Blogs.findOne({ slug });
+      res.status(200).json({ success: true, data: blog });
+    } else {
+      const blogsList = await Blogs.find().sort({ _id: -1 });
+      res.status(200).json({ success: true, data: blogsList });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
@@ -59,8 +49,16 @@ router.get("/:slug", async function (req, res) {
 // PUT: Update a blog by _id
 router.put("/", async function (req, res) {
   try {
+    const createdAt = new Date();
     const _id = req.query?._id;
-    const blog = await Blogs.findByIdAndUpdate(_id, req.body, { new: true });
+    const newBlogUpdateData = {
+      ...req.body,
+      createdAt,
+      slug: generateSlug(req.body?.title),
+    };
+    const blog = await Blogs.findByIdAndUpdate(_id, newBlogUpdateData, {
+      new: true,
+    });
     res.status(200).json({ success: true, data: blog });
   } catch (error) {
     console.error(error);
@@ -72,9 +70,9 @@ router.put("/", async function (req, res) {
 router.delete("/", async function (req, res) {
   try {
     const _id = req.query?._id;
-    await findByIdAndDelete(_id);
-    const blogs = await Blogs.find().sort({ _id: -1 });
-    res.status(200).json({ success: true, data: blogs });
+    await Blogs.findByIdAndDelete(_id);
+    const blogsList = await Blogs.find().sort({ _id: -1 });
+    res.status(200).json({ success: true, data: blogsList });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
