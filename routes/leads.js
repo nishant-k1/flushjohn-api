@@ -4,7 +4,7 @@ import Leads from "../models/Leads/index.js";
 
 const productsData = (leadSource, products) => {
   let transformedProductsData = [...products];
-  if (leadSource === "Web Quick Lead") {
+  if (leadSource === "Web Quick Lead" || leadSource === "Web Hero Quick Lead") {
     transformedProductsData = products.map((item) => ({
       item: item,
       desc: "",
