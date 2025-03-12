@@ -5,7 +5,7 @@ const productsData = (leadSource, products) => {
     return;
   }
   let transformedProductsData = [];
-  if (leadSource === "Web Quick Lead") {
+  if (leadSource === "Web Quick Lead" || leadSource === "Web Hero Quick Lead") {
     transformedProductsData = products.map((item) => ({
       item: item,
       desc: item,
