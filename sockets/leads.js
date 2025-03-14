@@ -14,13 +14,15 @@ const productsData = (leadSource, products) => {
       amount: 0,
     }));
   } else if (leadSource === "Web Lead") {
-    transformedProductsData = products.map((item) => ({
-      item: item.name || "",
-      desc: item.desc || "",
-      qty: item.qty || "",
-      rate: item.rate || "",
-      amount: item.amount || "",
-    }));
+    transformedProductsData = products
+      .map((item) => ({
+        item: item.name || "",
+        desc: item.name || "",
+        qty: item.qty || "",
+        rate: item.rate || "",
+        amount: item.amount || "",
+      }))
+      .filter((item) => item.qty);
   } else if (leadSource === "Call Lead") {
     transformedProductsData = products.map(
       ({ id, item, desc, qty, rate, amount }) => ({
