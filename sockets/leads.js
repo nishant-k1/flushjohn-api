@@ -1,4 +1,5 @@
 import Leads from "../models/Leads/index.js";
+import alertService from "../services/alertService.js";
 
 const productsData = (leadSource, products) => {
   if (!Array.isArray(products)) {
@@ -43,7 +44,7 @@ const transformedLeadData = async ({ leadSource, products, ...restArgs }) => ({
 });
 
 export function leadSocketHandler(leadsNamespace, socket) {
-  // // Create Lead
+  // Create Lead
   socket.on("createLead", async (leadData) => {
     try {
       const createdAt = new Date();
@@ -58,7 +59,20 @@ export function leadSocketHandler(leadsNamespace, socket) {
         createdAt,
         leadNo,
       });
-      await Leads.create(webLead);
+      const lead = await Leads.create(webLead);
+
+      //  NEW: Send alerts after successful lead creation
+      try {
+        const alertResults = await alertService.sendLeadAlerts(lead);
+        console.log(`📢 Alert results for lead #${leadNo}:`, alertResults);
+      } catch (alertError) {
+        // Don't fail the lead creation if alerts fail
+        console.error(
+          `⚠️ Alert sending failed for lead #${leadNo}:`,
+          alertError
+        );
+      }
+
       const leadsList = await Leads.find().sort({ _id: -1 });
       leadsNamespace.emit("leadCreated", leadsList);
     } catch (error) {
@@ -76,7 +90,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
     }
   });
 
-  // // Get Single Lead
+  // Get Single Lead
   socket.on("getLead", async (leadId) => {
     try {
       const lead = await Leads.findById(leadId);
@@ -86,7 +100,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
     }
   });
 
-  // // Update Lead
+  // Update Lead
   socket.on("updateLead", async ({ _id, data }) => {
     try {
       const lead = await Leads.findByIdAndUpdate(_id, data, {
@@ -98,7 +112,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
     }
   });
 
-  // // Delete Lead
+  // Delete Lead
   socket.on("deleteLead", async (leadId) => {
     try {
       await Leads.findByIdAndDelete(leadId);

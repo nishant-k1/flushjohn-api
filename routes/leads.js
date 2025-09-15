@@ -1,6 +1,7 @@
 import { Router } from "express";
 var router = Router();
 import Leads from "../models/Leads/index.js";
+import alertService from "../services/alertService.js";
 
 const productsData = (leadSource, products) => {
   let transformedProductsData = [...products];
@@ -51,6 +52,18 @@ router.post("/", async function (req, res, next) {
     const leadNo = newLeadNo;
     const webLead = leadData({ ...req.body, createdAt, leadNo });
     const lead = await Leads.create(webLead);
+
+    // Send Telegram alerts after successful lead creation
+    try {
+      const alertResults = await alertService.sendLeadAlerts(lead);
+      console.log(`📢 Alert results for lead #${leadNo}:`, alertResults);
+    } catch (alertError) {
+      // Don't fail the lead creation if alerts fail
+      console.error(
+        `⚠️ Alert sending failed for lead #${leadNo}:`,
+        alertError
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -387,6 +400,149 @@ router.delete("/", async function (req, res, next) {
       error: "INTERNAL_SERVER_ERROR",
       ...(process.env.NODE_ENV === "development" && { details: error.message }),
     });
+  }
+});
+
+// Test Telegram alerts endpoint
+router.post("/test-alerts", async function (req, res, next) {
+  try {
+    const result = await alertService.testConnection();
+    
+    res.status(200).json({
+      success: result.success,
+      message: result.message || "Alert test completed",
+      data: result
+    });
+  } catch (error) {
+    console.error("❌ Error testing alerts:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Failed to test alerts",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+});
+
+// WhatsApp QR Code web endpoint
+router.get("/whatsapp-qr", async function (req, res, next) {
+  try {
+    const qrData = alertService.getWhatsAppQRCode();
+    
+    if (!qrData.isEnabled) {
+      return res.status(400).send(`
+        <html>
+          <head><title>WhatsApp QR Code</title></head>
+          <body>
+            <h1>WhatsApp Alerts Disabled</h1>
+            <p>WhatsApp alerts are not enabled. Please set WHATSAPP_ENABLED=true in your environment variables.</p>
+          </body>
+        </html>
+      `);
+    }
+    
+    if (!qrData.hasQRCode) {
+      return res.status(200).send(`
+        <html>
+          <head>
+            <title>WhatsApp QR Code</title>
+            <meta http-equiv="refresh" content="5">
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .status { color: #666; margin: 20px 0; }
+            </style>
+          </head>
+          <body>
+            <h1>WhatsApp Authentication</h1>
+            <div class="status">
+              ${qrData.isReady ? 
+                '<p style="color: green;">✅ WhatsApp is authenticated and ready!</p>' :
+                '<p>⏳ Waiting for QR code generation...</p>'
+              }
+            </div>
+            <p>This page will refresh automatically every 5 seconds.</p>
+          </body>
+        </html>
+      `);
+    }
+    
+    // Display QR code
+    res.status(200).send(`
+      <html>
+        <head>
+          <title>WhatsApp QR Code</title>
+          <meta http-equiv="refresh" content="30">
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              padding: 50px; 
+              background-color: #f5f5f5;
+            }
+            .container {
+              background: white;
+              border-radius: 10px;
+              padding: 30px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+              max-width: 500px;
+              margin: 0 auto;
+            }
+            .qr-code {
+              margin: 20px 0;
+              border: 2px solid #ddd;
+              border-radius: 10px;
+              padding: 20px;
+              background: white;
+            }
+            .instructions {
+              color: #666;
+              margin: 20px 0;
+              line-height: 1.6;
+            }
+            .status {
+              color: #25D366;
+              font-weight: bold;
+              margin: 10px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>📱 WhatsApp QR Code</h1>
+            <div class="status">Ready for scanning</div>
+            
+            <div class="qr-code">
+              <img src="${qrData.qrCodeImage}" alt="WhatsApp QR Code" style="max-width: 100%; height: auto;">
+            </div>
+            
+            <div class="instructions">
+              <h3>How to scan:</h3>
+              <ol style="text-align: left; display: inline-block;">
+                <li>Open WhatsApp on your phone</li>
+                <li>Go to Settings → Linked Devices</li>
+                <li>Tap "Link a Device"</li>
+                <li>Scan this QR code</li>
+              </ol>
+            </div>
+            
+            <p><small>This page refreshes every 30 seconds. After authentication, this QR code will disappear.</small></p>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error("❌ Error displaying WhatsApp QR code:", error);
+    
+    res.status(500).send(`
+      <html>
+        <head><title>Error</title></head>
+        <body>
+          <h1>Error</h1>
+          <p>Failed to display WhatsApp QR code: ${error.message}</p>
+        </body>
+      </html>
+    `);
   }
 });
 
