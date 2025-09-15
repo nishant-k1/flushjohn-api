@@ -28,22 +28,13 @@ const getAllowedOrigins = () => {
     ? process.env.DEV_ORIGINS.split(",")
         .map((origin) => origin.trim())
         .filter(Boolean)
-    : [
-        "http://localhost:8080",
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-      ];
+    : [];
 
   const prodOrigins = process.env.PROD_ORIGINS
     ? process.env.PROD_ORIGINS.split(",")
         .map((origin) => origin.trim())
         .filter(Boolean)
-    : [
-        "https://www.flushjohn.com",
-        "http://www.flushjohn.com",
-        /\.flushjohn\.com$/,
-      ];
+    : [];
 
   // Log configuration for debugging
   if (process.env.NODE_ENV === "development") {

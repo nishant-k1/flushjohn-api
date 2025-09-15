@@ -90,8 +90,7 @@ router.post("/", async function (req, res, next) {
 
 router.get("/", async function (req, res, next) {
   try {
-    const { searchParams } = new URL(req.url);
-    const _id = searchParams.get("_id");
+    const _id = req.query._id;
 
     if (_id) {
       // ✅ ERROR HANDLING FIX: Validate MongoDB ObjectId format
@@ -120,14 +119,14 @@ router.get("/", async function (req, res, next) {
       });
     } else {
       // ✅ PERFORMANCE FIX: Implement pagination and proper sorting
-      const page = parseInt(searchParams.get("page")) || 1;
-      const limit = parseInt(searchParams.get("limit")) || 10;
-      const sortBy = searchParams.get("sortBy") || "createdAt";
-      const sortOrder = searchParams.get("sortOrder") || "desc";
-      const status = searchParams.get("status");
-      const assignedTo = searchParams.get("assignedTo");
-      const leadSource = searchParams.get("leadSource");
-      const search = searchParams.get("search");
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const sortBy = req.query.sortBy || "createdAt";
+      const sortOrder = req.query.sortOrder || "desc";
+      const status = req.query.status;
+      const assignedTo = req.query.assignedTo;
+      const leadSource = req.query.leadSource;
+      const search = req.query.search;
 
       // Validate pagination parameters
       if (page < 1) {
@@ -246,8 +245,7 @@ router.get("/", async function (req, res, next) {
 
 router.put("/", async function (req, res, next) {
   try {
-    const { searchParams } = new URL(req.url);
-    const _id = searchParams.get("_id");
+    const _id = req.query._id;
 
     // ✅ ERROR HANDLING FIX: Validate required parameters
     if (!_id) {
@@ -327,8 +325,7 @@ router.put("/", async function (req, res, next) {
 
 router.delete("/", async function (req, res, next) {
   try {
-    const { searchParams } = new URL(req.url);
-    const _id = searchParams.get("_id");
+    const _id = req.query._id;
 
     // ✅ ERROR HANDLING FIX: Validate required parameters
     if (!_id) {
