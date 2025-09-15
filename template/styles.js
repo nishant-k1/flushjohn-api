@@ -187,4 +187,4 @@ const styles = `html,
   }
 `;
 
-module.exports = styles;
+export default styles;

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const QuotesSchema = new mongoose.Schema({
   // Tracking
@@ -83,5 +83,4 @@ const QuotesSchema = new mongoose.Schema({
   },
 });
 
-module.exports =
-  mongoose.models.Quotes || mongoose.model("Quotes", QuotesSchema);
+export default mongoose.models.Quotes || mongoose.model("Quotes", QuotesSchema);

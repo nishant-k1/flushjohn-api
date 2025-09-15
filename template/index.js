@@ -1,4 +1,4 @@
-const styles = require("./styles");
+import styles from "./styles.js";
 
 const itemRows = (products) => {
   return products
@@ -204,4 +204,4 @@ const htmlTemplate = (jobOrderData) => {
 `;
 };
 
-module.exports = htmlTemplate;
+export default htmlTemplate;

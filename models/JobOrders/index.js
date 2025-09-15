@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const JobOrdersSchema = new mongoose.Schema({
   // Tracking
@@ -92,5 +92,5 @@ const JobOrdersSchema = new mongoose.Schema({
   },
 });
 
-module.exports =
-  mongoose.models.JobOrders || mongoose.model("JobOrders", JobOrdersSchema);
+export default mongoose.models.JobOrders ||
+  mongoose.model("JobOrders", JobOrdersSchema);

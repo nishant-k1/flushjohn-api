@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const CustomersSchema = new mongoose.Schema({
   // Tracking
@@ -74,5 +74,5 @@ const CustomersSchema = new mongoose.Schema({
   },
 });
 
-module.exports =
-  mongoose.models.Customers || mongoose.model("Customers", CustomersSchema);
+export default mongoose.models.Customers ||
+  mongoose.model("Customers", CustomersSchema);

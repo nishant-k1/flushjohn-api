@@ -148,8 +148,11 @@ app.use("/", indexRouter);
 app.use("/leads", leadsRouter);
 app.use("/blogs", blogsRouter);
 
-// Connect Database
-dbConnect();
+// ✅ STANDARDIZED: Connect Database with enhanced error handling
+dbConnect().catch((error) => {
+  console.error("❌ Failed to connect to database:", error.message);
+  process.exit(1);
+});
 
 // Handle 404 errors
 app.use((req, res, next) => {

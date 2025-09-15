@@ -82,4 +82,13 @@ const LeadsSchema = new Schema({
   },
 });
 
+// ✅ PERFORMANCE FIX: Add database indexes for efficient queries
+LeadsSchema.index({ createdAt: -1 }); // For sorting by creation date
+LeadsSchema.index({ leadNo: 1 }); // For lead number lookups
+LeadsSchema.index({ leadStatus: 1 }); // For filtering by status
+LeadsSchema.index({ assignedTo: 1 }); // For filtering by assigned user
+LeadsSchema.index({ leadSource: 1 }); // For filtering by source
+LeadsSchema.index({ createdAt: -1, leadStatus: 1 }); // Compound index for common queries
+LeadsSchema.index({ assignedTo: 1, leadStatus: 1 }); // Compound index for user-specific queries
+
 export default model("Leads", LeadsSchema);
