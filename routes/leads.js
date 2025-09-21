@@ -59,10 +59,7 @@ router.post("/", async function (req, res, next) {
       console.log(`📢 Alert results for lead #${leadNo}:`, alertResults);
     } catch (alertError) {
       // Don't fail the lead creation if alerts fail
-      console.error(
-        `⚠️ Alert sending failed for lead #${leadNo}:`,
-        alertError
-      );
+      console.error(`⚠️ Alert sending failed for lead #${leadNo}:`, alertError);
     }
 
     res.status(201).json({
@@ -338,7 +335,13 @@ router.put("/", async function (req, res, next) {
 
 router.delete("/", async function (req, res, next) {
   try {
-    const _id = req.query._id;
+    // Try to get _id from query params first, then from request body
+    let _id = req.query._id;
+
+    // If not in query params, get from request body
+    if (!_id && req.body && req.body._id) {
+      _id = req.body._id;
+    }
 
     // ✅ ERROR HANDLING FIX: Validate required parameters
     if (!_id) {
@@ -407,15 +410,15 @@ router.delete("/", async function (req, res, next) {
 router.post("/test-alerts", async function (req, res, next) {
   try {
     const result = await alertService.testConnection();
-    
+
     res.status(200).json({
       success: result.success,
       message: result.message || "Alert test completed",
-      data: result
+      data: result,
     });
   } catch (error) {
     console.error("❌ Error testing alerts:", error);
-    
+
     res.status(500).json({
       success: false,
       message: "Failed to test alerts",
@@ -429,7 +432,7 @@ router.post("/test-alerts", async function (req, res, next) {
 router.get("/whatsapp-qr", async function (req, res, next) {
   try {
     const qrData = alertService.getWhatsAppQRCode();
-    
+
     if (!qrData.isEnabled) {
       return res.status(400).send(`
         <html>
@@ -441,7 +444,7 @@ router.get("/whatsapp-qr", async function (req, res, next) {
         </html>
       `);
     }
-    
+
     if (!qrData.hasQRCode) {
       return res.status(200).send(`
         <html>
@@ -456,9 +459,10 @@ router.get("/whatsapp-qr", async function (req, res, next) {
           <body>
             <h1>WhatsApp Authentication</h1>
             <div class="status">
-              ${qrData.isReady ? 
-                '<p style="color: green;">✅ WhatsApp is authenticated and ready!</p>' :
-                '<p>⏳ Waiting for QR code generation...</p>'
+              ${
+                qrData.isReady
+                  ? '<p style="color: green;">✅ WhatsApp is authenticated and ready!</p>'
+                  : "<p>⏳ Waiting for QR code generation...</p>"
               }
             </div>
             <p>This page will refresh automatically every 5 seconds.</p>
@@ -466,7 +470,7 @@ router.get("/whatsapp-qr", async function (req, res, next) {
         </html>
       `);
     }
-    
+
     // Display QR code
     res.status(200).send(`
       <html>
@@ -533,7 +537,7 @@ router.get("/whatsapp-qr", async function (req, res, next) {
     `);
   } catch (error) {
     console.error("❌ Error displaying WhatsApp QR code:", error);
-    
+
     res.status(500).send(`
       <html>
         <head><title>Error</title></head>

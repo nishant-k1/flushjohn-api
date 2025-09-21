@@ -21,51 +21,16 @@ const log = debug("flushjohn-api:server");
 const port = normalizePort(process.env.PORT || "8080");
 app.set("port", port);
 
-// CORS configuration - Environment-based
+// CORS configuration - Single environment setup
 const getAllowedOrigins = () => {
-  // Get origins from environment variables
-  const devOrigins = process.env.DEV_ORIGINS
-    ? process.env.DEV_ORIGINS.split(",")
+  // Get origins from single ORIGINS environment variable
+  const origins = process.env.ORIGINS
+    ? process.env.ORIGINS.split(",")
         .map((origin) => origin.trim())
         .filter(Boolean)
     : [];
 
-  const prodOrigins = process.env.PROD_ORIGINS
-    ? process.env.PROD_ORIGINS.split(",")
-        .map((origin) => origin.trim())
-        .filter(Boolean)
-    : [];
-
-  // Log configuration for debugging
-  if (process.env.NODE_ENV === "development") {
-    console.log("🔧 CORS Configuration:");
-    console.log("  Environment:", process.env.NODE_ENV);
-    console.log("  Dev Origins:", devOrigins);
-    console.log("  Prod Origins:", prodOrigins);
-  }
-
-  // In production, only allow production domains
-  if (process.env.NODE_ENV === "production") {
-    if (prodOrigins.length === 0) {
-      console.warn("⚠️  No production origins configured! Using fallback.");
-      return ["https://www.flushjohn.com"];
-    }
-    return prodOrigins;
-  }
-
-  // In development, allow development origins + production origins
-  const allOrigins = [...devOrigins, ...prodOrigins];
-
-  if (allOrigins.length === 0) {
-    console.warn("⚠️  No origins configured! Using fallback.");
-    return [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3002",
-    ];
-  }
-
-  return allOrigins;
+  return origins;
 };
 
 const corsOptionsAPI = {
@@ -119,20 +84,19 @@ app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(cookieParser());
 
-// CORS debugging endpoint (only in development)
-if (process.env.NODE_ENV !== "production") {
-  app.get("/cors-debug", (req, res) => {
-    res.json({
-      message: "CORS Debug Info",
-      origin: req.headers.origin,
-      allowedOrigins: getAllowedOrigins(),
-      userAgent: req.headers["user-agent"],
-      method: req.method,
-      headers: req.headers,
-      timestamp: new Date().toISOString(),
-    });
+// CORS debugging endpoint
+app.get("/cors-debug", (req, res) => {
+  res.json({
+    message: "CORS Debug Info",
+    origin: req.headers.origin,
+    allowedOrigins: getAllowedOrigins(),
+    userAgent: req.headers["user-agent"],
+    method: req.method,
+    headers: req.headers,
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
   });
-}
+});
 
 // Routes
 app.use("/", indexRouter);
@@ -164,10 +128,7 @@ app.use((err, req, res, next) => {
         process.env.NODE_ENV === "development"
           ? err.message
           : "CORS policy violation",
-      allowedOrigins:
-        process.env.NODE_ENV === "development"
-          ? getAllowedOrigins()
-          : undefined,
+      allowedOrigins: getAllowedOrigins(),
       origin: req.headers.origin,
     });
     return;
