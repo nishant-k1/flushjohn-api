@@ -100,7 +100,13 @@ router.post("/", async function (req, res, next) {
 
 router.get("/", async function (req, res, next) {
   try {
-    const _id = req.query._id;
+    // Try to get _id from query params first, then from request body
+    let _id = req.query._id;
+    if (!_id && req.body && req.body._id) {
+      _id = req.body._id;
+      // Remove _id from body to avoid including it in the update
+      delete req.body._id;
+    }
 
     if (_id) {
       // ✅ ERROR HANDLING FIX: Validate MongoDB ObjectId format
@@ -255,7 +261,13 @@ router.get("/", async function (req, res, next) {
 
 router.put("/", async function (req, res, next) {
   try {
-    const _id = req.query._id;
+    // Try to get _id from query params first, then from request body
+    let _id = req.query._id;
+    if (!_id && req.body && req.body._id) {
+      _id = req.body._id;
+      // Remove _id from body to avoid including it in the update
+      delete req.body._id;
+    }
 
     // ✅ ERROR HANDLING FIX: Validate required parameters
     if (!_id) {
