@@ -373,17 +373,10 @@ router.delete("/", async function (req, res, next) {
 
     await Leads.findByIdAndDelete(_id);
 
-    // ✅ PERFORMANCE FIX: Use efficient query for updated list
-    const leadsList = await Leads.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean();
-
     res.status(200).json({
       success: true,
       message: "Lead deleted successfully",
-      data: leadsList,
-      count: leadsList.length,
+      data: { _id },
     });
   } catch (error) {
     console.error("❌ Error deleting lead:", error);

@@ -16,9 +16,8 @@ router.post("/", async function (req, res) {
       blogNo: newBlogNo,
       slug: generateSlug(req.body?.title),
     };
-    await Blogs.create(newBlogPostData);
-    const blogsList = await Blogs.find().sort({ _id: -1 });
-    res.status(201).json({ success: true, data: blogsList });
+    const newBlog = await Blogs.create(newBlogPostData);
+    res.status(201).json({ success: true, data: newBlog });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
@@ -71,8 +70,11 @@ router.delete("/", async function (req, res) {
   try {
     const _id = req.query?._id;
     await Blogs.findByIdAndDelete(_id);
-    const blogsList = await Blogs.find().sort({ _id: -1 });
-    res.status(200).json({ success: true, data: blogsList });
+    res.status(200).json({ 
+      success: true, 
+      message: "Blog deleted successfully",
+      data: { _id } 
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
