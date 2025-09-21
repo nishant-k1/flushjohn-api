@@ -98,146 +98,112 @@ router.post("/", async function (req, res, next) {
   }
 });
 
+// GET /leads - Get all leads with pagination, sorting, and filtering
 router.get("/", async function (req, res, next) {
   try {
-    // Try to get _id from query params first, then from request body
-    let _id = req.query._id;
-    if (!_id && req.body && req.body._id) {
-      _id = req.body._id;
-      // Remove _id from body to avoid including it in the update
-      delete req.body._id;
+    // ✅ PERFORMANCE FIX: Implement pagination and proper sorting
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const sortBy = req.query.sortBy || "createdAt";
+    const sortOrder = req.query.sortOrder || "desc";
+    const status = req.query.status;
+    const assignedTo = req.query.assignedTo;
+    const leadSource = req.query.leadSource;
+    const search = req.query.search;
+
+    // Validate pagination parameters
+    if (page < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Page number must be greater than 0",
+        error: "INVALID_PAGE_NUMBER",
+      });
     }
 
-    if (_id) {
-      // ✅ ERROR HANDLING FIX: Validate MongoDB ObjectId format
-      if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid lead ID format",
-          error: "INVALID_ID_FORMAT",
-        });
-      }
-
-      const lead = await Leads.findById(_id);
-
-      if (!lead) {
-        return res.status(404).json({
-          success: false,
-          message: "Lead not found",
-          error: "LEAD_NOT_FOUND",
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: "Lead retrieved successfully",
-        data: lead,
+    if (limit < 1 || limit > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Limit must be between 1 and 100",
+        error: "INVALID_LIMIT",
       });
-    } else {
-      // ✅ PERFORMANCE FIX: Implement pagination and proper sorting
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const sortBy = req.query.sortBy || "createdAt";
-      const sortOrder = req.query.sortOrder || "desc";
-      const status = req.query.status;
-      const assignedTo = req.query.assignedTo;
-      const leadSource = req.query.leadSource;
-      const search = req.query.search;
+    }
 
-      // Validate pagination parameters
-      if (page < 1) {
-        return res.status(400).json({
-          success: false,
-          message: "Page number must be greater than 0",
-          error: "INVALID_PAGE_NUMBER",
-        });
-      }
+    // Build query filters
+    const query = {};
 
-      if (limit < 1 || limit > 100) {
-        return res.status(400).json({
-          success: false,
-          message: "Limit must be between 1 and 100",
-          error: "INVALID_LIMIT",
-        });
-      }
+    if (status) {
+      query.leadStatus = status;
+    }
 
-      // Build query filters
-      const query = {};
+    if (assignedTo) {
+      query.assignedTo = assignedTo;
+    }
 
-      if (status) {
-        query.leadStatus = status;
-      }
+    if (leadSource) {
+      query.leadSource = leadSource;
+    }
 
-      if (assignedTo) {
-        query.assignedTo = assignedTo;
-      }
-
-      if (leadSource) {
-        query.leadSource = leadSource;
-      }
-
-      if (search) {
-        // ✅ PERFORMANCE FIX: Text search across multiple fields
-        query.$or = [
-          { fName: { $regex: search, $options: "i" } },
-          { lName: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-          { phone: { $regex: search, $options: "i" } },
-          { companyName: { $regex: search, $options: "i" } },
-        ];
-      }
-
-      // Build sort object
-      const sort = {};
-      const validSortFields = [
-        "createdAt",
-        "leadNo",
-        "leadStatus",
-        "assignedTo",
-        "leadSource",
+    if (search) {
+      // ✅ PERFORMANCE FIX: Text search across multiple fields
+      query.$or = [
+        { fName: { $regex: search, $options: "i" } },
+        { lName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+        { companyName: { $regex: search, $options: "i" } },
       ];
-      const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
-      const sortDirection = sortOrder === "asc" ? 1 : -1;
-      sort[sortField] = sortDirection;
-
-      // Calculate pagination
-      const skip = (page - 1) * limit;
-
-      // ✅ PERFORMANCE FIX: Use efficient queries with pagination
-      const [leadsList, totalCount] = await Promise.all([
-        Leads.find(query).sort(sort).skip(skip).limit(limit).lean(), // Use lean() for better performance
-        Leads.countDocuments(query),
-      ]);
-
-      // Calculate pagination metadata
-      const totalPages = Math.ceil(totalCount / limit);
-      const hasNextPage = page < totalPages;
-      const hasPrevPage = page > 1;
-
-      res.status(200).json({
-        success: true,
-        message: "Leads retrieved successfully",
-        data: leadsList,
-        pagination: {
-          currentPage: page,
-          totalPages,
-          totalCount,
-          limit,
-          hasNextPage,
-          hasPrevPage,
-          nextPage: hasNextPage ? page + 1 : null,
-          prevPage: hasPrevPage ? page - 1 : null,
-        },
-        filters: {
-          sortBy: sortField,
-          sortOrder,
-          status,
-          assignedTo,
-          leadSource,
-          search,
-        },
-      });
     }
+
+    // Build sort object
+    const sort = {};
+    const validSortFields = [
+      "createdAt",
+      "leadNo",
+      "leadStatus",
+      "assignedTo",
+      "leadSource",
+    ];
+    const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+    const sortDirection = sortOrder === "asc" ? 1 : -1;
+    sort[sortField] = sortDirection;
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // ✅ PERFORMANCE FIX: Use efficient queries with pagination
+    const [leadsList, totalCount] = await Promise.all([
+      Leads.find(query).sort(sort).skip(skip).limit(limit).lean(), // Use lean() for better performance
+      Leads.countDocuments(query),
+    ]);
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    res.status(200).json({
+      success: true,
+      message: "Leads retrieved successfully",
+      data: leadsList,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null,
+      },
+      filters: {
+        sortBy: sortField,
+        sortOrder,
+        status,
+        assignedTo,
+        leadSource,
+        search,
+      },
+    });
   } catch (error) {
     console.error("❌ Error retrieving leads:", error);
 
@@ -259,24 +225,60 @@ router.get("/", async function (req, res, next) {
   }
 });
 
-router.put("/", async function (req, res, next) {
+// GET /leads/:id - Get a single lead by ID
+router.get("/:id", async function (req, res, next) {
   try {
-    // Try to get _id from query params first, then from request body
-    let _id = req.query._id;
-    if (!_id && req.body && req.body._id) {
-      _id = req.body._id;
-      // Remove _id from body to avoid including it in the update
-      delete req.body._id;
-    }
+    const _id = req.params.id;
 
-    // ✅ ERROR HANDLING FIX: Validate required parameters
-    if (!_id) {
+    // ✅ ERROR HANDLING FIX: Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
         success: false,
-        message: "Lead ID is required",
-        error: "MISSING_LEAD_ID",
+        message: "Invalid lead ID format",
+        error: "INVALID_ID_FORMAT",
       });
     }
+
+    const lead = await Leads.findById(_id);
+
+    if (!lead) {
+      return res.status(404).json({
+        success: false,
+        message: "Lead not found",
+        error: "LEAD_NOT_FOUND",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Lead retrieved successfully",
+      data: lead,
+    });
+  } catch (error) {
+    console.error("❌ Error retrieving lead:", error);
+
+    // ✅ ERROR HANDLING FIX: Handle specific error types
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve lead",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+});
+
+// PUT /leads/:id - Update a lead by ID
+router.put("/:id", async function (req, res, next) {
+  try {
+    const _id = req.params.id;
 
     // ✅ ERROR HANDLING FIX: Validate MongoDB ObjectId format
     if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
@@ -345,24 +347,10 @@ router.put("/", async function (req, res, next) {
   }
 });
 
-router.delete("/", async function (req, res, next) {
+// DELETE /leads/:id - Delete a lead by ID
+router.delete("/:id", async function (req, res, next) {
   try {
-    // Try to get _id from query params first, then from request body
-    let _id = req.query._id;
-
-    // If not in query params, get from request body
-    if (!_id && req.body && req.body._id) {
-      _id = req.body._id;
-    }
-
-    // ✅ ERROR HANDLING FIX: Validate required parameters
-    if (!_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Lead ID is required",
-        error: "MISSING_LEAD_ID",
-      });
-    }
+    const _id = req.params.id;
 
     // ✅ ERROR HANDLING FIX: Validate MongoDB ObjectId format
     if (!_id.match(/^[0-9a-fA-F]{24}$/)) {

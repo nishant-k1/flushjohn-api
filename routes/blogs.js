@@ -24,40 +24,41 @@ router.post("/", async function (req, res) {
   }
 });
 
+// GET /blogs - Get all blogs
 router.get("/", async function (req, res) {
   try {
-    const _id = req.query?._id;
-    const slug = req.query?.slug;
-
-    if (_id) {
-      const blog = await Blogs.findById(_id);
-      res.status(200).json({ success: true, data: blog });
-    } else if (slug) {
-      const blog = await Blogs.findOne({ slug });
-      res.status(200).json({ success: true, data: blog });
-    } else {
-      const blogsList = await Blogs.find().sort({ _id: -1 });
-      res.status(200).json({ success: true, data: blogsList });
-    }
+    const blogsList = await Blogs.find().sort({ _id: -1 });
+    res.status(200).json({ success: true, data: blogsList });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// PUT: Update a blog by _id
-router.put("/", async function (req, res) {
+// GET /blogs/:id - Get a single blog by ID
+router.get("/:id", async function (req, res) {
   try {
-    const createdAt = new Date();
-    const _id = req.query?._id;
-    const newBlogUpdateData = {
-      ...req.body,
-      createdAt,
-      slug: generateSlug(req.body?.title),
-    };
-    const blog = await Blogs.findByIdAndUpdate(_id, newBlogUpdateData, {
-      new: true,
-    });
+    const _id = req.params.id;
+    
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blog ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+    
+    const blog = await Blogs.findById(_id);
+    
+    if (!blog) {
+      return res.status(404).json({
+        success: false,
+        message: "Blog not found",
+        error: "BLOG_NOT_FOUND",
+      });
+    }
+    
     res.status(200).json({ success: true, data: blog });
   } catch (error) {
     console.error(error);
@@ -65,11 +66,107 @@ router.put("/", async function (req, res) {
   }
 });
 
-// DELETE: Delete a blog by _id
-router.delete("/", async function (req, res) {
+// GET /blogs/slug/:slug - Get a blog by slug
+router.get("/slug/:slug", async function (req, res) {
   try {
-    const _id = req.query?._id;
+    const slug = req.params.slug;
+    const blog = await Blogs.findOne({ slug });
+    
+    if (!blog) {
+      return res.status(404).json({
+        success: false,
+        message: "Blog not found",
+        error: "BLOG_NOT_FOUND",
+      });
+    }
+    
+    res.status(200).json({ success: true, data: blog });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// PUT /blogs/:id - Update a blog by ID
+router.put("/:id", async function (req, res) {
+  try {
+    const _id = req.params.id;
+    
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blog ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+    
+    // Validate request body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body is required for update",
+        error: "EMPTY_REQUEST_BODY",
+      });
+    }
+    
+    const updatedAt = new Date();
+    const newBlogUpdateData = {
+      ...req.body,
+      updatedAt,
+      slug: generateSlug(req.body?.title),
+    };
+    
+    const blog = await Blogs.findByIdAndUpdate(_id, newBlogUpdateData, {
+      new: true,
+      runValidators: true,
+    });
+    
+    if (!blog) {
+      return res.status(404).json({
+        success: false,
+        message: "Blog not found",
+        error: "BLOG_NOT_FOUND",
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      message: "Blog updated successfully",
+      data: blog 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// DELETE /blogs/:id - Delete a blog by ID
+router.delete("/:id", async function (req, res) {
+  try {
+    const _id = req.params.id;
+    
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blog ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+    
+    // Check if blog exists before deletion
+    const existingBlog = await Blogs.findById(_id);
+    if (!existingBlog) {
+      return res.status(404).json({
+        success: false,
+        message: "Blog not found",
+        error: "BLOG_NOT_FOUND",
+      });
+    }
+    
     await Blogs.findByIdAndDelete(_id);
+    
     res.status(200).json({ 
       success: true, 
       message: "Blog deleted successfully",
