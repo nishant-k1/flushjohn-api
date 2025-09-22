@@ -9,6 +9,12 @@ const CustomersSchema = new mongoose.Schema({
   customerNo: {
     type: Number,
   },
+  salesOrderNo: {
+    type: [Number],
+  },
+  quoteNo: {
+    type: [Number],
+  },
 
   // Personal Details
   fName: {

@@ -12,6 +12,11 @@ import socketConnect from "./lib/socketConnect/index.js";
 import indexRouter from "./routes/index.js";
 import leadsRouter from "./routes/leads.js";
 import blogsRouter from "./routes/blogs.js";
+import vendorsRouter from "./routes/vendors.js";
+import customersRouter from "./routes/customers.js";
+import quotesRouter from "./routes/quotes.js";
+import salesOrdersRouter from "./routes/salesOrders.js";
+import jobOrdersRouter from "./routes/jobOrders.js";
 
 config();
 
@@ -102,6 +107,11 @@ app.get("/cors-debug", (req, res) => {
 app.use("/", indexRouter);
 app.use("/leads", leadsRouter);
 app.use("/blogs", blogsRouter);
+app.use("/vendors", vendorsRouter);
+app.use("/customers", customersRouter);
+app.use("/quotes", quotesRouter);
+app.use("/salesOrders", salesOrdersRouter);
+app.use("/jobOrders", jobOrdersRouter);
 
 // ✅ STANDARDIZED: Connect Database with enhanced error handling
 dbConnect().catch((error) => {
