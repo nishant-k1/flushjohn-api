@@ -42,7 +42,17 @@ const getAllowedOrigins = () => {
 };
 
 const corsOptionsAPI = {
-  origin: getAllowedOrigins(),
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like desktop apps, mobile apps, etc.)
+    if (!origin) return callback(null, true);
+
+    const allowedOrigins = getAllowedOrigins();
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
   allowedHeaders: [
     "Content-Type",
