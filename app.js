@@ -10,6 +10,9 @@ import { createServer } from "http";
 import dbConnect from "./lib/dbConnect/index.js";
 import socketConnect from "./lib/socketConnect/index.js";
 import indexRouter from "./routes/index.js";
+import authRouter from "./routes/auth.js";
+import fileUploadRouter from "./routes/file-upload.js";
+import usersRouter from "./routes/users.js";
 import leadsRouter from "./routes/leads.js";
 import blogsRouter from "./routes/blogs.js";
 import vendorsRouter from "./routes/vendors.js";
@@ -105,6 +108,9 @@ app.get("/cors-debug", (req, res) => {
 
 // Routes
 app.use("/", indexRouter);
+app.use("/auth", authRouter);
+app.use("/file-upload", fileUploadRouter);
+app.use("/users", usersRouter);
 app.use("/leads", leadsRouter);
 app.use("/blogs", blogsRouter);
 app.use("/vendors", vendorsRouter);
