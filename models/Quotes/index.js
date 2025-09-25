@@ -16,6 +16,12 @@ const QuotesSchema = new mongoose.Schema({
     type: String,
     default: "Pending",
   },
+  leadNo: {
+    type: String,
+  },
+  leadId: {
+    type: String,
+  },
   // Personal Details
   fName: {
     type: String,

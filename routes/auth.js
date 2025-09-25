@@ -77,10 +77,11 @@ router.post("/", async (req, res) => {
           path: "/",
         });
 
-        // ✅ SECURITY FIX: Don't send token in response body when using httpOnly cookies
+        // ✅ DESKTOP APP FIX: Send token in response body for desktop app compatibility
         res.status(200).json({
           success: true,
           message: "Authentication successful",
+          token: token, // Include token for desktop apps
           user: {
             userId: user.userId,
             fName: user.fName,
@@ -172,8 +173,16 @@ router.post("/register", async (req, res) => {
 // Verify token endpoint - Exact copy from original CRM with Express conversion
 router.get("/verify", async (req, res) => {
   try {
-    // Get token from httpOnly cookie
-    const token = req.cookies.token;
+    // ✅ DESKTOP APP FIX: Support both cookie and Bearer token authentication
+    let token = req.cookies.token; // Try cookie first
+
+    // If no cookie, try Authorization header (for desktop apps)
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (!token) {
       return res.status(401).json({
