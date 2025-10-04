@@ -71,7 +71,7 @@ router.post("/", async (req, res) => {
         // Set httpOnly cookie (Express equivalent of Next.js serialize)
         res.cookie("token", token, {
           httpOnly: true, // ✅ SECURITY FIX: Prevent XSS attacks
-          sameSite: "strict", // ✅ CSRF protection
+          sameSite: "Lax", // ✅ CSRF protection
           secure: process.env.NODE_ENV === "production", // ✅ HTTPS only in production
           maxAge: 3600 * 1000, // 1 hour expiration
           path: "/",
