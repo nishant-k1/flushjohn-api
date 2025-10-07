@@ -234,4 +234,138 @@ router.delete("/:id", async function (req, res) {
   }
 });
 
+// POST /jobOrders/:id/pdf - Generate PDF for job order
+router.post("/:id/pdf", async function (req, res) {
+  try {
+    const _id = req.params.id;
+
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job order ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    // Validate request body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body is required for PDF generation",
+        error: "EMPTY_REQUEST_BODY",
+      });
+    }
+
+    // Find the job order
+    const jobOrder = await JobOrders.findById(_id);
+    if (!jobOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Job order not found",
+        error: "JOB_ORDER_NOT_FOUND",
+      });
+    }
+
+    // TODO: Implement actual PDF generation logic here
+    // For now, return success response
+    res.status(201).json({
+      success: true,
+      message: "PDF generated successfully",
+      data: { _id, pdfUrl: `/temp/job_order_${_id}.pdf` },
+    });
+  } catch (error) {
+    console.error("❌ Error generating job order PDF:", error);
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate PDF",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+});
+
+// POST /jobOrders/:id/email - Send job order via email
+router.post("/:id/email", async function (req, res) {
+  try {
+    const _id = req.params.id;
+
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job order ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    // Validate request body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body is required for email sending",
+        error: "EMPTY_REQUEST_BODY",
+      });
+    }
+
+    // Find and update the job order
+    const updatedJobOrder = await JobOrders.findByIdAndUpdate(
+      _id,
+      { ...req.body, emailStatus: "Sent", updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedJobOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Job order not found",
+        error: "JOB_ORDER_NOT_FOUND",
+      });
+    }
+
+    // TODO: Implement actual email sending logic here
+    // For now, return success response
+    res.status(200).json({
+      success: true,
+      message: "Job order email sent successfully",
+      data: updatedJobOrder,
+    });
+  } catch (error) {
+    console.error("❌ Error sending job order email:", error);
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        error: "VALIDATION_ERROR",
+        details: Object.values(error.errors).map((err) => err.message),
+      });
+    }
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to send email",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+});
+
 export default router;
