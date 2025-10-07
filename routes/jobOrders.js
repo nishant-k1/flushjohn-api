@@ -257,7 +257,7 @@ router.post("/:id/pdf", async function (req, res) {
       });
     }
 
-    // Find the job order
+    // Find the job order to verify it exists
     const jobOrder = await JobOrders.findById(_id);
     if (!jobOrder) {
       return res.status(404).json({
@@ -267,12 +267,24 @@ router.post("/:id/pdf", async function (req, res) {
       });
     }
 
-    // TODO: Implement actual PDF generation logic here
-    // For now, return success response
-    res.status(201).json({
+    // Use the fresh data from request body for PDF generation
+    // This ensures the PDF shows the latest form data, not outdated database data
+    const pdfData = {
+      ...req.body,
+      _id: _id,
+      jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
+      createdAt: req.body.createdAt || jobOrder.createdAt,
+    };
+
+    // Return the data for frontend PDF generation
+    res.status(200).json({
       success: true,
-      message: "PDF generated successfully",
-      data: { _id, pdfUrl: `/temp/job_order_${_id}.pdf` },
+      message: "PDF data ready for generation",
+      data: {
+        _id,
+        pdfData: pdfData,
+        template: "jobOrder", // Specify which template to use
+      },
     });
   } catch (error) {
     console.error("❌ Error generating job order PDF:", error);

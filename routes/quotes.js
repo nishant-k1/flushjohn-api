@@ -256,7 +256,7 @@ router.post("/:id/pdf", async function (req, res) {
       });
     }
 
-    // Find the quote
+    // Find the quote to verify it exists
     const quote = await Quotes.findById(_id);
     if (!quote) {
       return res.status(404).json({
@@ -266,12 +266,24 @@ router.post("/:id/pdf", async function (req, res) {
       });
     }
 
-    // TODO: Implement actual PDF generation logic here
-    // For now, return success response
-    res.status(201).json({
+    // Use the fresh data from request body for PDF generation
+    // This ensures the PDF shows the latest form data, not outdated database data
+    const pdfData = {
+      ...req.body,
+      _id: _id,
+      quoteNo: req.body.quoteNo || quote.quoteNo,
+      createdAt: req.body.createdAt || quote.createdAt,
+    };
+
+    // Return the data for frontend PDF generation
+    res.status(200).json({
       success: true,
-      message: "PDF generated successfully",
-      data: { _id, pdfUrl: `/temp/quote_${_id}.pdf` },
+      message: "PDF data ready for generation",
+      data: {
+        _id,
+        pdfData: pdfData,
+        template: "quote", // Specify which template to use
+      },
     });
   } catch (error) {
     console.error("❌ Error generating quote PDF:", error);

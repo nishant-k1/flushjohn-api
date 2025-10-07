@@ -305,7 +305,7 @@ router.post("/:id/pdf", async function (req, res) {
       });
     }
 
-    // Find the sales order
+    // Find the sales order to verify it exists
     const salesOrder = await SalesOrders.findById(_id);
     if (!salesOrder) {
       return res.status(404).json({
@@ -315,12 +315,24 @@ router.post("/:id/pdf", async function (req, res) {
       });
     }
 
-    // TODO: Implement actual PDF generation logic here
-    // For now, return success response
-    res.status(201).json({
+    // Use the fresh data from request body for PDF generation
+    // This ensures the PDF shows the latest form data, not outdated database data
+    const pdfData = {
+      ...req.body,
+      _id: _id,
+      salesOrderNo: req.body.salesOrderNo || salesOrder.salesOrderNo,
+      createdAt: req.body.createdAt || salesOrder.createdAt,
+    };
+
+    // Return the data for frontend PDF generation
+    res.status(200).json({
       success: true,
-      message: "PDF generated successfully",
-      data: { _id, pdfUrl: `/temp/sales_order_${_id}.pdf` },
+      message: "PDF data ready for generation",
+      data: {
+        _id,
+        pdfData: pdfData,
+        template: "salesOrder", // Specify which template to use
+      },
     });
   } catch (error) {
     console.error("❌ Error generating sales order PDF:", error);
