@@ -161,22 +161,33 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-// PUT /salesOrders - Update sales order
-router.put("/", async function (req, res) {
+// PUT /salesOrders/:id - Update sales order by ID
+router.put("/:id", async function (req, res) {
   try {
-    const { _id, ...updateData } = req.body;
+    const _id = req.params.id;
 
-    if (!_id) {
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
         success: false,
-        message: "Sales order ID is required",
+        message: "Invalid sales order ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    // Validate request body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body is required for update",
+        error: "EMPTY_REQUEST_BODY",
       });
     }
 
     const emailStatus = "Pending";
     const updatedSalesOrder = await SalesOrders.findByIdAndUpdate(
       _id,
-      { ...updateData, emailStatus, updatedAt: new Date() },
+      { ...req.body, emailStatus, updatedAt: new Date() },
       { new: true, runValidators: true }
     );
 
@@ -184,48 +195,90 @@ router.put("/", async function (req, res) {
       return res.status(404).json({
         success: false,
         message: "Sales order not found",
+        error: "SALES_ORDER_NOT_FOUND",
       });
     }
 
     res.status(200).json({ success: true, data: updatedSalesOrder });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("❌ Error updating sales order:", error);
+
+    // Handle specific error types
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        error: "VALIDATION_ERROR",
+        details: Object.values(error.errors).map((err) => err.message),
+      });
+    }
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update sales order",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
   }
 });
 
-// DELETE /salesOrders - Delete sales order
-router.delete("/", async function (req, res) {
+// DELETE /salesOrders/:id - Delete sales order by ID
+router.delete("/:id", async function (req, res) {
   try {
-    const { _id } = req.query;
+    const _id = req.params.id;
 
-    if (!_id) {
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
         success: false,
-        message: "Sales order ID is required",
+        message: "Invalid sales order ID format",
+        error: "INVALID_ID_FORMAT",
       });
     }
 
-    const deletedSalesOrder = await SalesOrders.findByIdAndDelete(_id);
-
-    if (!deletedSalesOrder) {
+    // Check if sales order exists before deletion
+    const existingSalesOrder = await SalesOrders.findById(_id);
+    if (!existingSalesOrder) {
       return res.status(404).json({
         success: false,
         message: "Sales order not found",
+        error: "SALES_ORDER_NOT_FOUND",
       });
     }
 
-    // Return updated list after deletion
-    const salesOrdersList = await SalesOrders.find().sort({ _id: -1 });
+    await SalesOrders.findByIdAndDelete(_id);
 
     res.status(200).json({
       success: true,
       message: "Sales order deleted successfully",
-      data: salesOrdersList,
+      data: { _id },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("❌ Error deleting sales order:", error);
+
+    // Handle specific error types
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete sales order",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
   }
 });
 

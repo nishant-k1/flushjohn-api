@@ -227,15 +227,38 @@ router.get("/verify", async (req, res) => {
 // Logout endpoint
 router.post("/logout", (req, res) => {
   try {
-    // Clear the token cookie
-    res.clearCookie("token");
+    console.log("🚪 Server logout endpoint called");
+
+    // Clear the token cookie with multiple variations to ensure it's cleared
+    const cookieOptions = {
+      httpOnly: true,
+      path: "/",
+    };
+
+    // Clear cookie for different scenarios
+    res.clearCookie("token", cookieOptions);
+
+    // Also try clearing with sameSite and secure options if they were set
+    res.clearCookie("token", {
+      ...cookieOptions,
+      sameSite: "none",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    // Additional clearing for different domain scenarios
+    res.clearCookie("token", {
+      ...cookieOptions,
+      domain: req.get("host"),
+    });
+
+    console.log("✅ Cookie cleared successfully");
 
     res.status(200).json({
       success: true,
       message: "Logout successful",
     });
   } catch (error) {
-    console.error("Logout error:", error);
+    console.error("❌ Logout error:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",

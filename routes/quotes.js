@@ -112,22 +112,33 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-// PUT /quotes - Update quote
-router.put("/", async function (req, res) {
+// PUT /quotes/:id - Update quote by ID
+router.put("/:id", async function (req, res) {
   try {
-    const { _id, ...updateData } = req.body;
+    const _id = req.params.id;
 
-    if (!_id) {
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
         success: false,
-        message: "Quote ID is required",
+        message: "Invalid quote ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    // Validate request body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body is required for update",
+        error: "EMPTY_REQUEST_BODY",
       });
     }
 
     const emailStatus = "Pending";
     const updatedQuote = await Quotes.findByIdAndUpdate(
       _id,
-      { ...updateData, emailStatus, updatedAt: new Date() },
+      { ...req.body, emailStatus, updatedAt: new Date() },
       { new: true, runValidators: true }
     );
 
@@ -135,48 +146,90 @@ router.put("/", async function (req, res) {
       return res.status(404).json({
         success: false,
         message: "Quote not found",
+        error: "QUOTE_NOT_FOUND",
       });
     }
 
     res.status(200).json({ success: true, data: updatedQuote });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("❌ Error updating quote:", error);
+
+    // Handle specific error types
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        error: "VALIDATION_ERROR",
+        details: Object.values(error.errors).map((err) => err.message),
+      });
+    }
+
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update quote",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
   }
 });
 
-// DELETE /quotes - Delete quote
-router.delete("/", async function (req, res) {
+// DELETE /quotes/:id - Delete quote by ID
+router.delete("/:id", async function (req, res) {
   try {
-    const { _id } = req.query;
+    const _id = req.params.id;
 
-    if (!_id) {
+    // Validate MongoDB ObjectId format
+    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({
         success: false,
-        message: "Quote ID is required",
+        message: "Invalid quote ID format",
+        error: "INVALID_ID_FORMAT",
       });
     }
 
-    const deletedQuote = await Quotes.findByIdAndDelete(_id);
-
-    if (!deletedQuote) {
+    // Check if quote exists before deletion
+    const existingQuote = await Quotes.findById(_id);
+    if (!existingQuote) {
       return res.status(404).json({
         success: false,
         message: "Quote not found",
+        error: "QUOTE_NOT_FOUND",
       });
     }
 
-    // Return updated list after deletion
-    const quotesList = await Quotes.find().sort({ _id: -1 });
+    await Quotes.findByIdAndDelete(_id);
 
     res.status(200).json({
       success: true,
       message: "Quote deleted successfully",
-      data: quotesList,
+      data: { _id },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error("❌ Error deleting quote:", error);
+
+    // Handle specific error types
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete quote",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
   }
 });
 
