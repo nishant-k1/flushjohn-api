@@ -325,15 +325,15 @@ router.post("/:id/pdf", async function (req, res) {
 
     // Generate PDF using new service
     const { generateSalesOrderPDF } = await import("../services/pdfService.js");
-    const s3PdfUrl = await generateSalesOrderPDF(pdfData, _id);
+    const pdfUrls = await generateSalesOrderPDF(pdfData, _id);
 
     res.status(201).json({
       success: true,
       message: "Sales Order PDF generated and uploaded to S3",
       data: {
         _id,
-        pdfUrl: s3PdfUrl,
-        s3Url: s3PdfUrl, // For backward compatibility
+        pdfUrl: pdfUrls.pdfUrl,     // Direct API URL
+        s3Url: pdfUrls.cdnUrl,      // CDN URL (CloudFront if configured)
       },
     });
   } catch (error) {
@@ -401,8 +401,8 @@ router.post("/:id/email", async function (req, res) {
     const { generateSalesOrderPDF } = await import("../services/pdfService.js");
     const { sendSalesOrderEmail } = await import("../services/emailService.js");
 
-    const s3PdfUrl = await generateSalesOrderPDF(emailData, _id);
-    await sendSalesOrderEmail(emailData, _id, s3PdfUrl);
+    const pdfUrls = await generateSalesOrderPDF(emailData, _id);
+    await sendSalesOrderEmail(emailData, _id, pdfUrls.cdnUrl);
 
     // Update sales order status
     const updatedSalesOrder = await SalesOrders.findByIdAndUpdate(
@@ -416,7 +416,7 @@ router.post("/:id/email", async function (req, res) {
       message: "Sales order email sent successfully",
       data: {
         ...updatedSalesOrder.toObject(),
-        pdfUrl: s3PdfUrl,
+        pdfUrl: pdfUrls.cdnUrl,
       },
     });
   } catch (error) {

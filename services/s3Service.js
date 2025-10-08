@@ -53,26 +53,39 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
       Body: pdfBuffer,
       ContentType: "application/pdf",
       ContentDisposition: "inline",
+      // Set cache headers to prevent CloudFront from caching PDFs
+      CacheControl: "no-store, no-cache, must-revalidate, max-age=0",
+      Expires: new Date(0), // Expire immediately
     };
 
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
-    // Generate signed URL for secure access (expires in 1 hour)
-    // Note: For signed URLs, we use the timestamp in the filename for cache-busting
-    // instead of query parameters (which would invalidate the signature)
-    const getCommand = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-    });
+    // Check if CloudFront is configured
+    const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    
+    if (cloudFrontUrl) {
+      // Return CloudFront URL (public, cached by CDN)
+      const cdnPdfUrl = `${cloudFrontUrl}/pdfs/${fileName}?t=${timestamp}`;
+      console.log(`✅ PDF uploaded to S3, accessible via CloudFront: ${cdnPdfUrl}`);
+      return cdnPdfUrl;
+    } else {
+      // Generate signed URL for secure access (expires in 1 hour)
+      // Note: For signed URLs, we use the timestamp in the filename for cache-busting
+      // instead of query parameters (which would invalidate the signature)
+      const getCommand = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+      });
+      
+      // Create a signed URL that expires in 1 hour (3600 seconds)
+      const signedUrl = await getSignedUrl(s3Client, getCommand, {
+        expiresIn: 3600,
+      });
 
-    // Create a signed URL that expires in 1 hour (3600 seconds)
-    const signedUrl = await getSignedUrl(s3Client, getCommand, {
-      expiresIn: 3600,
-    });
-
-    console.log(`✅ PDF uploaded to S3 with signed URL (expires in 1 hour)`);
-    return signedUrl;
+      console.log(`✅ PDF uploaded to S3 with signed URL (expires in 1 hour)`);
+      return signedUrl;
+    }
   } catch (error) {
     console.error("❌ Error uploading PDF to S3:", error);
     throw error;

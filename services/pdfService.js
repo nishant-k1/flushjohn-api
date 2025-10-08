@@ -122,9 +122,15 @@ export const generatePDF = async (documentData, documentType, documentId) => {
     // Try to upload to S3, fall back to local storage if disabled or if AWS credentials not available
     if (useS3) {
       try {
-        const s3Url = await uploadPDFToS3(pdfBuffer, documentType, documentId);
-        console.log(`✅ PDF generated and uploaded to S3: ${s3Url}`);
-        return s3Url;
+        const s3CdnUrl = await uploadPDFToS3(pdfBuffer, documentType, documentId);
+        console.log(`✅ PDF generated and uploaded to S3/CloudFront: ${s3CdnUrl}`);
+        
+        // When using S3, return CloudFront URL for both fields
+        // (S3 service already returns CloudFront URL if configured)
+        return {
+          pdfUrl: s3CdnUrl,   // CloudFront URL
+          cdnUrl: s3CdnUrl,   // Same CloudFront URL
+        };
       } catch (s3Error) {
         console.warn("⚠️ S3 upload failed, saving locally:", s3Error.message);
       }
@@ -175,8 +181,21 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       process.env.BASE_URL ||
       "http://localhost:8080";
     const localUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
-    console.log(`✅ PDF URL: ${localUrl}`);
-    return localUrl;
+    
+    // Also prepare CDN URL if CloudFront is configured
+    const cdnUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    const cdnPdfUrl = cdnUrl ? `${cdnUrl}/temp/${fileName}?t=${timestamp}` : localUrl;
+    
+    console.log(`✅ PDF URL (API): ${localUrl}`);
+    if (cdnUrl) {
+      console.log(`✅ PDF URL (CDN): ${cdnPdfUrl}`);
+    }
+    
+    // Return both URLs as an object
+    return {
+      pdfUrl: localUrl,      // Direct API URL
+      cdnUrl: cdnPdfUrl,     // CDN URL (or same as pdfUrl if CDN not configured)
+    };
   } catch (error) {
     console.error(`❌ Error generating ${documentType} PDF:`, error);
     throw error;

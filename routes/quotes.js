@@ -276,15 +276,15 @@ router.post("/:id/pdf", async function (req, res) {
 
     // Generate PDF using new service
     const { generateQuotePDF } = await import("../services/pdfService.js");
-    const s3PdfUrl = await generateQuotePDF(pdfData, _id);
+    const pdfUrls = await generateQuotePDF(pdfData, _id);
 
     res.status(201).json({
       success: true,
       message: "Quote PDF generated and uploaded to S3",
       data: {
         _id,
-        pdfUrl: s3PdfUrl,
-        s3Url: s3PdfUrl, // For backward compatibility
+        pdfUrl: pdfUrls.pdfUrl, // Direct API URL
+        s3Url: pdfUrls.cdnUrl, // CDN URL (CloudFront if configured)
       },
     });
   } catch (error) {
@@ -352,8 +352,8 @@ router.post("/:id/email", async function (req, res) {
     const { generateQuotePDF } = await import("../services/pdfService.js");
     const { sendQuoteEmail } = await import("../services/emailService.js");
 
-    const s3PdfUrl = await generateQuotePDF(emailData, _id);
-    await sendQuoteEmail(emailData, _id, s3PdfUrl);
+    const pdfUrls = await generateQuotePDF(emailData, _id);
+    await sendQuoteEmail(emailData, _id, pdfUrls.cdnUrl);
 
     // Update quote status
     const updatedQuote = await Quotes.findByIdAndUpdate(
@@ -367,7 +367,7 @@ router.post("/:id/email", async function (req, res) {
       message: "Quote email sent successfully",
       data: {
         ...updatedQuote.toObject(),
-        pdfUrl: s3PdfUrl,
+        pdfUrl: pdfUrls.cdnUrl,
       },
     });
   } catch (error) {

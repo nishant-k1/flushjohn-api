@@ -277,15 +277,15 @@ router.post("/:id/pdf", async function (req, res) {
 
     // Generate PDF using new service
     const { generateJobOrderPDF } = await import("../services/pdfService.js");
-    const s3PdfUrl = await generateJobOrderPDF(pdfData, _id);
+    const pdfUrls = await generateJobOrderPDF(pdfData, _id);
 
     res.status(201).json({
       success: true,
       message: "Job Order PDF generated and uploaded to S3",
       data: {
         _id,
-        pdfUrl: s3PdfUrl,
-        s3Url: s3PdfUrl, // For backward compatibility
+        pdfUrl: pdfUrls.pdfUrl,     // Direct API URL
+        s3Url: pdfUrls.cdnUrl,      // CDN URL (CloudFront if configured)
       },
     });
   } catch (error) {
@@ -353,8 +353,8 @@ router.post("/:id/email", async function (req, res) {
     const { generateJobOrderPDF } = await import("../services/pdfService.js");
     const { sendJobOrderEmail } = await import("../services/emailService.js");
 
-    const s3PdfUrl = await generateJobOrderPDF(emailData, _id);
-    await sendJobOrderEmail(emailData, _id, s3PdfUrl);
+    const pdfUrls = await generateJobOrderPDF(emailData, _id);
+    await sendJobOrderEmail(emailData, _id, pdfUrls.cdnUrl);
 
     // Update job order status
     const updatedJobOrder = await JobOrders.findByIdAndUpdate(
