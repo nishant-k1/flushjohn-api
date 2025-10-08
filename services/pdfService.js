@@ -1,4 +1,3 @@
-import { chromium } from "playwright";
 import { uploadPDFToS3 } from "./s3Service.js";
 import fs from "fs";
 import path from "path";
@@ -7,6 +6,26 @@ import path from "path";
 import quoteTemplate from "../templates/quotes/pdf/index.js";
 import salesOrderTemplate from "../templates/salesOrders/pdf/index.js";
 import jobOrderTemplate from "../templates/jobOrders/pdf/index.js";
+
+// Try to import Playwright, fallback to Puppeteer if not available
+let browserLib = null;
+let usePuppeteer = false;
+
+try {
+  const playwright = await import("playwright");
+  browserLib = playwright.chromium;
+  console.log("✅ Using Playwright for PDF generation");
+} catch (playwrightError) {
+  console.warn("⚠️ Playwright not available, falling back to Puppeteer");
+  try {
+    browserLib = await import("puppeteer");
+    usePuppeteer = true;
+    console.log("✅ Using Puppeteer for PDF generation");
+  } catch (puppeteerError) {
+    console.error("❌ Neither Playwright nor Puppeteer available!");
+    throw new Error("No PDF generation library available");
+  }
+}
 
 /**
  * Generate PDF using Playwright and upload to S3
@@ -39,29 +58,61 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       throw new Error(`Failed to generate HTML template for ${documentType}`);
     }
 
-    // Generate PDF using Playwright
-    const browser = await chromium.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+    // Generate PDF using Playwright or Puppeteer
+    let browser, page, pdfBuffer;
+    
+    if (usePuppeteer) {
+      // Puppeteer implementation
+      browser = await browserLib.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--single-process",
+          "--disable-gpu",
+        ],
+      });
 
-    const context = await browser.newContext();
-    const page = await context.newPage();
+      page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+      
+      pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: {
+          top: "0.5in",
+          right: "0.5in",
+          bottom: "0.5in",
+          left: "0.5in",
+        },
+      });
+    } else {
+      // Playwright implementation
+      browser = await browserLib.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      });
 
-    // Set content and wait for it to load
-    await page.setContent(htmlContent, { waitUntil: "networkidle" });
+      const context = await browser.newContext();
+      page = await context.newPage();
 
-    // Generate PDF buffer
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: {
-        top: "0.5in",
-        right: "0.5in",
-        bottom: "0.5in",
-        left: "0.5in",
-      },
-    });
+      await page.setContent(htmlContent, { waitUntil: "networkidle" });
+
+      pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: {
+          top: "0.5in",
+          right: "0.5in",
+          bottom: "0.5in",
+          left: "0.5in",
+        },
+      });
+    }
 
     await browser.close();
 
