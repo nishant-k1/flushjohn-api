@@ -61,31 +61,26 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
-    // Check if CloudFront is configured
+    // Build URLs
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
-    
-    if (cloudFrontUrl) {
-      // Return CloudFront URL (public, cached by CDN)
-      const cdnPdfUrl = `${cloudFrontUrl}/pdfs/${fileName}?t=${timestamp}`;
-      console.log(`✅ PDF uploaded to S3, accessible via CloudFront: ${cdnPdfUrl}`);
-      return cdnPdfUrl;
-    } else {
-      // Generate signed URL for secure access (expires in 1 hour)
-      // Note: For signed URLs, we use the timestamp in the filename for cache-busting
-      // instead of query parameters (which would invalidate the signature)
-      const getCommand = new GetObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-      });
-      
-      // Create a signed URL that expires in 1 hour (3600 seconds)
-      const signedUrl = await getSignedUrl(s3Client, getCommand, {
-        expiresIn: 3600,
-      });
+    const directS3Url = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
-      console.log(`✅ PDF uploaded to S3 with signed URL (expires in 1 hour)`);
-      return signedUrl;
+    // Return both direct S3 URL and CloudFront CDN URL
+    const result = {
+      fileName: fileName,
+      s3Key: key,
+      directUrl: directS3Url,
+      cdnUrl: cloudFrontUrl
+        ? `${cloudFrontUrl}/${key}?t=${timestamp}`
+        : directS3Url,
+    };
+
+    console.log(`✅ PDF uploaded to S3: ${bucketName}/${key}`);
+    if (cloudFrontUrl) {
+      console.log(`✅ CDN URL: ${result.cdnUrl}`);
     }
+
+    return result;
   } catch (error) {
     console.error("❌ Error uploading PDF to S3:", error);
     throw error;

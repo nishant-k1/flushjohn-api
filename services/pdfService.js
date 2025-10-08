@@ -122,14 +122,12 @@ export const generatePDF = async (documentData, documentType, documentId) => {
     // Try to upload to S3, fall back to local storage if disabled or if AWS credentials not available
     if (useS3) {
       try {
-        const s3CdnUrl = await uploadPDFToS3(pdfBuffer, documentType, documentId);
-        console.log(`✅ PDF generated and uploaded to S3/CloudFront: ${s3CdnUrl}`);
+        const s3Result = await uploadPDFToS3(pdfBuffer, documentType, documentId);
+        console.log(`✅ PDF generated and uploaded to S3/CloudFront`);
         
-        // When using S3, return CloudFront URL for both fields
-        // (S3 service already returns CloudFront URL if configured)
         return {
-          pdfUrl: s3CdnUrl,   // CloudFront URL
-          cdnUrl: s3CdnUrl,   // Same CloudFront URL
+          pdfUrl: s3Result.directUrl,   // Direct S3 URL (api.flushjohn.com can proxy)
+          cdnUrl: s3Result.cdnUrl,      // CloudFront CDN URL (cdn.flushjohn.com)
         };
       } catch (s3Error) {
         console.warn("⚠️ S3 upload failed, saving locally:", s3Error.message);
