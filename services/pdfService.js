@@ -118,7 +118,9 @@ export const generatePDF = async (documentData, documentType, documentId) => {
     }
 
     // Return local URL with cache-busting query parameter
-    const localUrl = `http://localhost:8080/temp/${fileName}?t=${timestamp}`;
+    // Use environment-specific base URL
+    const baseUrl = process.env.API_BASE_URL || process.env.BASE_URL || 'http://localhost:8080';
+    const localUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
     console.log(`✅ PDF URL: ${localUrl}`);
     return localUrl;
   } catch (error) {
