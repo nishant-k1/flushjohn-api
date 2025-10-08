@@ -60,7 +60,7 @@ export const generatePDF = async (documentData, documentType, documentId) => {
 
     // Generate PDF using Playwright or Puppeteer
     let browser, page, pdfBuffer;
-    
+
     if (usePuppeteer) {
       // Puppeteer implementation
       browser = await browserLib.launch({
@@ -79,7 +79,7 @@ export const generatePDF = async (documentData, documentType, documentId) => {
 
       page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-      
+
       pdfBuffer = await page.pdf({
         format: "A4",
         printBackground: true,
@@ -170,7 +170,10 @@ export const generatePDF = async (documentData, documentType, documentId) => {
 
     // Return local URL with cache-busting query parameter
     // Use environment-specific base URL
-    const baseUrl = process.env.API_BASE_URL || process.env.BASE_URL || 'http://localhost:8080';
+    const baseUrl =
+      process.env.API_BASE_URL ||
+      process.env.BASE_URL ||
+      "http://localhost:8080";
     const localUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
     console.log(`✅ PDF URL: ${localUrl}`);
     return localUrl;
