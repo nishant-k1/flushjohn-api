@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { createTransport } from "nodemailer";
 import { flushjohn, quengenesis } from "../constants/index.js";
 
 // Import email templates
@@ -63,7 +63,7 @@ export const sendEmailWithS3PDF = async (
     }
 
     // Create transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = createTransport({
       host: "smtp.zoho.in",
       port: 465,
       secure: true,
