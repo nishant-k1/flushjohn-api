@@ -30,37 +30,30 @@ const styles = `html,
     font-size: medium;
   }
 
+  .logo {
+    max-width: 100px !important;
+    width: 100px !important;
+    height: 60px !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+
 
   .section-1{
-    border-top: 1px solid black
-    padding-bottom: 24px;
+    padding-bottom: 2.5rem;
     display: grid;
-    align-items: start;
+    align-items: center;
     justify-content: space-between;
     grid-template-columns: repeat(2, max-content);
   }
+  .section-1 img{
+    height: 8rem;
+    width: 8rem
+  }
 
-  .section-1-left {
-    display: grid;
-    align-items: start;
-    row-gap: 24px;
-  }
-  .section-1-left div {
-    display: grid;
-    row-gap: 2px;
-  }
-  strong {
-    font-weight: 900;
-    font-size: 14px;
-    color: black;
-  }
-  .section-1-left img {
-    margin: 0;
-    padding: 0;
-  }
   .section-1-right{
     display: grid;
-    row-gap: 4px;
+    row-gap: 1rem;
   }
 
   .section-1-right h1{
@@ -79,7 +72,7 @@ const styles = `html,
 
   h4{
     font-size: small;
-    color: #ef648a;
+    color: pink;
   }
 
   .section-2-left{
@@ -125,7 +118,7 @@ const styles = `html,
 
   .section-3 div h4{
     font-size: medium;
-    color: red;
+    color: #EF648A;
   }
 
   .items-heading{
@@ -160,6 +153,12 @@ const styles = `html,
     height: 100%;
   }
 
+  .section-4{
+    display: grid;
+    align-items: top;
+    justify-content: space-between;
+    grid-template-columns: repeat(2, 1fr);
+  }
 
   .section-4 ul {
     padding-left: 2rem;
@@ -170,7 +169,7 @@ const styles = `html,
   }
   .section-4 ul li{
     padding: .2rem;
-    font-size: 11px;
+    font-size: smaller;
   }
 
   footer ul{

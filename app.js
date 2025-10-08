@@ -20,6 +20,7 @@ import customersRouter from "./routes/customers.js";
 import quotesRouter from "./routes/quotes.js";
 import salesOrdersRouter from "./routes/salesOrders.js";
 import jobOrdersRouter from "./routes/jobOrders.js";
+import pdfAccessRouter from "./routes/pdfAccess.js";
 
 config();
 
@@ -101,6 +102,33 @@ app.use(logger("dev"));
 app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Serve static files from public directory
+app.use("/logos", express.static("public/logos"));
+
+// Serve temp PDFs with no-cache headers to prevent stale PDFs
+app.use(
+  "/temp",
+  (req, res, next) => {
+    // Set no-cache headers to prevent browser caching
+    res.setHeader(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+    next();
+  },
+  express.static("public/temp", {
+    etag: false,
+    lastModified: false,
+    cacheControl: false,
+  })
+);
+
+// Secure PDF access routes (replaces public static serving)
+app.use("/pdf", pdfAccessRouter);
 
 // CORS debugging endpoint
 app.get("/cors-debug", (req, res) => {

@@ -267,7 +267,6 @@ router.post("/:id/pdf", async function (req, res) {
     }
 
     // Use the fresh data from request body for PDF generation
-    // This ensures the PDF shows the latest form data, not outdated database data
     const pdfData = {
       ...req.body,
       _id: _id,
@@ -275,14 +274,17 @@ router.post("/:id/pdf", async function (req, res) {
       createdAt: req.body.createdAt || quote.createdAt,
     };
 
-    // Return the data for frontend PDF generation
-    res.status(200).json({
+    // Generate PDF using new service
+    const { generateQuotePDF } = await import("../services/pdfService.js");
+    const s3PdfUrl = await generateQuotePDF(pdfData, _id);
+
+    res.status(201).json({
       success: true,
-      message: "PDF data ready for generation",
+      message: "Quote PDF generated and uploaded to S3",
       data: {
         _id,
-        pdfData: pdfData,
-        template: "quote", // Specify which template to use
+        pdfUrl: s3PdfUrl,
+        s3Url: s3PdfUrl, // For backward compatibility
       },
     });
   } catch (error) {
@@ -328,14 +330,9 @@ router.post("/:id/email", async function (req, res) {
       });
     }
 
-    // Find and update the quote
-    const updatedQuote = await Quotes.findByIdAndUpdate(
-      _id,
-      { ...req.body, emailStatus: "Sent", updatedAt: new Date() },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedQuote) {
+    // Find the quote to verify it exists
+    const quote = await Quotes.findById(_id);
+    if (!quote) {
       return res.status(404).json({
         success: false,
         message: "Quote not found",
@@ -343,12 +340,35 @@ router.post("/:id/email", async function (req, res) {
       });
     }
 
-    // TODO: Implement actual email sending logic here
-    // For now, return success response
+    // Use the fresh data from request body
+    const emailData = {
+      ...req.body,
+      _id: _id,
+      quoteNo: req.body.quoteNo || quote.quoteNo,
+      createdAt: req.body.createdAt || quote.createdAt,
+    };
+
+    // Generate PDF and send email using new services
+    const { generateQuotePDF } = await import("../services/pdfService.js");
+    const { sendQuoteEmail } = await import("../services/emailService.js");
+
+    const s3PdfUrl = await generateQuotePDF(emailData, _id);
+    await sendQuoteEmail(emailData, _id, s3PdfUrl);
+
+    // Update quote status
+    const updatedQuote = await Quotes.findByIdAndUpdate(
+      _id,
+      { emailStatus: "Sent", updatedAt: new Date() },
+      { new: true }
+    );
+
     res.status(200).json({
       success: true,
       message: "Quote email sent successfully",
-      data: updatedQuote,
+      data: {
+        ...updatedQuote.toObject(),
+        pdfUrl: s3PdfUrl,
+      },
     });
   } catch (error) {
     console.error("❌ Error sending quote email:", error);

@@ -227,8 +227,6 @@ router.get("/verify", async (req, res) => {
 // Logout endpoint
 router.post("/logout", (req, res) => {
   try {
-    console.log("🚪 Server logout endpoint called");
-
     // Clear the token cookie with multiple variations to ensure it's cleared
     const cookieOptions = {
       httpOnly: true,

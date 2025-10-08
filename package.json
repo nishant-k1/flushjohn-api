@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^8.7.0",
     "morgan": "^1.10.0",
+    "nodemailer": "^7.0.9",
     "nodemon": "^3.1.7",
     "playwright": "^1.35.1",
     "puppeteer": "^24.23.0",

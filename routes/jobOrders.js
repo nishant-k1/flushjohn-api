@@ -268,7 +268,6 @@ router.post("/:id/pdf", async function (req, res) {
     }
 
     // Use the fresh data from request body for PDF generation
-    // This ensures the PDF shows the latest form data, not outdated database data
     const pdfData = {
       ...req.body,
       _id: _id,
@@ -276,14 +275,17 @@ router.post("/:id/pdf", async function (req, res) {
       createdAt: req.body.createdAt || jobOrder.createdAt,
     };
 
-    // Return the data for frontend PDF generation
-    res.status(200).json({
+    // Generate PDF using new service
+    const { generateJobOrderPDF } = await import("../services/pdfService.js");
+    const s3PdfUrl = await generateJobOrderPDF(pdfData, _id);
+
+    res.status(201).json({
       success: true,
-      message: "PDF data ready for generation",
+      message: "Job Order PDF generated and uploaded to S3",
       data: {
         _id,
-        pdfData: pdfData,
-        template: "jobOrder", // Specify which template to use
+        pdfUrl: s3PdfUrl,
+        s3Url: s3PdfUrl, // For backward compatibility
       },
     });
   } catch (error) {
@@ -329,14 +331,9 @@ router.post("/:id/email", async function (req, res) {
       });
     }
 
-    // Find and update the job order
-    const updatedJobOrder = await JobOrders.findByIdAndUpdate(
-      _id,
-      { ...req.body, emailStatus: "Sent", updatedAt: new Date() },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedJobOrder) {
+    // Find the job order to verify it exists
+    const jobOrder = await JobOrders.findById(_id);
+    if (!jobOrder) {
       return res.status(404).json({
         success: false,
         message: "Job order not found",
@@ -344,12 +341,35 @@ router.post("/:id/email", async function (req, res) {
       });
     }
 
-    // TODO: Implement actual email sending logic here
-    // For now, return success response
+    // Use the fresh data from request body
+    const emailData = {
+      ...req.body,
+      _id: _id,
+      jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
+      createdAt: req.body.createdAt || jobOrder.createdAt,
+    };
+
+    // Generate PDF and send email using new services
+    const { generateJobOrderPDF } = await import("../services/pdfService.js");
+    const { sendJobOrderEmail } = await import("../services/emailService.js");
+
+    const s3PdfUrl = await generateJobOrderPDF(emailData, _id);
+    await sendJobOrderEmail(emailData, _id, s3PdfUrl);
+
+    // Update job order status
+    const updatedJobOrder = await JobOrders.findByIdAndUpdate(
+      _id,
+      { emailStatus: "Sent", updatedAt: new Date() },
+      { new: true }
+    );
+
     res.status(200).json({
       success: true,
       message: "Job order email sent successfully",
-      data: updatedJobOrder,
+      data: {
+        ...updatedJobOrder.toObject(),
+        pdfUrl: s3PdfUrl,
+      },
     });
   } catch (error) {
     console.error("❌ Error sending job order email:", error);

@@ -1,25 +1,45 @@
 import styles from "./styles.js";
+import {
+  quengenesis,
+  apiBaseUrls,
+  s3assets,
+  localAssetsUrl,
+} from "../../../constants/index.js";
+import {
+  safeValue,
+  safeGet,
+  safeDate,
+  safeCurrency,
+  safePhone,
+} from "../../utils/safeValue.js";
 
 const itemRows = (products) => {
+  if (!products || !Array.isArray(products)) {
+    return "";
+  }
+
   return products
-    .map((element, { index }) => {
-      const { item, desc, qty, rate } = element;
-      const total = qty * rate;
+    .map((element, index) => {
+      const { item, desc, qty, rate } = element || {};
+      const safeQty = parseFloat(qty) || 0;
+      const safeRate = parseFloat(rate) || 0;
+      const total = safeQty * safeRate;
+
       return `<ul key=${index} id=${index} class='items-list'>
         <li>
-          <p>${item}</p>
+          <p>${safeValue(item)}</p>
         </li>
         <li>
-          <p>${desc}</p>
+          <p>${safeValue(desc)}</p>
         </li>
         <li>
-          <p>${qty}</p>
+          <p>${safeValue(qty)}</p>
         </li>
         <li>
-          <p>$${rate}</p>
+          <p>${safeCurrency(rate)}</p>
         </li>
         <li>
-          <p>$${total}</p>
+          <p>${safeCurrency(total)}</p>
         </li>
       </ul>`;
     })
@@ -27,45 +47,24 @@ const itemRows = (products) => {
 };
 
 const totalAmount = (products) => {
-  if (!products) {
-    return 0; // Return 0 if products is undefined
+  if (!products || !Array.isArray(products)) {
+    return 0;
   }
   return products.reduce((accumulator, currentValue) => {
-    return accumulator + currentValue.qty * currentValue.rate;
+    const qty = parseFloat(currentValue.qty) || 0;
+    const rate = parseFloat(currentValue.rate) || 0;
+    return accumulator + qty * rate;
   }, 0);
 };
 
 const htmlTemplate = (jobOrderData) => {
   if (!jobOrderData) return;
-  // const { cName, address, homepage, email, phone, phone_link } = quengenesis;
-  // const { CRM_BASE_URL } = apiBaseUrls;
+  const { cName, address, homepage, email, phone, phone_link } = quengenesis;
+  const { CRM_BASE_URL } = apiBaseUrls;
 
-  const createdAt = new Date(jobOrderData.createdAt).toLocaleDateString(
-    "en-US",
-    {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }
-  );
-
-  const deliveryDate = new Date(jobOrderData.deliveryDate).toLocaleDateString(
-    "en-US",
-    {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }
-  );
-
-  const pickupDate = new Date(jobOrderData.pickupDate).toLocaleDateString(
-    "en-US",
-    {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }
-  );
+  const createdAt = safeDate(jobOrderData.createdAt);
+  const deliveryDate = safeDate(jobOrderData.deliveryDate);
+  const pickupDate = safeDate(jobOrderData.pickupDate);
 
   return `<html>
     <head>
@@ -76,35 +75,35 @@ const htmlTemplate = (jobOrderData) => {
       <body>
         <div class="section-1">
           <div class="section-1-left">
- 
-      
+            <div>
+              <img src="${localAssetsUrl}/logos/logo_quengenesis.svg" alt="logo" class="logo" style="max-width: 80px !important; width: 80px !important; height: 40px !important; object-fit: contain !important;" />          
+            <div>
+              <h4>${cName}</h4>
+              <p>${address}</p>
+              <p><strong>Phone: </strong>${phone}</p>
             </div>
             </div>
             <div>
             <h3 style="font-size:x-large">Vendor</h3>
-            <h4>${jobOrderData.vendor.name ? jobOrderData.vendor.name : ""}</h4>
-            <p>${
-              jobOrderData.vendor.streetAddress
-                ? jobOrderData.vendor.streetAddress
-                : ""
-            }</p>
-            <p>${jobOrderData.vendor.city ? jobOrderData.vendor.city : ""} ${
-    jobOrderData.vendor.state ? jobOrderData.vendor.state : ""
-  } ${jobOrderData.vendor.zip ? jobOrderData.vendor.zip : ""}</p>
-            <p><strong>Email: </strong>${
-              jobOrderData.vendor.email ? jobOrderData.vendor.email : ""
-            }</p>
-            <p><strong>Phone: </strong> ${
-              jobOrderData.vendor.phone ? jobOrderData.vendor.phone : ""
-            }</p>
-            <p><strong>Fax: </strong>${
-              jobOrderData.vendor.fax ? jobOrderData.vendor.fax : ""
-            }</p>
+            <h4>${safeGet(jobOrderData, "vendor.name")}</h4>
+            <p>${safeGet(jobOrderData, "vendor.streetAddress")}</p>
+            <p>${safeGet(jobOrderData, "vendor.city")} ${safeGet(
+    jobOrderData,
+    "vendor.state"
+  )} ${safeGet(jobOrderData, "vendor.zip")}</p>
+            <p><strong>Email: </strong>${safeGet(
+              jobOrderData,
+              "vendor.email"
+            )}</p>
+            <p><strong>Phone: </strong>${safePhone(
+              safeGet(jobOrderData, "vendor.phone")
+            )}</p>
+            <p><strong>Fax: </strong>${safeGet(jobOrderData, "vendor.fax")}</p>
           </div>
           </div>
 
           <div class="section-1-right">
-            <h1>Job Order # ${jobOrderData.jobOrderNo}</h1>
+            <h1>Job Order # ${safeValue(jobOrderData.jobOrderNo)}</h1>
             <h3>${createdAt}</h3>
           </div>
         </div>
@@ -113,36 +112,34 @@ const htmlTemplate = (jobOrderData) => {
         <div class='section-2-left'>
           <div>
             <h3>Delivery Address</h3>
-            <p>${jobOrderData.streetAddress}</p>
-            <p>${jobOrderData.city} ${jobOrderData.state} ${
-    jobOrderData.zip
-  }</p>
+            <p>${safeValue(jobOrderData.streetAddress)}</p>
+            <p>${safeValue(jobOrderData.city)} ${safeValue(
+    jobOrderData.state
+  )} ${safeValue(jobOrderData.zip)}</p>
           </div>
           <div>
           <h3>Instructions</h3>
-          <p>${jobOrderData.instructions ? jobOrderData.instructions : ""}</p>
+          <p>${safeValue(jobOrderData.instructions)}</p>
         </div>
         <div>
           <h3>Onsite Contact Person Details</h3>
-          <p><strong>Name: </strong> ${
-            jobOrderData.contactPersonName ? jobOrderData.contactPersonName : ""
-          } </p>
-          <p><strong>Phone: </strong> ${
-            jobOrderData.contactPersonPhone
-              ? jobOrderData.contactPersonPhone
-              : ""
-          }</p>
+          <p><strong>Name: </strong>${safeValue(
+            jobOrderData.contactPersonName
+          )}</p>
+          <p><strong>Phone: </strong>${safePhone(
+            safeValue(jobOrderData.contactPersonPhone)
+          )}</p>
         </div>
         </div>
 
         <div class='section-2-right'>
           <div>
             <h3>Delivery Date</h3>
-            <p>${jobOrderData.deliveryDate ? deliveryDate : ""}</p>
+            <p>${deliveryDate}</p>
           </div>
           <div>
             <h3>Pickup Date</h3>
-            <p>${jobOrderData.pickupDate ? pickupDate : ""}</p>
+            <p>${pickupDate}</p>
           </div>
         </div>
       </div>
@@ -167,7 +164,9 @@ const htmlTemplate = (jobOrderData) => {
         </ul>
           ${itemRows(jobOrderData.products)}
         <div>
-          <h4>Total Amount $${totalAmount(jobOrderData.products)}</h4>
+          <h4>Total Amount ${safeCurrency(
+            totalAmount(jobOrderData.products)
+          )}</h4>
         </div>
       </div>
       <hr/>
@@ -197,7 +196,11 @@ const htmlTemplate = (jobOrderData) => {
         </div>
       </div>
       <footer>
-
+      <ul>
+        <li><a href=${homepage}>${homepage}</a></li>
+        <li><a href=mailto:${email}>${email}</a></li>
+        <li><a href="tel:${phone_link}">${phone}</a></li>
+      </ul>
       </footer>
     </body>
   </html>
