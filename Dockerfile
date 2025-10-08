@@ -24,9 +24,9 @@ RUN mkdir -p public/temp && chmod 755 public/temp
 # Expose port
 EXPOSE 8080
 
-# Health check
+# Health check (uses PORT environment variable)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 8080) + '/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the application
 CMD ["npm", "start"]
