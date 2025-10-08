@@ -1,25 +1,32 @@
-# Build Environment: Node + Playwright
-FROM node:20
-FROM mcr.microsoft.com/playwright:focal
+# Use official Playwright image with Node.js and Chromium pre-installed
+FROM mcr.microsoft.com/playwright:v1.40.0-jammy
 
-# Env
+# Set working directory
 WORKDIR /app
-ENV PATH /app/node_modules/.bin:$PATH
 
-# Export port 3000 for Node
-EXPOSE 3000
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
 
-# Copy all app files into Docker Work directory
-COPY package*.json /app/
-COPY index.ts /app/
-COPY src/ /app/src/
-COPY tsconfig.json /app/
+# Copy package files
+COPY package*.json ./
 
-# Install Deps
-RUN npm install
+# Install dependencies
+# The postinstall script will run automatically and install Playwright browsers
+RUN npm ci --only=production
 
-# Build TS into JS to run via Node
-RUN npm run build
+# Copy application files
+COPY . .
 
-# Run Node index.js file
-CMD [ "npm", "start" ]
+# Create temp directory for PDFs with proper permissions
+RUN mkdir -p public/temp && chmod 755 public/temp
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Start the application
+CMD ["npm", "start"]
