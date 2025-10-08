@@ -7,15 +7,6 @@ import Customers from "../models/Customers/index.js";
 router.post("/", async function (req, res) {
   try {
     const createdAt = new Date();
-    const latestSalesOrder = await SalesOrders.findOne({}, "salesOrderNo").sort(
-      { salesOrderNo: -1 }
-    );
-    const latestSalesOrderNo = latestSalesOrder
-      ? latestSalesOrder.salesOrderNo
-      : 999;
-    const newSalesOrderNo = latestSalesOrderNo + 1;
-
-    // Parse request body
     const body = req.body;
 
     // Basic validation
@@ -25,6 +16,14 @@ router.post("/", async function (req, res) {
         error: "Email and Quote Number are required.",
       });
     }
+
+    const latestSalesOrder = await SalesOrders.findOne({}, "salesOrderNo").sort(
+      { salesOrderNo: -1 }
+    );
+    const latestSalesOrderNo = latestSalesOrder
+      ? latestSalesOrder.salesOrderNo
+      : 999;
+    const newSalesOrderNo = latestSalesOrderNo + 1;
 
     // Handle customer creation/update logic
     let customer = await Customers.findOne({ email: body?.email });
@@ -42,11 +41,14 @@ router.post("/", async function (req, res) {
         quoteNo: [body?.quoteNo] || [],
       });
     } else {
+      // Remove array fields from body to avoid conflicts with $push
+      const { quoteNo, salesOrderNo, ...customerData } = body;
+
       customer = await Customers.findOneAndUpdate(
         { email: body?.email },
         {
           $set: {
-            ...body,
+            ...customerData, // Set all fields except arrays
           },
           $push: {
             salesOrderNo: newSalesOrderNo,
@@ -64,6 +66,7 @@ router.post("/", async function (req, res) {
       createdAt,
       salesOrderNo: newSalesOrderNo,
       customerNo: customer.customerNo,
+      emailStatus: "Pending", // Reset email status for new sales order
     });
 
     res.status(201).json({ success: true, data: newSalesOrder });
@@ -332,8 +335,8 @@ router.post("/:id/pdf", async function (req, res) {
       message: "Sales Order PDF generated and uploaded to S3",
       data: {
         _id,
-        pdfUrl: pdfUrls.pdfUrl,     // Direct API URL
-        s3Url: pdfUrls.cdnUrl,      // CDN URL (CloudFront if configured)
+        pdfUrl: pdfUrls.pdfUrl, // Direct API URL
+        s3Url: pdfUrls.cdnUrl, // CDN URL (CloudFront if configured)
       },
     });
   } catch (error) {

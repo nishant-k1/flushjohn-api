@@ -6,6 +6,44 @@ import JobOrders from "../models/JobOrders/index.js";
 router.post("/", async function (req, res) {
   try {
     const createdAt = new Date();
+    const body = req.body;
+
+    // Basic validation
+    if (!body.salesOrderNo) {
+      return res.status(400).json({
+        success: false,
+        error: "Sales Order Number is required.",
+      });
+    }
+
+    // Check if a job order already exists for this sales order
+    console.log(
+      `🔍 Checking for existing job order with salesOrderNo: ${body.salesOrderNo}`
+    );
+    const existingJobOrder = await JobOrders.findOne({
+      salesOrderNo: body.salesOrderNo,
+    });
+
+    if (existingJobOrder) {
+      console.log(
+        `⚠️ Job Order already exists: ${existingJobOrder._id} (JO #${existingJobOrder.jobOrderNo})`
+      );
+      return res.status(409).json({
+        success: false,
+        error:
+          "Job Order already exists for this sales order. Please update the existing job order instead.",
+        message: "A job order already exists for this sales order",
+        data: {
+          existingJobOrderId: existingJobOrder._id,
+          jobOrderNo: existingJobOrder.jobOrderNo,
+        },
+      });
+    }
+
+    console.log(
+      `✅ No existing job order found for sales order ${body.salesOrderNo}, proceeding with creation`
+    );
+
     const latestJobOrder = await JobOrders.findOne({}, "jobOrderNo").sort({
       jobOrderNo: -1,
     });
@@ -15,6 +53,7 @@ router.post("/", async function (req, res) {
       ...req.body,
       createdAt,
       jobOrderNo: newJobOrderNo,
+      emailStatus: "Pending", // Reset email status for new job order
     };
     const newJobOrder = await JobOrders.create(newJobOrderData);
     res.status(201).json({ success: true, data: newJobOrder });
@@ -136,10 +175,14 @@ router.put("/:id", async function (req, res) {
       });
     }
 
-    const emailStatus = "Pending";
+    console.log("📝 Updating job order:", _id);
+    console.log("Vendor data received:", req.body.vendor);
+    console.log("Vendor acceptance status:", req.body.vendorAcceptanceStatus);
+    console.log("Vendor history:", req.body.vendorHistory);
+
     const updatedJobOrder = await JobOrders.findByIdAndUpdate(
       _id,
-      { ...req.body, emailStatus, updatedAt: new Date() },
+      { ...req.body, updatedAt: new Date() },
       { new: true, runValidators: true }
     );
 
@@ -150,6 +193,9 @@ router.put("/:id", async function (req, res) {
         error: "JOB_ORDER_NOT_FOUND",
       });
     }
+
+    console.log("✅ Job order updated successfully");
+    console.log("Vendor in updated document:", updatedJobOrder.vendor);
 
     res.status(200).json({ success: true, data: updatedJobOrder });
   } catch (error) {
@@ -284,8 +330,8 @@ router.post("/:id/pdf", async function (req, res) {
       message: "Job Order PDF generated and uploaded to S3",
       data: {
         _id,
-        pdfUrl: pdfUrls.pdfUrl,     // Direct API URL
-        s3Url: pdfUrls.cdnUrl,      // CDN URL (CloudFront if configured)
+        pdfUrl: pdfUrls.pdfUrl, // Direct API URL
+        s3Url: pdfUrls.cdnUrl, // CDN URL (CloudFront if configured)
       },
     });
   } catch (error) {

@@ -9,6 +9,9 @@ const JobOrdersSchema = new mongoose.Schema({
   jobOrderNo: {
     type: Number,
   },
+  salesOrderNo: {
+    type: Number,
+  },
 
   emailStatus: {
     type: String,
@@ -24,6 +27,15 @@ const JobOrdersSchema = new mongoose.Schema({
     _id: {
       type: String,
     },
+  },
+  vendorAcceptanceStatus: {
+    type: String,
+    default: "Pending",
+    enum: ["Pending", "Accepted", "Denied"],
+  },
+  vendorHistory: {
+    type: Array,
+    default: [],
   },
   // Personal Details
   fName: {

@@ -11,6 +11,7 @@ const SalesOrdersSchema = new mongoose.Schema({
   },
   emailStatus: {
     type: String,
+    default: "Pending",
   },
   customerNo: {
     type: Number,

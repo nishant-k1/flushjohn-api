@@ -15,6 +15,7 @@ router.post("/", async function (req, res) {
       ...req.body,
       createdAt,
       quoteNo: newQuoteNo,
+      emailStatus: "Pending", // Ensure new quotes start with Pending status
     };
     const newQuote = await Quotes.create(newQuoteData);
     res.status(201).json({ success: true, data: newQuote });

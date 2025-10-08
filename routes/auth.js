@@ -68,14 +68,25 @@ router.post("/", async (req, res) => {
           }
         );
 
-        // Set httpOnly cookie (Express equivalent of Next.js serialize)
-        res.cookie("token", token, {
-          httpOnly: true, // ✅ SECURITY FIX: Prevent XSS attacks
-          sameSite: "none", // ✅ CSRF protection
-          secure: process.env.NODE_ENV === "production", // ✅ HTTPS only in production
+        // Set httpOnly cookie with environment-specific settings
+        const isProduction = process.env.NODE_ENV === "production";
+        const cookieOptions = {
+          httpOnly: true, // ✅ Prevent XSS attacks
           maxAge: 3600 * 1000, // 1 hour expiration
           path: "/",
-        });
+        };
+
+        // For localhost development, use lax sameSite (works with HTTP)
+        // For production, use none + secure (requires HTTPS)
+        if (isProduction) {
+          cookieOptions.sameSite = "none"; // Cross-origin support
+          cookieOptions.secure = true; // HTTPS only
+        } else {
+          cookieOptions.sameSite = "lax"; // Localhost-friendly
+          cookieOptions.secure = false; // Works with HTTP
+        }
+
+        res.cookie("token", token, cookieOptions);
 
         // ✅ DESKTOP APP FIX: Send token in response body for desktop app compatibility
         res.status(200).json({
@@ -227,27 +238,23 @@ router.get("/verify", async (req, res) => {
 // Logout endpoint
 router.post("/logout", (req, res) => {
   try {
-    // Clear the token cookie with multiple variations to ensure it's cleared
+    // Clear the token cookie - must match the options used when setting it
+    const isProduction = process.env.NODE_ENV === "production";
     const cookieOptions = {
       httpOnly: true,
       path: "/",
     };
 
-    // Clear cookie for different scenarios
+    if (isProduction) {
+      cookieOptions.sameSite = "none";
+      cookieOptions.secure = true;
+    } else {
+      cookieOptions.sameSite = "lax";
+      cookieOptions.secure = false;
+    }
+
+    // Clear the cookie
     res.clearCookie("token", cookieOptions);
-
-    // Also try clearing with sameSite and secure options if they were set
-    res.clearCookie("token", {
-      ...cookieOptions,
-      sameSite: "none",
-      secure: process.env.NODE_ENV === "production",
-    });
-
-    // Additional clearing for different domain scenarios
-    res.clearCookie("token", {
-      ...cookieOptions,
-      domain: req.get("host"),
-    });
 
     console.log("✅ Cookie cleared successfully");
 
