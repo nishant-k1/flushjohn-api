@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node ./app.js",
-    "dev": "nodemon ./app.js"
+    "dev": "nodemon ./app.js",
+    "postinstall": "npx playwright install chromium || echo 'Playwright install failed, PDF generation may not work'"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
