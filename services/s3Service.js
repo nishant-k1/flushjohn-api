@@ -48,6 +48,8 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
     const s3Client = getS3Client();
 
     // Upload PDF - will overwrite if exists
+    // Note: ACL removed - rely on bucket policy for public access
+    // Many modern S3 buckets have ACLs disabled
     const uploadParams = {
       Bucket: bucketName,
       Key: key,
@@ -59,17 +61,24 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
       Expires: new Date(0), // Expire immediately
     };
 
-    // Try to set ACL if bucket allows it, otherwise rely on bucket policy
-    try {
-      uploadParams.ACL = "public-read";
-    } catch (aclError) {
-      console.warn(
-        "⚠️ ACL not supported, relying on bucket policy for public access"
-      );
-    }
-
     const command = new PutObjectCommand(uploadParams);
-    await s3Client.send(command);
+
+    console.log(`📤 Uploading to S3: ${bucketName}/${key}`);
+
+    try {
+      await s3Client.send(command);
+      console.log(`✅ Successfully uploaded to S3: ${key}`);
+    } catch (uploadError) {
+      console.error(`❌ S3 Upload Failed:`, {
+        message: uploadError.message,
+        code: uploadError.code,
+        name: uploadError.name,
+        bucket: bucketName,
+        key: key,
+        region: process.env.AWS_REGION,
+      });
+      throw uploadError;
+    }
 
     // Build URLs
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;

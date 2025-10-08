@@ -122,12 +122,16 @@ export const generatePDF = async (documentData, documentType, documentId) => {
     // Try to upload to S3, fall back to local storage if disabled or if AWS credentials not available
     if (useS3) {
       try {
-        const s3Result = await uploadPDFToS3(pdfBuffer, documentType, documentId);
+        const s3Result = await uploadPDFToS3(
+          pdfBuffer,
+          documentType,
+          documentId
+        );
         console.log(`✅ PDF generated and uploaded to S3/CloudFront`);
-        
+
         return {
-          pdfUrl: s3Result.directUrl,   // Direct S3 URL (api.flushjohn.com can proxy)
-          cdnUrl: s3Result.cdnUrl,      // CloudFront CDN URL (cdn.flushjohn.com)
+          pdfUrl: s3Result.directUrl, // Direct S3 URL (api.flushjohn.com can proxy)
+          cdnUrl: s3Result.cdnUrl, // CloudFront CDN URL (cdn.flushjohn.com)
         };
       } catch (s3Error) {
         console.warn("⚠️ S3 upload failed, saving locally:", s3Error.message);
@@ -179,20 +183,22 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       process.env.BASE_URL ||
       "http://localhost:8080";
     const localUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
-    
+
     // Also prepare CDN URL if CloudFront is configured
     const cdnUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
-    const cdnPdfUrl = cdnUrl ? `${cdnUrl}/temp/${fileName}?t=${timestamp}` : localUrl;
-    
+    const cdnPdfUrl = cdnUrl
+      ? `${cdnUrl}/temp/${fileName}?t=${timestamp}`
+      : localUrl;
+
     console.log(`✅ PDF URL (API): ${localUrl}`);
     if (cdnUrl) {
       console.log(`✅ PDF URL (CDN): ${cdnPdfUrl}`);
     }
-    
+
     // Return both URLs as an object
     return {
-      pdfUrl: localUrl,      // Direct API URL
-      cdnUrl: cdnPdfUrl,     // CDN URL (or same as pdfUrl if CDN not configured)
+      pdfUrl: localUrl, // Direct API URL
+      cdnUrl: cdnPdfUrl, // CDN URL (or same as pdfUrl if CDN not configured)
     };
   } catch (error) {
     console.error(`❌ Error generating ${documentType} PDF:`, error);

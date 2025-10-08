@@ -22,6 +22,7 @@ export const sendEmailWithS3PDF = async (
 ) => {
   try {
     console.log(`📧 Sending ${documentType} email to: ${documentData.email}`);
+    console.log(`📎 PDF URL for attachment: ${s3PdfUrl}`);
 
     // Select appropriate email configuration and template
     let emailConfig, emailTemplate, subject, companyName;
@@ -89,13 +90,37 @@ export const sendEmailWithS3PDF = async (
     };
 
     // Send email
-    await transporter.sendMail(emailOptions);
+    console.log(`📤 Sending email with attachment from: ${s3PdfUrl}`);
+    const info = await transporter.sendMail(emailOptions);
 
     console.log(`✅ Email sent successfully to: ${documentData.email}`);
+    console.log(`✅ Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
     console.error(`❌ Error sending ${documentType} email:`, error);
-    throw error;
+    console.error(`❌ Error details:`, {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      responseCode: error.responseCode,
+    });
+
+    // Provide more specific error messages
+    if (error.code === "ENOTFOUND") {
+      throw new Error(`Email server not found. Check SMTP configuration.`);
+    } else if (error.responseCode === 535 || error.code === "EAUTH") {
+      throw new Error(`Email authentication failed. Check email credentials.`);
+    } else if (
+      error.message?.includes("Access Denied") ||
+      error.message?.includes("403")
+    ) {
+      throw new Error(
+        `Cannot access PDF at ${s3PdfUrl}. PDF file may not have public read permissions.`
+      );
+    } else {
+      throw error;
+    }
   }
 };
 
