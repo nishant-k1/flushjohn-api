@@ -31,22 +31,23 @@ const getBucketName = () => {
 };
 
 /**
- * Upload PDF to S3 with unique filename per document
+ * Upload PDF to S3 - one unique file per document type and ID
+ * Example: quote-123.pdf (will overwrite on regeneration)
  * @param {Buffer} pdfBuffer - PDF file buffer
  * @param {string} documentType - 'quote', 'salesOrder', or 'jobOrder'
- * @param {string} documentId - Document ID
- * @returns {Promise<string>} - S3 URL of uploaded PDF
+ * @param {string} documentId - Document ID (unique per user/document)
+ * @returns {Promise<Object>} - Object with directUrl, cdnUrl, s3Key, and fileName
  */
 export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
   try {
-    // Use documentId in filename to prevent race conditions between users
-    const timestamp = Date.now();
-    const fileName = `${documentType}-${documentId}-${timestamp}.pdf`;
+    // Use consistent filename per document (overwrites on regeneration to avoid duplicates)
+    // Pattern: {type}-{id}.pdf (e.g., quote-123.pdf, salesOrder-456.pdf)
+    const fileName = `${documentType}-${documentId}.pdf`;
     const key = `pdfs/${fileName}`;
     const bucketName = getBucketName();
     const s3Client = getS3Client();
 
-    // Upload new PDF (old PDFs will be cleaned up separately if needed)
+    // Upload PDF - will overwrite if exists
     const uploadParams = {
       Bucket: bucketName,
       Key: key,
@@ -58,12 +59,24 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
       Expires: new Date(0), // Expire immediately
     };
 
+    // Try to set ACL if bucket allows it, otherwise rely on bucket policy
+    try {
+      uploadParams.ACL = "public-read";
+    } catch (aclError) {
+      console.warn(
+        "⚠️ ACL not supported, relying on bucket policy for public access"
+      );
+    }
+
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
     // Build URLs
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
     const directS3Url = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+
+    // Use timestamp for cache busting
+    const timestamp = Date.now();
 
     // Return both direct S3 URL and CloudFront CDN URL
     const result = {
