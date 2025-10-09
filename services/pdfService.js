@@ -1,6 +1,11 @@
 import { uploadPDFToS3 } from "./s3Service.js";
 import fs from "fs";
 import path from "path";
+import { promisify } from "util";
+
+const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
+const unlink = promisify(fs.unlink);
 
 // Import templates
 import quoteTemplate from "../templates/quotes/pdf/index.js";
@@ -130,8 +135,7 @@ export const generatePDF = async (documentData, documentType, documentId) => {
         console.log(`✅ PDF generated and uploaded to S3/CloudFront`);
 
         return {
-          pdfUrl: s3Result.directUrl, // Direct S3 URL (api.flushjohn.com can proxy)
-          cdnUrl: s3Result.cdnUrl, // CloudFront CDN URL (cdn.flushjohn.com)
+          pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
         };
       } catch (s3Error) {
         console.warn("⚠️ S3 upload failed, saving locally:", s3Error.message);
@@ -140,11 +144,11 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       console.log("ℹ️ S3 storage disabled, using local storage");
     }
 
-    // Fall back to local storage with unique filename
-    // Use timestamp and documentId to prevent race conditions
-    const timestamp = Date.now();
-    const fileName = `${documentType}-${documentId}-${timestamp}.pdf`;
+    // Fall back to local storage
+    // Use same naming pattern as S3 (overwrites on regeneration)
+    const fileName = `${documentType}-${documentId}.pdf`;
     const finalPath = path.join(process.cwd(), "public", "temp", fileName);
+    const timestamp = Date.now();
 
     // Ensure temp directory exists
     const tempDir = path.dirname(finalPath);
@@ -182,23 +186,13 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       process.env.API_BASE_URL ||
       process.env.BASE_URL ||
       "http://localhost:8080";
-    const localUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
+    const pdfUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
 
-    // Also prepare CDN URL if CloudFront is configured
-    const cdnUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
-    const cdnPdfUrl = cdnUrl
-      ? `${cdnUrl}/temp/${fileName}?t=${timestamp}`
-      : localUrl;
+    console.log(`✅ PDF URL: ${pdfUrl}`);
 
-    console.log(`✅ PDF URL (API): ${localUrl}`);
-    if (cdnUrl) {
-      console.log(`✅ PDF URL (CDN): ${cdnPdfUrl}`);
-    }
-
-    // Return both URLs as an object
+    // Return single URL
     return {
-      pdfUrl: localUrl, // Direct API URL
-      cdnUrl: cdnPdfUrl, // CDN URL (or same as pdfUrl if CDN not configured)
+      pdfUrl, // Single URL for all use cases
     };
   } catch (error) {
     console.error(`❌ Error generating ${documentType} PDF:`, error);
@@ -250,4 +244,61 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
   }
 
   return generatePDF(jobOrderData, "jobOrder", jobOrderId);
+};
+
+/**
+ * Clean up old local PDF files
+ * @param {number} maxAgeInDays - Delete files older than this many days (default: 1)
+ * @returns {Promise<Object>} - Cleanup stats
+ */
+export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
+  try {
+    const tempDir = path.join(process.cwd(), "public", "temp");
+
+    // Check if temp directory exists
+    if (!fs.existsSync(tempDir)) {
+      return { deleted: 0, message: "Temp directory does not exist" };
+    }
+
+    const files = await readdir(tempDir);
+    const now = Date.now();
+    const maxAgeMs = maxAgeInDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
+
+    let deletedCount = 0;
+    const deletedFiles = [];
+
+    for (const file of files) {
+      // Only process PDF files
+      if (!file.endsWith(".pdf")) continue;
+
+      const filePath = path.join(tempDir, file);
+      const stats = await stat(filePath);
+      const fileAge = now - stats.mtimeMs; // Time since last modification
+
+      // Delete if older than maxAge
+      if (fileAge > maxAgeMs) {
+        await unlink(filePath);
+        deletedCount++;
+        deletedFiles.push({
+          name: file,
+          ageInDays: Math.floor(fileAge / (24 * 60 * 60 * 1000)),
+          size: stats.size,
+        });
+        console.log(
+          `🗑️ Deleted old PDF: ${file} (${Math.floor(
+            fileAge / (24 * 60 * 60 * 1000)
+          )} days old)`
+        );
+      }
+    }
+
+    return {
+      deleted: deletedCount,
+      files: deletedFiles,
+      message: `Deleted ${deletedCount} PDF(s) older than ${maxAgeInDays} days`,
+    };
+  } catch (error) {
+    console.error("❌ Error cleaning up old PDFs:", error);
+    throw error;
+  }
 };

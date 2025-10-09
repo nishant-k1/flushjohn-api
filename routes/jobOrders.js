@@ -334,8 +334,7 @@ router.post(
         message: "Job Order PDF generated and uploaded to S3",
         data: {
           _id,
-          pdfUrl: pdfUrls.pdfUrl, // Direct API URL
-          s3Url: pdfUrls.cdnUrl, // CDN URL (CloudFront if configured)
+          pdfUrl: pdfUrls.pdfUrl, // Single URL (CloudFront/S3 or local)
         },
       });
     } catch (error) {
@@ -410,7 +409,7 @@ router.post(
       const { sendJobOrderEmail } = await import("../services/emailService.js");
 
       const pdfUrls = await generateJobOrderPDF(emailData, _id);
-      await sendJobOrderEmail(emailData, _id, pdfUrls.cdnUrl);
+      await sendJobOrderEmail(emailData, _id, pdfUrls.pdfUrl);
 
       // Update job order status
       const updatedJobOrder = await JobOrders.findByIdAndUpdate(
@@ -424,7 +423,7 @@ router.post(
         message: "Job order email sent successfully",
         data: {
           ...updatedJobOrder.toObject(),
-          pdfUrl: pdfUrls.cdnUrl,
+          pdfUrl: pdfUrls.pdfUrl,
         },
       });
     } catch (error) {

@@ -287,169 +287,186 @@ router.delete("/:id", async function (req, res) {
 });
 
 // POST /salesOrders/:id/pdf - Generate PDF for sales order
-router.post("/:id/pdf", validateAndRecalculateProducts, async function (req, res) {
-  try {
-    const _id = req.params.id;
+router.post(
+  "/:id/pdf",
+  validateAndRecalculateProducts,
+  async function (req, res) {
+    try {
+      const _id = req.params.id;
 
-    // Validate MongoDB ObjectId format
-    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
+      // Validate MongoDB ObjectId format
+      if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid sales order ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      // Validate request body
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Request body is required for PDF generation",
+          error: "EMPTY_REQUEST_BODY",
+        });
+      }
+
+      // Find the sales order to verify it exists
+      const salesOrder = await SalesOrders.findById(_id);
+      if (!salesOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Sales order not found",
+          error: "SALES_ORDER_NOT_FOUND",
+        });
+      }
+
+      // Use the fresh data from request body for PDF generation
+      const pdfData = {
+        ...req.body,
+        _id: _id,
+        salesOrderNo: req.body.salesOrderNo || salesOrder.salesOrderNo,
+        createdAt: req.body.createdAt || salesOrder.createdAt,
+      };
+
+      // Generate PDF using new service
+      const { generateSalesOrderPDF } = await import(
+        "../services/pdfService.js"
+      );
+      const pdfUrls = await generateSalesOrderPDF(pdfData, _id);
+
+      res.status(201).json({
+        success: true,
+        message: "Sales Order PDF generated and uploaded to S3",
+        data: {
+          _id,
+          pdfUrl: pdfUrls.pdfUrl, // Single URL (CloudFront/S3 or local)
+        },
+      });
+    } catch (error) {
+      console.error("❌ Error generating sales order PDF:", error);
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Invalid sales order ID format",
-        error: "INVALID_ID_FORMAT",
+        message: "Failed to generate PDF",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    // Validate request body
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Request body is required for PDF generation",
-        error: "EMPTY_REQUEST_BODY",
-      });
-    }
-
-    // Find the sales order to verify it exists
-    const salesOrder = await SalesOrders.findById(_id);
-    if (!salesOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Sales order not found",
-        error: "SALES_ORDER_NOT_FOUND",
-      });
-    }
-
-    // Use the fresh data from request body for PDF generation
-    const pdfData = {
-      ...req.body,
-      _id: _id,
-      salesOrderNo: req.body.salesOrderNo || salesOrder.salesOrderNo,
-      createdAt: req.body.createdAt || salesOrder.createdAt,
-    };
-
-    // Generate PDF using new service
-    const { generateSalesOrderPDF } = await import("../services/pdfService.js");
-    const pdfUrls = await generateSalesOrderPDF(pdfData, _id);
-
-    res.status(201).json({
-      success: true,
-      message: "Sales Order PDF generated and uploaded to S3",
-      data: {
-        _id,
-        pdfUrl: pdfUrls.pdfUrl, // Direct API URL
-        s3Url: pdfUrls.cdnUrl, // CDN URL (CloudFront if configured)
-      },
-    });
-  } catch (error) {
-    console.error("❌ Error generating sales order PDF:", error);
-
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID format",
-        error: "INVALID_ID_FORMAT",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate PDF",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
 // POST /salesOrders/:id/email - Send sales order via email
-router.post("/:id/email", validateAndRecalculateProducts, async function (req, res) {
-  try {
-    const _id = req.params.id;
+router.post(
+  "/:id/email",
+  validateAndRecalculateProducts,
+  async function (req, res) {
+    try {
+      const _id = req.params.id;
 
-    // Validate MongoDB ObjectId format
-    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
+      // Validate MongoDB ObjectId format
+      if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid sales order ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      // Validate request body
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Request body is required for email sending",
+          error: "EMPTY_REQUEST_BODY",
+        });
+      }
+
+      // Find the sales order to verify it exists
+      const salesOrder = await SalesOrders.findById(_id);
+      if (!salesOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Sales order not found",
+          error: "SALES_ORDER_NOT_FOUND",
+        });
+      }
+
+      // Use the fresh data from request body
+      const emailData = {
+        ...req.body,
+        _id: _id,
+        salesOrderNo: req.body.salesOrderNo || salesOrder.salesOrderNo,
+        createdAt: req.body.createdAt || salesOrder.createdAt,
+      };
+
+      // Generate PDF and send email using new services
+      const { generateSalesOrderPDF } = await import(
+        "../services/pdfService.js"
+      );
+      const { sendSalesOrderEmail } = await import(
+        "../services/emailService.js"
+      );
+
+      const pdfUrls = await generateSalesOrderPDF(emailData, _id);
+      await sendSalesOrderEmail(emailData, _id, pdfUrls.pdfUrl);
+
+      // Update sales order status
+      const updatedSalesOrder = await SalesOrders.findByIdAndUpdate(
+        _id,
+        { emailStatus: "Sent", updatedAt: new Date() },
+        { new: true }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Sales order email sent successfully",
+        data: {
+          ...updatedSalesOrder.toObject(),
+          pdfUrl: pdfUrls.pdfUrl,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Error sending sales order email:", error);
+
+      if (error.name === "ValidationError") {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: "VALIDATION_ERROR",
+          details: Object.values(error.errors).map((err) => err.message),
+        });
+      }
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Invalid sales order ID format",
-        error: "INVALID_ID_FORMAT",
+        message: "Failed to send email",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    // Validate request body
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Request body is required for email sending",
-        error: "EMPTY_REQUEST_BODY",
-      });
-    }
-
-    // Find the sales order to verify it exists
-    const salesOrder = await SalesOrders.findById(_id);
-    if (!salesOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Sales order not found",
-        error: "SALES_ORDER_NOT_FOUND",
-      });
-    }
-
-    // Use the fresh data from request body
-    const emailData = {
-      ...req.body,
-      _id: _id,
-      salesOrderNo: req.body.salesOrderNo || salesOrder.salesOrderNo,
-      createdAt: req.body.createdAt || salesOrder.createdAt,
-    };
-
-    // Generate PDF and send email using new services
-    const { generateSalesOrderPDF } = await import("../services/pdfService.js");
-    const { sendSalesOrderEmail } = await import("../services/emailService.js");
-
-    const pdfUrls = await generateSalesOrderPDF(emailData, _id);
-    await sendSalesOrderEmail(emailData, _id, pdfUrls.cdnUrl);
-
-    // Update sales order status
-    const updatedSalesOrder = await SalesOrders.findByIdAndUpdate(
-      _id,
-      { emailStatus: "Sent", updatedAt: new Date() },
-      { new: true }
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Sales order email sent successfully",
-      data: {
-        ...updatedSalesOrder.toObject(),
-        pdfUrl: pdfUrls.cdnUrl,
-      },
-    });
-  } catch (error) {
-    console.error("❌ Error sending sales order email:", error);
-
-    if (error.name === "ValidationError") {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        error: "VALIDATION_ERROR",
-        details: Object.values(error.errors).map((err) => err.message),
-      });
-    }
-
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID format",
-        error: "INVALID_ID_FORMAT",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to send email",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
 export default router;

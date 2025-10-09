@@ -81,29 +81,25 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
     }
 
     // Build URLs
-    const apiBaseUrl =
-      process.env.API_BASE_URL ||
-      process.env.BASE_URL ||
-      "http://localhost:8080";
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
 
     // Use timestamp for cache busting
     const timestamp = Date.now();
 
-    // Return API URL for pdfUrl and CloudFront for s3Url
+    // For S3 files, we use CloudFront CDN URL (preferred) or direct S3 URL (fallback)
+    const s3DirectUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}?t=${timestamp}`;
+    const pdfUrl = cloudFrontUrl
+      ? `${cloudFrontUrl}/${key}?t=${timestamp}` // CloudFront CDN (preferred)
+      : s3DirectUrl; // Direct S3 URL (fallback)
+
     const result = {
       fileName: fileName,
       s3Key: key,
-      directUrl: `${apiBaseUrl}/pdfAccess/${key}?t=${timestamp}`, // API proxy URL
-      cdnUrl: cloudFrontUrl
-        ? `${cloudFrontUrl}/${key}?t=${timestamp}`
-        : `${apiBaseUrl}/pdfAccess/${key}?t=${timestamp}`,
+      cdnUrl: pdfUrl, // Single URL for all use cases
     };
 
     console.log(`✅ PDF uploaded to S3: ${bucketName}/${key}`);
-    if (cloudFrontUrl) {
-      console.log(`✅ CDN URL: ${result.cdnUrl}`);
-    }
+    console.log(`✅ PDF URL: ${pdfUrl}`);
 
     return result;
   } catch (error) {

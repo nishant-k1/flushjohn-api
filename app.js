@@ -9,6 +9,7 @@ import { createServer } from "http";
 
 import dbConnect from "./lib/dbConnect/index.js";
 import socketConnect from "./lib/socketConnect/index.js";
+import { schedulePDFCleanup, runCleanupOnStartup } from "./jobs/pdfCleanup.js";
 import indexRouter from "./routes/index.js";
 import authRouter from "./routes/auth.js";
 import fileUploadRouter from "./routes/file-upload.js";
@@ -21,6 +22,7 @@ import quotesRouter from "./routes/quotes.js";
 import salesOrdersRouter from "./routes/salesOrders.js";
 import jobOrdersRouter from "./routes/jobOrders.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
+import pdfCleanupRouter from "./routes/pdfCleanup.js";
 
 config();
 
@@ -130,6 +132,9 @@ app.use(
 // Secure PDF access routes (replaces public static serving)
 app.use("/pdf", pdfAccessRouter);
 
+// PDF cleanup routes (for managing local PDFs)
+app.use("/pdf-cleanup", pdfCleanupRouter);
+
 // CORS debugging endpoint
 app.get("/cors-debug", (req, res) => {
   res.json({
@@ -162,6 +167,12 @@ dbConnect().catch((error) => {
   console.error("❌ Failed to connect to database:", error.message);
   process.exit(1);
 });
+
+// ✅ Schedule automatic PDF cleanup (runs daily at 2 AM by default)
+schedulePDFCleanup();
+
+// ✅ Optionally run cleanup on startup
+runCleanupOnStartup();
 
 // Handle 404 errors
 app.use((req, res, next) => {
