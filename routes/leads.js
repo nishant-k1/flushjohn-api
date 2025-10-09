@@ -2,6 +2,7 @@ import { Router } from "express";
 var router = Router();
 import Leads from "../models/Leads/index.js";
 import alertService from "../services/alertService.js";
+import validateAndRecalculateProducts from "../middleware/validateProducts.js";
 
 const productsData = (leadSource, products) => {
   let transformedProductsData = [...products];
@@ -32,71 +33,80 @@ const leadData = ({ leadSource, products, ...restArgs }) => ({
   ...restArgs,
 });
 
-router.post("/", async function (req, res, next) {
-  try {
-    // ✅ ERROR HANDLING FIX: Validate request body
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Request body is required",
-        error: "EMPTY_REQUEST_BODY",
-      });
-    }
-
-    const createdAt = new Date();
-    const latestLead = await Leads.findOne({}, "leadNo").sort({
-      leadNo: -1,
-    });
-    const latestLeadNo = latestLead ? latestLead.leadNo : 999;
-    const newLeadNo = latestLeadNo + 1;
-    const leadNo = newLeadNo;
-    const webLead = leadData({ ...req.body, createdAt, leadNo });
-    const lead = await Leads.create(webLead);
-
-    // Send Telegram alerts after successful lead creation
+router.post(
+  "/",
+  validateAndRecalculateProducts,
+  async function (req, res, next) {
     try {
-      const alertResults = await alertService.sendLeadAlerts(lead);
-      console.log(`📢 Alert results for lead #${leadNo}:`, alertResults);
-    } catch (alertError) {
-      // Don't fail the lead creation if alerts fail
-      console.error(`⚠️ Alert sending failed for lead #${leadNo}:`, alertError);
-    }
+      // ✅ ERROR HANDLING FIX: Validate request body
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Request body is required",
+          error: "EMPTY_REQUEST_BODY",
+        });
+      }
 
-    res.status(201).json({
-      success: true,
-      message: "Lead created successfully",
-      data: lead,
-    });
-  } catch (error) {
-    console.error("❌ Error creating lead:", error);
+      const createdAt = new Date();
+      const latestLead = await Leads.findOne({}, "leadNo").sort({
+        leadNo: -1,
+      });
+      const latestLeadNo = latestLead ? latestLead.leadNo : 999;
+      const newLeadNo = latestLeadNo + 1;
+      const leadNo = newLeadNo;
+      const webLead = leadData({ ...req.body, createdAt, leadNo });
+      const lead = await Leads.create(webLead);
 
-    // ✅ ERROR HANDLING FIX: Handle specific error types
-    if (error.name === "ValidationError") {
-      return res.status(400).json({
+      // Send Telegram alerts after successful lead creation
+      try {
+        const alertResults = await alertService.sendLeadAlerts(lead);
+        console.log(`📢 Alert results for lead #${leadNo}:`, alertResults);
+      } catch (alertError) {
+        // Don't fail the lead creation if alerts fail
+        console.error(
+          `⚠️ Alert sending failed for lead #${leadNo}:`,
+          alertError
+        );
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Lead created successfully",
+        data: lead,
+      });
+    } catch (error) {
+      console.error("❌ Error creating lead:", error);
+
+      // ✅ ERROR HANDLING FIX: Handle specific error types
+      if (error.name === "ValidationError") {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: "VALIDATION_ERROR",
+          details: Object.values(error.errors).map((err) => err.message),
+        });
+      }
+
+      if (error.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          message: "Lead already exists",
+          error: "DUPLICATE_LEAD",
+        });
+      }
+
+      // ✅ ERROR HANDLING FIX: Generic server error
+      res.status(500).json({
         success: false,
-        message: "Validation failed",
-        error: "VALIDATION_ERROR",
-        details: Object.values(error.errors).map((err) => err.message),
+        message: "Failed to create lead",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: "Lead already exists",
-        error: "DUPLICATE_LEAD",
-      });
-    }
-
-    // ✅ ERROR HANDLING FIX: Generic server error
-    res.status(500).json({
-      success: false,
-      message: "Failed to create lead",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
 // GET /leads - Get all leads with pagination, sorting, and filtering
 router.get("/", async function (req, res, next) {
@@ -276,76 +286,82 @@ router.get("/:id", async function (req, res, next) {
 });
 
 // PUT /leads/:id - Update a lead by ID
-router.put("/:id", async function (req, res, next) {
-  try {
-    const _id = req.params.id;
+router.put(
+  "/:id",
+  validateAndRecalculateProducts,
+  async function (req, res, next) {
+    try {
+      const _id = req.params.id;
 
-    // ✅ ERROR HANDLING FIX: Validate MongoDB ObjectId format
-    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
+      // ✅ ERROR HANDLING FIX: Validate MongoDB ObjectId format
+      if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid lead ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      // ✅ ERROR HANDLING FIX: Validate request body
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Request body is required for update",
+          error: "EMPTY_REQUEST_BODY",
+        });
+      }
+
+      const lead = await Leads.findByIdAndUpdate(
+        _id,
+        { ...req.body, updatedAt: new Date() },
+        { new: true, runValidators: true }
+      );
+
+      if (!lead) {
+        return res.status(404).json({
+          success: false,
+          message: "Lead not found",
+          error: "LEAD_NOT_FOUND",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Lead updated successfully",
+        data: lead,
+      });
+    } catch (error) {
+      console.error("❌ Error updating lead:", error);
+
+      // ✅ ERROR HANDLING FIX: Handle specific error types
+      if (error.name === "ValidationError") {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: "VALIDATION_ERROR",
+          details: Object.values(error.errors).map((err) => err.message),
+        });
+      }
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Invalid lead ID format",
-        error: "INVALID_ID_FORMAT",
+        message: "Failed to update lead",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    // ✅ ERROR HANDLING FIX: Validate request body
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Request body is required for update",
-        error: "EMPTY_REQUEST_BODY",
-      });
-    }
-
-    const lead = await Leads.findByIdAndUpdate(
-      _id,
-      { ...req.body, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    );
-
-    if (!lead) {
-      return res.status(404).json({
-        success: false,
-        message: "Lead not found",
-        error: "LEAD_NOT_FOUND",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Lead updated successfully",
-      data: lead,
-    });
-  } catch (error) {
-    console.error("❌ Error updating lead:", error);
-
-    // ✅ ERROR HANDLING FIX: Handle specific error types
-    if (error.name === "ValidationError") {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        error: "VALIDATION_ERROR",
-        details: Object.values(error.errors).map((err) => err.message),
-      });
-    }
-
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID format",
-        error: "INVALID_ID_FORMAT",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to update lead",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
 // DELETE /leads/:id - Delete a lead by ID
 router.delete("/:id", async function (req, res, next) {

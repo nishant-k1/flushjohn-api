@@ -1,9 +1,10 @@
 import { Router } from "express";
 const router = Router();
 import JobOrders from "../models/JobOrders/index.js";
+import validateAndRecalculateProducts from "../middleware/validateProducts.js";
 
 // POST: Create a new job order
-router.post("/", async function (req, res) {
+router.post("/", validateAndRecalculateProducts, async function (req, res) {
   try {
     const createdAt = new Date();
     const body = req.body;
@@ -153,7 +154,7 @@ router.get("/:id", async function (req, res) {
 });
 
 // PUT /jobOrders/:id - Update job order by ID
-router.put("/:id", async function (req, res) {
+router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const _id = req.params.id;
 
@@ -281,169 +282,181 @@ router.delete("/:id", async function (req, res) {
 });
 
 // POST /jobOrders/:id/pdf - Generate PDF for job order
-router.post("/:id/pdf", async function (req, res) {
-  try {
-    const _id = req.params.id;
+router.post(
+  "/:id/pdf",
+  validateAndRecalculateProducts,
+  async function (req, res) {
+    try {
+      const _id = req.params.id;
 
-    // Validate MongoDB ObjectId format
-    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
+      // Validate MongoDB ObjectId format
+      if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid job order ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      // Validate request body
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Request body is required for PDF generation",
+          error: "EMPTY_REQUEST_BODY",
+        });
+      }
+
+      // Find the job order to verify it exists
+      const jobOrder = await JobOrders.findById(_id);
+      if (!jobOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Job order not found",
+          error: "JOB_ORDER_NOT_FOUND",
+        });
+      }
+
+      // Use the fresh data from request body for PDF generation
+      const pdfData = {
+        ...req.body,
+        _id: _id,
+        jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
+        createdAt: req.body.createdAt || jobOrder.createdAt,
+      };
+
+      // Generate PDF using new service
+      const { generateJobOrderPDF } = await import("../services/pdfService.js");
+      const pdfUrls = await generateJobOrderPDF(pdfData, _id);
+
+      res.status(201).json({
+        success: true,
+        message: "Job Order PDF generated and uploaded to S3",
+        data: {
+          _id,
+          pdfUrl: pdfUrls.pdfUrl, // Direct API URL
+          s3Url: pdfUrls.cdnUrl, // CDN URL (CloudFront if configured)
+        },
+      });
+    } catch (error) {
+      console.error("❌ Error generating job order PDF:", error);
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Invalid job order ID format",
-        error: "INVALID_ID_FORMAT",
+        message: "Failed to generate PDF",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    // Validate request body
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Request body is required for PDF generation",
-        error: "EMPTY_REQUEST_BODY",
-      });
-    }
-
-    // Find the job order to verify it exists
-    const jobOrder = await JobOrders.findById(_id);
-    if (!jobOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Job order not found",
-        error: "JOB_ORDER_NOT_FOUND",
-      });
-    }
-
-    // Use the fresh data from request body for PDF generation
-    const pdfData = {
-      ...req.body,
-      _id: _id,
-      jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
-      createdAt: req.body.createdAt || jobOrder.createdAt,
-    };
-
-    // Generate PDF using new service
-    const { generateJobOrderPDF } = await import("../services/pdfService.js");
-    const pdfUrls = await generateJobOrderPDF(pdfData, _id);
-
-    res.status(201).json({
-      success: true,
-      message: "Job Order PDF generated and uploaded to S3",
-      data: {
-        _id,
-        pdfUrl: pdfUrls.pdfUrl, // Direct API URL
-        s3Url: pdfUrls.cdnUrl, // CDN URL (CloudFront if configured)
-      },
-    });
-  } catch (error) {
-    console.error("❌ Error generating job order PDF:", error);
-
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID format",
-        error: "INVALID_ID_FORMAT",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate PDF",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
 // POST /jobOrders/:id/email - Send job order via email
-router.post("/:id/email", async function (req, res) {
-  try {
-    const _id = req.params.id;
+router.post(
+  "/:id/email",
+  validateAndRecalculateProducts,
+  async function (req, res) {
+    try {
+      const _id = req.params.id;
 
-    // Validate MongoDB ObjectId format
-    if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
+      // Validate MongoDB ObjectId format
+      if (!_id.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid job order ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      // Validate request body
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Request body is required for email sending",
+          error: "EMPTY_REQUEST_BODY",
+        });
+      }
+
+      // Find the job order to verify it exists
+      const jobOrder = await JobOrders.findById(_id);
+      if (!jobOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Job order not found",
+          error: "JOB_ORDER_NOT_FOUND",
+        });
+      }
+
+      // Use the fresh data from request body
+      const emailData = {
+        ...req.body,
+        _id: _id,
+        jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
+        createdAt: req.body.createdAt || jobOrder.createdAt,
+      };
+
+      // Generate PDF and send email using new services
+      const { generateJobOrderPDF } = await import("../services/pdfService.js");
+      const { sendJobOrderEmail } = await import("../services/emailService.js");
+
+      const pdfUrls = await generateJobOrderPDF(emailData, _id);
+      await sendJobOrderEmail(emailData, _id, pdfUrls.cdnUrl);
+
+      // Update job order status
+      const updatedJobOrder = await JobOrders.findByIdAndUpdate(
+        _id,
+        { emailStatus: "Sent", updatedAt: new Date() },
+        { new: true }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Job order email sent successfully",
+        data: {
+          ...updatedJobOrder.toObject(),
+          pdfUrl: pdfUrls.cdnUrl,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Error sending job order email:", error);
+
+      if (error.name === "ValidationError") {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: "VALIDATION_ERROR",
+          details: Object.values(error.errors).map((err) => err.message),
+        });
+      }
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Invalid job order ID format",
-        error: "INVALID_ID_FORMAT",
+        message: "Failed to send email",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    // Validate request body
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Request body is required for email sending",
-        error: "EMPTY_REQUEST_BODY",
-      });
-    }
-
-    // Find the job order to verify it exists
-    const jobOrder = await JobOrders.findById(_id);
-    if (!jobOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Job order not found",
-        error: "JOB_ORDER_NOT_FOUND",
-      });
-    }
-
-    // Use the fresh data from request body
-    const emailData = {
-      ...req.body,
-      _id: _id,
-      jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
-      createdAt: req.body.createdAt || jobOrder.createdAt,
-    };
-
-    // Generate PDF and send email using new services
-    const { generateJobOrderPDF } = await import("../services/pdfService.js");
-    const { sendJobOrderEmail } = await import("../services/emailService.js");
-
-    const pdfUrls = await generateJobOrderPDF(emailData, _id);
-    await sendJobOrderEmail(emailData, _id, pdfUrls.cdnUrl);
-
-    // Update job order status
-    const updatedJobOrder = await JobOrders.findByIdAndUpdate(
-      _id,
-      { emailStatus: "Sent", updatedAt: new Date() },
-      { new: true }
-    );
-
-    res.status(200).json({
-      success: true,
-      message: "Job order email sent successfully",
-      data: {
-        ...updatedJobOrder.toObject(),
-        pdfUrl: s3PdfUrl,
-      },
-    });
-  } catch (error) {
-    console.error("❌ Error sending job order email:", error);
-
-    if (error.name === "ValidationError") {
-      return res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        error: "VALIDATION_ERROR",
-        details: Object.values(error.errors).map((err) => err.message),
-      });
-    }
-
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID format",
-        error: "INVALID_ID_FORMAT",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to send email",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
 export default router;

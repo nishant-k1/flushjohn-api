@@ -81,20 +81,23 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
     }
 
     // Build URLs
+    const apiBaseUrl =
+      process.env.API_BASE_URL ||
+      process.env.BASE_URL ||
+      "http://localhost:8080";
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
-    const directS3Url = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
     // Use timestamp for cache busting
     const timestamp = Date.now();
 
-    // Return both direct S3 URL and CloudFront CDN URL
+    // Return API URL for pdfUrl and CloudFront for s3Url
     const result = {
       fileName: fileName,
       s3Key: key,
-      directUrl: directS3Url,
+      directUrl: `${apiBaseUrl}/pdfAccess/${key}?t=${timestamp}`, // API proxy URL
       cdnUrl: cloudFrontUrl
         ? `${cloudFrontUrl}/${key}?t=${timestamp}`
-        : directS3Url,
+        : `${apiBaseUrl}/pdfAccess/${key}?t=${timestamp}`,
     };
 
     console.log(`✅ PDF uploaded to S3: ${bucketName}/${key}`);

@@ -16,6 +16,9 @@ const SalesOrdersSchema = new mongoose.Schema({
   customerNo: {
     type: Number,
   },
+  leadNo: {
+    type: String,
+  },
   // Personal Details
   fName: {
     type: String,

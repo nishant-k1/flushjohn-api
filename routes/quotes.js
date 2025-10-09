@@ -1,9 +1,10 @@
 import { Router } from "express";
 const router = Router();
 import Quotes from "../models/Quotes/index.js";
+import validateAndRecalculateProducts from "../middleware/validateProducts.js";
 
 // POST: Create a new quote
-router.post("/", async function (req, res) {
+router.post("/", validateAndRecalculateProducts, async function (req, res) {
   try {
     const createdAt = new Date();
     const latestQuote = await Quotes.findOne({}, "quoteNo").sort({
@@ -114,7 +115,7 @@ router.get("/:id", async function (req, res) {
 });
 
 // PUT /quotes/:id - Update quote by ID
-router.put("/:id", async function (req, res) {
+router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const _id = req.params.id;
 
@@ -235,7 +236,7 @@ router.delete("/:id", async function (req, res) {
 });
 
 // POST /quotes/:id/pdf - Generate PDF for quote
-router.post("/:id/pdf", async function (req, res) {
+router.post("/:id/pdf", validateAndRecalculateProducts, async function (req, res) {
   try {
     const _id = req.params.id;
 
@@ -309,7 +310,7 @@ router.post("/:id/pdf", async function (req, res) {
 });
 
 // POST /quotes/:id/email - Send quote via email
-router.post("/:id/email", async function (req, res) {
+router.post("/:id/email", validateAndRecalculateProducts, async function (req, res) {
   try {
     const _id = req.params.id;
 

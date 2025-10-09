@@ -2,9 +2,10 @@ import { Router } from "express";
 const router = Router();
 import SalesOrders from "../models/SalesOrders/index.js";
 import Customers from "../models/Customers/index.js";
+import validateAndRecalculateProducts from "../middleware/validateProducts.js";
 
 // POST: Create a new sales order
-router.post("/", async function (req, res) {
+router.post("/", validateAndRecalculateProducts, async function (req, res) {
   try {
     const createdAt = new Date();
     const body = req.body;
@@ -165,7 +166,7 @@ router.get("/:id", async function (req, res) {
 });
 
 // PUT /salesOrders/:id - Update sales order by ID
-router.put("/:id", async function (req, res) {
+router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const _id = req.params.id;
 
@@ -286,7 +287,7 @@ router.delete("/:id", async function (req, res) {
 });
 
 // POST /salesOrders/:id/pdf - Generate PDF for sales order
-router.post("/:id/pdf", async function (req, res) {
+router.post("/:id/pdf", validateAndRecalculateProducts, async function (req, res) {
   try {
     const _id = req.params.id;
 
@@ -360,7 +361,7 @@ router.post("/:id/pdf", async function (req, res) {
 });
 
 // POST /salesOrders/:id/email - Send sales order via email
-router.post("/:id/email", async function (req, res) {
+router.post("/:id/email", validateAndRecalculateProducts, async function (req, res) {
   try {
     const _id = req.params.id;
 
