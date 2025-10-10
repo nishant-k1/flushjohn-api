@@ -7,10 +7,10 @@ const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 const unlink = promisify(fs.unlink);
 
-// Import templates
-import quoteTemplate from "../templates/quotes/pdf/index.js";
-import salesOrderTemplate from "../templates/salesOrders/pdf/index.js";
-import jobOrderTemplate from "../templates/jobOrders/pdf/index.js";
+// Import templates from feature folders
+import quoteTemplate from "../features/quotes/templates/pdf/index.js";
+import salesOrderTemplate from "../features/salesOrders/templates/pdf/index.js";
+import jobOrderTemplate from "../features/jobOrders/templates/pdf/index.js";
 
 // Try to import Playwright, fallback to Puppeteer if not available
 let browserLib = null;

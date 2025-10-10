@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { cleanupOldPDFs } from "../services/pdfService.js";
-import { authenticateToken, authorizeRoles } from "../middleware/auth.js";
+import { authenticateToken, authorizeRoles } from "../features/auth/middleware/auth.js";
 
 const router = Router();
 

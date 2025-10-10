@@ -6,7 +6,7 @@ import {
   authenticateToken,
   authorizeRoles,
   checkDocumentAccess,
-} from "../middleware/auth.js";
+} from "../features/auth/middleware/auth.js";
 
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);

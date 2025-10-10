@@ -10,21 +10,48 @@ import { createServer } from "http";
 import dbConnect from "./lib/dbConnect/index.js";
 import socketConnect from "./lib/socketConnect/index.js";
 import { schedulePDFCleanup, runCleanupOnStartup } from "./jobs/pdfCleanup.js";
+// Cross-cutting routes
 import indexRouter from "./routes/index.js";
-import authRouter from "./routes/auth.js";
 import fileUploadRouter from "./routes/file-upload.js";
-import usersRouter from "./routes/users.js";
-import leadsRouter from "./routes/leads.js";
-import blogsRouter from "./routes/blogs.js";
-import vendorsRouter from "./routes/vendors.js";
-import customersRouter from "./routes/customers.js";
-import quotesRouter from "./routes/quotes.js";
-import salesOrdersRouter from "./routes/salesOrders.js";
-import jobOrdersRouter from "./routes/jobOrders.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
 import pdfCleanupRouter from "./routes/pdfCleanup.js";
 
-config();
+// Feature-based imports
+import leadsFeature from "./features/leads/index.js";
+import quotesFeature from "./features/quotes/index.js";
+import customersFeature from "./features/customers/index.js";
+import salesOrdersFeature from "./features/salesOrders/index.js";
+import vendorsFeature from "./features/vendors/index.js";
+import jobOrdersFeature from "./features/jobOrders/index.js";
+import blogsFeature from "./features/blogs/index.js";
+import authFeature from "./features/auth/index.js";
+
+// Extract routes from features
+const authRouter = authFeature.routes.auth;
+const usersRouter = authFeature.routes.users;
+const leadsRouter = leadsFeature.routes;
+const blogsRouter = blogsFeature.routes;
+const vendorsRouter = vendorsFeature.routes;
+const customersRouter = customersFeature.routes;
+const quotesRouter = quotesFeature.routes;
+const salesOrdersRouter = salesOrdersFeature.routes;
+const jobOrdersRouter = jobOrdersFeature.routes;
+
+// Load environment variables
+config({ path: "./.env" });
+
+// Verify AWS credentials are loaded
+if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+  console.warn("⚠️ AWS credentials not found in environment variables");
+  console.warn(
+    "AWS_ACCESS_KEY_ID:",
+    process.env.AWS_ACCESS_KEY_ID ? "Present" : "Missing"
+  );
+  console.warn(
+    "AWS_SECRET_ACCESS_KEY:",
+    process.env.AWS_SECRET_ACCESS_KEY ? "Present" : "Missing"
+  );
+}
 
 const app = express();
 const log = debug("flushjohn-api:server");
@@ -56,7 +83,7 @@ const corsOptionsAPI = {
 
     return callback(new Error("Not allowed by CORS"));
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
   allowedHeaders: [
     "Content-Type",
     "Authorization",
@@ -66,8 +93,10 @@ const corsOptionsAPI = {
     "Access-Control-Request-Method",
     "Access-Control-Request-Headers",
   ],
-  credentials: process.env.CORS_CREDENTIALS === "false" ? false : true,
-  optionsSuccessStatus: 200, // For legacy browser support
+  exposedHeaders: ["Content-Length", "Content-Type"],
+  credentials: true,
+  maxAge: process.env.NODE_ENV === "production" ? 86400 : 0, // 24 hours in prod, no cache in dev
+  optionsSuccessStatus: 204,
   preflightContinue: false,
 };
 
