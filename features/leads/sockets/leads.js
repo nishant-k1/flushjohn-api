@@ -15,13 +15,18 @@ const productsData = (leadSource, products) => {
       amount: 0,
     }));
   } else if (leadSource === "Web Lead") {
-    transformedProductsData = products.map((item) => ({
-      item: item.name || "",
-      desc: item.name || "",
-      qty: item.qty || "",
-      rate: item.rate || "",
-      amount: item.amount || "",
-    }));
+    transformedProductsData = products
+      .filter((item) => {
+        const qty = parseInt(item.qty) || 0;
+        return qty > 0; // Only include products with quantity > 0
+      })
+      .map((item) => ({
+        item: item.name || "",
+        desc: item.name || "",
+        qty: item.qty || "",
+        rate: item.rate || "",
+        amount: item.amount || "",
+      }));
   } else if (leadSource === "Call Lead") {
     transformedProductsData = products.map(
       ({ id, item, desc, qty, rate, amount }) => ({
@@ -37,9 +42,15 @@ const productsData = (leadSource, products) => {
   return transformedProductsData;
 };
 
-const transformedLeadData = async ({ leadSource, products, ...restArgs }) => ({
+const transformedLeadData = async ({
+  leadSource,
+  products,
+  street,
+  ...restArgs
+}) => ({
   leadSource,
   products: productsData(leadSource, products),
+  streetAddress: street || restArgs.streetAddress || "", // Map 'street' to 'streetAddress'
   ...restArgs,
 });
 
@@ -61,16 +72,12 @@ export function leadSocketHandler(leadsNamespace, socket) {
       });
       const lead = await Leads.create(webLead);
 
-      //  NEW: Send alerts after successful lead creation
+      //  Send alerts after successful lead creation
       try {
         const alertResults = await alertService.sendLeadAlerts(lead);
-        console.log(`📢 Alert results for lead #${leadNo}:`, alertResults);
+        console.log(`📢 Alert sent for lead #${leadNo}`);
       } catch (alertError) {
-        // Don't fail the lead creation if alerts fail
-        console.error(
-          `⚠️ Alert sending failed for lead #${leadNo}:`,
-          alertError
-        );
+        console.error(`⚠️ Alert failed for lead #${leadNo}:`, alertError);
       }
 
       const leadsList = await Leads.find().sort({ _id: -1 });

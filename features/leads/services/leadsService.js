@@ -1,6 +1,6 @@
 /**
  * Leads Service - Business Logic Layer
- * 
+ *
  * This layer contains all business logic for Leads.
  * It orchestrates repositories and handles business rules.
  */
@@ -13,7 +13,7 @@ import alertService from "../../../services/alertService.js";
  */
 export const transformProductsData = (leadSource, products) => {
   let transformedProductsData = [...products];
-  
+
   if (leadSource === "Web Quick Lead" || leadSource === "Web Hero Quick Lead") {
     transformedProductsData = products.map((item) => ({
       item: item,
@@ -23,27 +23,38 @@ export const transformProductsData = (leadSource, products) => {
       amount: "",
     }));
   } else if (leadSource === "Web Lead") {
-    transformedProductsData = products.map((item) => ({
-      item: item.name,
-      desc: "",
-      qty: item.qty,
-      rate: "",
-      amount: "",
-    }));
+    transformedProductsData = products
+      .filter((item) => {
+        const qty = parseInt(item.qty) || 0;
+        return qty > 0; // Only include products with quantity > 0
+      })
+      .map((item) => ({
+        item: item.name,
+        desc: "",
+        qty: item.qty,
+        rate: "",
+        amount: "",
+      }));
   } else if (leadSource === "Call Lead") {
     return transformedProductsData;
   }
-  
+
   return transformedProductsData;
 };
 
 /**
  * Prepare lead data for creation
  */
-export const prepareLeadData = ({ leadSource, products, ...restArgs }) => {
+export const prepareLeadData = ({
+  leadSource,
+  products,
+  street,
+  ...restArgs
+}) => {
   return {
     leadSource,
     products: transformProductsData(leadSource, products),
+    streetAddress: street || restArgs.streetAddress || "", // Map 'street' to 'streetAddress'
     ...restArgs,
   };
 };
@@ -76,7 +87,6 @@ export const createLead = async (leadData) => {
   const createdAt = new Date();
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
-  
   const lead = await leadsRepository.create(preparedData);
 
   // Send alerts asynchronously (don't block on failure)
@@ -116,7 +126,13 @@ export const getAllLeads = async ({
   }
 
   // Build sort object
-  const validSortFields = ["createdAt", "leadNo", "leadStatus", "assignedTo", "leadSource"];
+  const validSortFields = [
+    "createdAt",
+    "leadNo",
+    "leadStatus",
+    "assignedTo",
+    "leadSource",
+  ];
   const sortField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
   const sortDirection = sortOrder === "asc" ? 1 : -1;
   const sort = { [sortField]: sortDirection };
@@ -163,7 +179,7 @@ export const getAllLeads = async ({
  */
 export const getLeadById = async (id) => {
   const lead = await leadsRepository.findById(id);
-  
+
   if (!lead) {
     const error = new Error("Lead not found");
     error.name = "NotFoundError";
@@ -196,7 +212,7 @@ export const updateLead = async (id, updateData) => {
  */
 export const deleteLead = async (id) => {
   const existingLead = await leadsRepository.findById(id);
-  
+
   if (!existingLead) {
     const error = new Error("Lead not found");
     error.name = "NotFoundError";
