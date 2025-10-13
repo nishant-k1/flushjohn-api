@@ -2,44 +2,22 @@ import Leads from "../models/Leads/index.js";
 import alertService from "../../../services/alertService.js";
 
 const productsData = (leadSource, products) => {
+  // Since all forms now use consistent CRM format, just return products as-is
+  // Only filter out products with quantity 0 for web leads
   if (!Array.isArray(products)) {
-    return;
+    return [];
   }
-  let transformedProductsData = [];
-  if (leadSource === "Web Quick Lead" || leadSource === "Web Hero Quick Lead") {
-    transformedProductsData = products.map((item) => ({
-      item: item,
-      desc: item,
-      qty: 1,
-      rate: 0,
-      amount: 0,
-    }));
-  } else if (leadSource === "Web Lead") {
-    transformedProductsData = products
-      .filter((item) => {
-        const qty = parseInt(item.qty) || 0;
-        return qty > 0; // Only include products with quantity > 0
-      })
-      .map((item) => ({
-        item: item.name || "",
-        desc: item.name || "",
-        qty: item.qty || "",
-        rate: item.rate || "",
-        amount: item.amount || "",
-      }));
-  } else if (leadSource === "Call Lead") {
-    transformedProductsData = products.map(
-      ({ id, item, desc, qty, rate, amount }) => ({
-        id,
-        item,
-        desc,
-        qty,
-        rate,
-        amount,
-      })
-    );
+
+  if (leadSource === "Web Lead") {
+    // Filter out products with no quantity for multi-step quote form
+    return products.filter((product) => {
+      const qty = parseInt(product.qty) || 0;
+      return qty > 0;
+    });
   }
-  return transformedProductsData;
+
+  // For all other lead sources, return products as-is (they're already in CRM format)
+  return products;
 };
 
 const transformedLeadData = async ({
