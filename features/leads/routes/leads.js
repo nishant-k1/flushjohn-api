@@ -29,6 +29,19 @@ router.post(
 
       const lead = await leadsService.createLead(req.body);
 
+      // Emit Socket.IO event for real-time notifications
+      if (global.leadsNamespace) {
+        try {
+          // Get updated leads list and emit to all connected clients
+          const { default: Leads } = await import("../models/lead.js");
+          const leadsList = await Leads.find().sort({ _id: -1 });
+          global.leadsNamespace.emit("leadCreated", leadsList);
+          console.log("📢 HTTP API - Emitted leadCreated event to Socket.IO clients");
+        } catch (emitError) {
+          console.error("⚠️ Failed to emit leadCreated event:", emitError);
+        }
+      }
+
       res.status(201).json({
         success: true,
         message: "Lead created successfully",

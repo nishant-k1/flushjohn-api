@@ -12,7 +12,7 @@ const productsData = (leadSource, products) => {
     if (product.type && product.quantity !== undefined) {
       const qty = Number(product.quantity);
       const rate = Number(product.rate) || 0;
-      const amount = Number(product.amount) || (rate * qty);
+      const amount = Number(product.amount) || rate * qty;
 
       return {
         id: product.id || `legacy-${Date.now()}-${index}`,
@@ -27,7 +27,7 @@ const productsData = (leadSource, products) => {
     else {
       const qty = Number(product.qty);
       const rate = Number(product.rate) || 0;
-      const amount = Number(product.amount) || (rate * qty);
+      const amount = Number(product.amount) || rate * qty;
 
       return {
         id: product.id || `product-${Date.now()}-${index}`,
@@ -68,7 +68,8 @@ const transformedLeadData = async (leadData) => {
   if (usageType) {
     // Normalize to proper capitalization for all forms
     // This handles both new web forms and existing leads with inconsistent casing
-    processedUsageType = usageType.charAt(0).toUpperCase() + usageType.slice(1).toLowerCase();
+    processedUsageType =
+      usageType.charAt(0).toUpperCase() + usageType.slice(1).toLowerCase();
   }
 
   return {
