@@ -2,22 +2,53 @@ import Leads from "../models/Leads/index.js";
 import alertService from "../../../services/alertService.js";
 
 const productsData = (leadSource, products) => {
-  // Since all forms now use consistent CRM format, just return products as-is
-  // Only filter out products with quantity 0 for web leads
+  // Normalize all product data to consistent CRM format - all strings for forms
   if (!Array.isArray(products)) {
     return [];
   }
 
+  const normalizedProducts = products.map((product, index) => {
+    // Handle old web form format: {type, quantity}
+    if (product.type && product.quantity !== undefined) {
+      const qty = Number(product.quantity) || 1;
+      const rate = Number(product.rate) || 0;
+      const amount = rate * qty;
+
+      return {
+        id: product.id || `legacy-${Date.now()}-${index}`,
+        item: String(product.type || ""),
+        desc: String(product.type || ""),
+        qty: qty.toString(), // Convert to string for form consistency
+        rate: rate.toFixed(2), // Convert to string with 2 decimals
+        amount: amount.toFixed(2), // Convert to string with 2 decimals
+      };
+    }
+    // Handle new CRM format: {item, qty, rate, amount} - ensure all strings
+    else {
+      const qty = product.qty || "1";
+      const rate = product.rate || "0.00";
+      const amount = product.amount || "0.00";
+
+      return {
+        id: product.id || `product-${Date.now()}-${index}`,
+        item: String(product.item || ""),
+        desc: String(product.desc || product.item || ""),
+        qty: String(qty), // Ensure string
+        rate: String(rate), // Ensure string
+        amount: String(amount), // Ensure string
+      };
+    }
+  });
+
+  // Filter out products with no quantity for multi-step quote form
   if (leadSource === "Web Lead") {
-    // Filter out products with no quantity for multi-step quote form
-    return products.filter((product) => {
-      const qty = parseInt(product.qty) || 0;
+    return normalizedProducts.filter((product) => {
+      const qty = parseInt(product.qty || "0", 10) || 0;
       return qty > 0;
     });
   }
 
-  // For all other lead sources, return products as-is (they're already in CRM format)
-  return products;
+  return normalizedProducts;
 };
 
 const transformedLeadData = async ({

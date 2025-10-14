@@ -69,7 +69,7 @@ class AlertService {
         console.log("📱 WhatsApp QR Code:");
         qrcode.generate(qr, { small: true });
         console.log("Scan this QR code with WhatsApp to authenticate");
-        
+
         // Store QR code for web display
         this.whatsappQRCode = qr;
         try {
@@ -77,11 +77,13 @@ class AlertService {
             width: 300,
             margin: 2,
             color: {
-              dark: '#000000',
-              light: '#FFFFFF'
-            }
+              dark: "#000000",
+              light: "#FFFFFF",
+            },
           });
-          console.log("🌐 QR code ready for web display at: http://localhost:8080/leads/whatsapp-qr");
+          console.log(
+            "🌐 QR code ready for web display at: http://localhost:8080/leads/whatsapp-qr"
+          );
         } catch (error) {
           console.error("❌ Error generating web QR code:", error);
         }
@@ -90,17 +92,21 @@ class AlertService {
       this.whatsappClient.on("ready", async () => {
         console.log("✅ WhatsApp client is ready!");
         this.whatsappReady = true;
-        
+
         // Clear QR code since we're now authenticated
         this.whatsappQRCode = null;
         this.whatsappQRCodeImage = null;
-        
+
         // List available chats to help identify chat IDs
         try {
           const chats = await this.whatsappClient.getChats();
           console.log("📱 Available WhatsApp chats:");
           chats.slice(0, 10).forEach((chat, index) => {
-            console.log(`${index + 1}. ${chat.name || 'Unknown'} - ID: ${chat.id._serialized}`);
+            console.log(
+              `${index + 1}. ${chat.name || "Unknown"} - ID: ${
+                chat.id._serialized
+              }`
+            );
           });
           if (chats.length > 10) {
             console.log(`... and ${chats.length - 10} more chats`);
@@ -298,7 +304,7 @@ ${this.getStatusEmoji(leadStatus)} Status: ${escapeMarkdown(leadStatus)}
     if (products && products.length > 0) {
       productsText = "\n\n🛍️ Products:\n";
       products.forEach((product, index) => {
-        productsText += `${index + 1}. ${product.name} (Qty: ${
+        productsText += `${index + 1}. ${product.item} (Qty: ${
           product.qty
         }) - $${product.rate} = $${product.amount}\n`;
       });
@@ -369,16 +375,20 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
 
     try {
       // Use WHATSAPP_RECIPIENT_NUMBER if available, otherwise use WHATSAPP_PHONE_NUMBER
-      const phoneNumber = process.env.WHATSAPP_RECIPIENT_NUMBER || process.env.WHATSAPP_PHONE_NUMBER;
+      const phoneNumber =
+        process.env.WHATSAPP_RECIPIENT_NUMBER ||
+        process.env.WHATSAPP_PHONE_NUMBER;
       if (!phoneNumber) {
         throw new Error("WhatsApp recipient phone number not configured");
       }
 
       const chatId = `${phoneNumber.replace("+", "")}@c.us`;
       await this.whatsappClient.sendMessage(chatId, message);
-      
+
       console.log(
-        `✅ WhatsApp alert sent to ${phoneNumber} for lead #${this.extractLeadNumber(message)}`
+        `✅ WhatsApp alert sent to ${phoneNumber} for lead #${this.extractLeadNumber(
+          message
+        )}`
       );
       return { success: true, error: undefined };
     } catch (error) {
@@ -421,7 +431,7 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       qrCode: this.whatsappQRCode,
       qrCodeImage: this.whatsappQRCodeImage,
       isReady: this.whatsappReady,
-      isEnabled: this.whatsappEnabled
+      isEnabled: this.whatsappEnabled,
     };
   }
 
