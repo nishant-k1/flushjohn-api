@@ -10,7 +10,7 @@ const productsData = (leadSource, products) => {
   const normalizedProducts = products.map((product, index) => {
     // Handle old web form format: {type, quantity}
     if (product.type && product.quantity !== undefined) {
-      const qty = Number(product.quantity) || 1;
+      const qty = Number(product.quantity);
       const rate = Number(product.rate) || 0;
       const amount = rate * qty;
 
@@ -25,7 +25,7 @@ const productsData = (leadSource, products) => {
     }
     // Handle new application state format: {item, qty, rate, amount} - ensure proper types
     else {
-      const qty = Number(product.qty) || 1;
+      const qty = Number(product.qty);
       const rate = Number(product.rate) || 0;
       const amount = Number(product.amount) || 0;
 
@@ -61,7 +61,7 @@ const transformedLeadData = async (leadData) => {
   return {
     ...restArgs,
     leadSource: leadSource || "Web Lead",
-    usageType: usageType || "",
+    usageType: usageType ? usageType.charAt(0).toUpperCase() + usageType.slice(1) : "",
     products: productsData(leadSource || "Web Lead", products),
     streetAddress: street || streetAddress || "", // Map 'street' to 'streetAddress'
   };

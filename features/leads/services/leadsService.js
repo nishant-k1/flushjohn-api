@@ -20,7 +20,7 @@ export const transformProductsData = (leadSource, products) => {
   const normalizedProducts = products.map((product, index) => {
     // Handle old web form format: {type, quantity}
     if (product.type && product.quantity !== undefined) {
-      const qty = Number(product.quantity) || 1;
+      const qty = Number(product.quantity);
       const rate = Number(product.rate) || 0;
       const amount = rate * qty;
 
@@ -35,7 +35,7 @@ export const transformProductsData = (leadSource, products) => {
     }
     // Handle new application state format: {item, qty, rate, amount} - ensure proper types
     else {
-      const qty = Number(product.qty) || 1;
+      const qty = Number(product.qty);
       const rate = Number(product.rate) || 0;
       const amount = Number(product.amount) || 0;
 
@@ -70,11 +70,11 @@ export const prepareLeadData = (leadData) => {
     usageType,
     ...restArgs
   } = leadData;
-  
+
   return {
     ...restArgs,
     leadSource: leadSource || "Web Lead",
-    usageType: usageType || "",
+    usageType: usageType ? usageType.charAt(0).toUpperCase() + usageType.slice(1) : "",
     products: transformProductsData(leadSource || "Web Lead", products),
     streetAddress: street || streetAddress || "", // Map 'street' to 'streetAddress'
   };
@@ -105,21 +105,27 @@ export const sendLeadAlerts = async (lead, leadNo) => {
  * Create a new lead
  */
 export const createLead = async (leadData) => {
-  console.log("📥 HTTP API - Received lead data:", JSON.stringify(leadData, null, 2));
+  console.log(
+    "📥 HTTP API - Received lead data:",
+    JSON.stringify(leadData, null, 2)
+  );
   console.log("🔍 HTTP API - Key fields check:", {
     usageType: leadData.usageType,
     leadSource: leadData.leadSource,
     fName: leadData.fName,
     lName: leadData.lName,
     cName: leadData.cName,
-    productsCount: leadData.products?.length || 0
+    productsCount: leadData.products?.length || 0,
   });
-  
+
   const createdAt = new Date();
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
-  
-  console.log("🔄 HTTP API - Prepared lead data:", JSON.stringify(preparedData, null, 2));
+
+  console.log(
+    "🔄 HTTP API - Prepared lead data:",
+    JSON.stringify(preparedData, null, 2)
+  );
   console.log("💾 HTTP API - About to save to database:", {
     usageType: preparedData.usageType,
     leadSource: preparedData.leadSource,
@@ -127,11 +133,11 @@ export const createLead = async (leadData) => {
     lName: preparedData.lName,
     cName: preparedData.cName,
     productsCount: preparedData.products?.length || 0,
-    firstProduct: preparedData.products?.[0]
+    firstProduct: preparedData.products?.[0],
   });
-  
+
   const lead = await leadsRepository.create(preparedData);
-  
+
   console.log("✅ HTTP API - Saved to database:", {
     _id: lead._id,
     usageType: lead.usageType,
@@ -140,7 +146,7 @@ export const createLead = async (leadData) => {
     lName: lead.lName,
     cName: lead.cName,
     productsCount: lead.products?.length || 0,
-    firstProduct: lead.products?.[0]
+    firstProduct: lead.products?.[0],
   });
 
   // Send alerts asynchronously (don't block on failure)
