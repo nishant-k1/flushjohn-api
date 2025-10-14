@@ -18,7 +18,7 @@ export const transformProductsData = (leadSource, products) => {
   }
 
   const normalizedProducts = products.map((product, index) => {
-    // Handle old web form format: {type, quantity}
+    // Handle old web form format: {type, quantity} - from Quick Quote
     if (product.type && product.quantity !== undefined) {
       const qty = Number(product.quantity);
       const rate = Number(product.rate) || 0;
@@ -28,12 +28,12 @@ export const transformProductsData = (leadSource, products) => {
         id: product.id || `legacy-${Date.now()}-${index}`,
         item: String(product.type || ""),
         desc: String(product.type || ""),
-        qty: qty, // Keep as number for database
-        rate: rate, // Keep as number for database
-        amount: amount, // Keep as number for database
+        qty: qty,
+        rate: rate,
+        amount: amount,
       };
     }
-    // Handle new application state format: {item, qty, rate, amount} - ensure proper types
+    // Handle new application state format: {item, qty, rate, amount} - from Quote Form and CRM
     else {
       const qty = Number(product.qty);
       const rate = Number(product.rate) || 0;
@@ -43,15 +43,16 @@ export const transformProductsData = (leadSource, products) => {
         id: product.id || `product-${Date.now()}-${index}`,
         item: String(product.item || ""),
         desc: String(product.desc || product.item || ""),
-        qty: qty, // Number for database
-        rate: rate, // Number for database
-        amount: amount, // Number for database
+        qty: qty,
+        rate: rate,
+        amount: amount,
       };
     }
   });
 
-  // Filter out products with no quantity for multi-step quote form
-  if (leadSource === "Web Lead") {
+  // Filter out products with no quantity for web forms only
+  // CRM forms should preserve all products (including qty: 0) for editing
+  if (leadSource === "Web Lead" || leadSource === "Web Quick Lead") {
     return normalizedProducts.filter((product) => product.qty > 0);
   }
 
@@ -71,11 +72,23 @@ export const prepareLeadData = (leadData) => {
     ...restArgs
   } = leadData;
 
+  // Determine the actual lead source with proper defaults
+  const actualLeadSource = leadSource || "Web Lead";
+  
+  // Handle usage type capitalization for web forms
+  // CRM forms already have proper capitalization
+  let processedUsageType = usageType || "";
+  if (actualLeadSource === "Web Lead" || actualLeadSource === "Web Quick Lead") {
+    processedUsageType = usageType 
+      ? usageType.charAt(0).toUpperCase() + usageType.slice(1)
+      : "";
+  }
+
   return {
     ...restArgs,
-    leadSource: leadSource || "Web Lead",
-    usageType: usageType ? usageType.charAt(0).toUpperCase() + usageType.slice(1) : "",
-    products: transformProductsData(leadSource || "Web Lead", products),
+    leadSource: actualLeadSource,
+    usageType: processedUsageType,
+    products: transformProductsData(actualLeadSource, products),
     streetAddress: street || streetAddress || "", // Map 'street' to 'streetAddress'
   };
 };
@@ -116,6 +129,12 @@ export const createLead = async (leadData) => {
     lName: leadData.lName,
     cName: leadData.cName,
     productsCount: leadData.products?.length || 0,
+    firstProductFormat: leadData.products?.[0] ? {
+      hasType: !!leadData.products[0].type,
+      hasQuantity: leadData.products[0].quantity !== undefined,
+      hasQty: leadData.products[0].qty !== undefined,
+      hasItem: !!leadData.products[0].item
+    } : "No products"
   });
 
   const createdAt = new Date();
