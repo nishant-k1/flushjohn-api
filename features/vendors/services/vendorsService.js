@@ -36,11 +36,11 @@ export const getAllVendors = async ({
   if (search) {
     query = {
       $or: [
-        { vendorName: { $regex: search, $options: "i" } },
-        { contactPersonName: { $regex: search, $options: "i" } },
+        { name: { $regex: search, $options: "i" } },
+        { cName: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { phone: { $regex: search, $options: "i" } },
-        { companyName: { $regex: search, $options: "i" } },
+        { repNames: { $regex: search, $options: "i" } },
       ],
     };
   }

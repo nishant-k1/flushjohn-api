@@ -217,7 +217,9 @@ router.post(
       };
 
       // Generate PDF
-      const { generateJobOrderPDF } = await import("../../../services/pdfService.js");
+      const { generateJobOrderPDF } = await import(
+        "../../../services/pdfService.js"
+      );
       const pdfUrls = await generateJobOrderPDF(pdfData, id);
 
       res.status(201).json({
@@ -243,7 +245,9 @@ router.post(
         success: false,
         message: "Failed to generate PDF",
         error: "INTERNAL_SERVER_ERROR",
-        ...(process.env.NODE_ENV === "development" && { details: error.message }),
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
   }
@@ -276,16 +280,21 @@ router.post(
       };
 
       // Generate PDF and send email
-      const { generateJobOrderPDF } = await import("../../../services/pdfService.js");
-      const { sendJobOrderEmail } = await import("../../../services/emailService.js");
+      const { generateJobOrderPDF } = await import(
+        "../../../services/pdfService.js"
+      );
+      const { sendJobOrderEmail } = await import(
+        "../../../services/emailService.js"
+      );
 
       const pdfUrls = await generateJobOrderPDF(emailData, id);
       await sendJobOrderEmail(emailData, id, pdfUrls.pdfUrl);
 
-      // Update email status
+      // Update email status and vendor acceptance status to Accepted
       const updatedJobOrder = await jobOrdersService.updateJobOrder(id, {
         ...emailData,
         emailStatus: "Sent",
+        vendorAcceptanceStatus: "Accepted",
       });
 
       res.status(200).json({
@@ -311,7 +320,9 @@ router.post(
         success: false,
         message: "Failed to send email",
         error: "INTERNAL_SERVER_ERROR",
-        ...(process.env.NODE_ENV === "development" && { details: error.message }),
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
   }
