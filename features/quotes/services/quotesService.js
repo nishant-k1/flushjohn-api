@@ -13,7 +13,7 @@ export const generateQuoteNumber = async () => {
 export const createQuote = async (quoteData) => {
   const createdAt = new Date();
   const quoteNo = await generateQuoteNumber();
-  
+
   const newQuoteData = {
     ...quoteData,
     createdAt,
@@ -73,7 +73,7 @@ export const getAllQuotes = async ({
 
 export const getQuoteById = async (id) => {
   const quote = await quotesRepository.findById(id);
-  
+
   if (!quote) {
     const error = new Error("Quote not found");
     error.name = "NotFoundError";
@@ -86,7 +86,8 @@ export const getQuoteById = async (id) => {
 export const updateQuote = async (id, updateData) => {
   const quote = await quotesRepository.updateById(id, {
     ...updateData,
-    emailStatus: "Pending",
+    // Only set emailStatus to "Pending" if it's not already set in updateData
+    ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: new Date(),
   });
 
@@ -101,7 +102,7 @@ export const updateQuote = async (id, updateData) => {
 
 export const deleteQuote = async (id) => {
   const existingQuote = await quotesRepository.findById(id);
-  
+
   if (!existingQuote) {
     const error = new Error("Quote not found");
     error.name = "NotFoundError";

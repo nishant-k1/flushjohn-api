@@ -6,8 +6,13 @@ import * as salesOrdersRepository from "../repositories/salesOrdersRepository.js
 import * as customersRepository from "../../customers/repositories/customersRepository.js";
 
 export const generateSalesOrderNumber = async () => {
-  const latestSalesOrder = await salesOrdersRepository.findOne({}, "salesOrderNo");
-  const latestSalesOrderNo = latestSalesOrder ? latestSalesOrder.salesOrderNo : 999;
+  const latestSalesOrder = await salesOrdersRepository.findOne(
+    {},
+    "salesOrderNo"
+  );
+  const latestSalesOrderNo = latestSalesOrder
+    ? latestSalesOrder.salesOrderNo
+    : 999;
   return latestSalesOrderNo + 1;
 };
 
@@ -23,8 +28,10 @@ export const createSalesOrder = async (salesOrderData) => {
   const salesOrderNo = await generateSalesOrderNumber();
 
   // Handle customer creation/update logic
-  let customer = await customersRepository.findOne({ email: salesOrderData.email });
-  
+  let customer = await customersRepository.findOne({
+    email: salesOrderData.email,
+  });
+
   if (!customer) {
     // Create new customer
     const latestCustomer = await customersRepository.findOne({}, "customerNo");
@@ -110,7 +117,7 @@ export const getAllSalesOrders = async ({
 
 export const getSalesOrderById = async (id) => {
   const salesOrder = await salesOrdersRepository.findById(id);
-  
+
   if (!salesOrder) {
     const error = new Error("Sales Order not found");
     error.name = "NotFoundError";
@@ -123,7 +130,8 @@ export const getSalesOrderById = async (id) => {
 export const updateSalesOrder = async (id, updateData) => {
   const salesOrder = await salesOrdersRepository.updateById(id, {
     ...updateData,
-    emailStatus: "Pending",
+    // Only set emailStatus to "Pending" if it's not already set in updateData
+    ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: new Date(),
   });
 
@@ -138,7 +146,7 @@ export const updateSalesOrder = async (id, updateData) => {
 
 export const deleteSalesOrder = async (id) => {
   const existingSalesOrder = await salesOrdersRepository.findById(id);
-  
+
   if (!existingSalesOrder) {
     const error = new Error("Sales Order not found");
     error.name = "NotFoundError";

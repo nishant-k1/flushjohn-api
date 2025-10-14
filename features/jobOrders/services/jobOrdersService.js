@@ -11,9 +11,12 @@ export const generateJobOrderNumber = async () => {
 };
 
 export const createJobOrder = async (jobOrderData) => {
-  console.log("🔍 Job Order Service - Received data:", JSON.stringify(jobOrderData, null, 2));
+  console.log(
+    "🔍 Job Order Service - Received data:",
+    JSON.stringify(jobOrderData, null, 2)
+  );
   console.log("🔍 Job Order Service - Vendor data:", jobOrderData.vendor);
-  
+
   // Validate required fields
   if (!jobOrderData.salesOrderNo) {
     const error = new Error("Sales Order Number is required");
@@ -22,13 +25,17 @@ export const createJobOrder = async (jobOrderData) => {
   }
 
   // Check if job order already exists for this sales order
-  console.log(`🔍 Checking for existing job order with salesOrderNo: ${jobOrderData.salesOrderNo}`);
+  console.log(
+    `🔍 Checking for existing job order with salesOrderNo: ${jobOrderData.salesOrderNo}`
+  );
   const existingJobOrder = await jobOrdersRepository.findOne({
     salesOrderNo: jobOrderData.salesOrderNo,
   });
 
   if (existingJobOrder) {
-    console.log(`⚠️ Job Order already exists: ${existingJobOrder._id} (JO #${existingJobOrder.jobOrderNo})`);
+    console.log(
+      `⚠️ Job Order already exists: ${existingJobOrder._id} (JO #${existingJobOrder.jobOrderNo})`
+    );
     const error = new Error("A job order already exists for this sales order");
     error.name = "DuplicateError";
     error.existingJobOrderId = existingJobOrder._id;
@@ -36,11 +43,13 @@ export const createJobOrder = async (jobOrderData) => {
     throw error;
   }
 
-  console.log(`✅ No existing job order found for sales order ${jobOrderData.salesOrderNo}, proceeding with creation`);
+  console.log(
+    `✅ No existing job order found for sales order ${jobOrderData.salesOrderNo}, proceeding with creation`
+  );
 
   const createdAt = new Date();
   const jobOrderNo = await generateJobOrderNumber();
-  
+
   const newJobOrderData = {
     ...jobOrderData,
     createdAt,
@@ -96,7 +105,7 @@ export const getAllJobOrders = async ({
 
 export const getJobOrderById = async (id) => {
   const jobOrder = await jobOrdersRepository.findById(id);
-  
+
   if (!jobOrder) {
     const error = new Error("Job Order not found");
     error.name = "NotFoundError";
@@ -109,7 +118,8 @@ export const getJobOrderById = async (id) => {
 export const updateJobOrder = async (id, updateData) => {
   const jobOrder = await jobOrdersRepository.updateById(id, {
     ...updateData,
-    emailStatus: "Pending",
+    // Only set emailStatus to "Pending" if it's not already set in updateData
+    ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: new Date(),
   });
 
@@ -124,7 +134,7 @@ export const updateJobOrder = async (id, updateData) => {
 
 export const deleteJobOrder = async (id) => {
   const existingJobOrder = await jobOrdersRepository.findById(id);
-  
+
   if (!existingJobOrder) {
     const error = new Error("Job Order not found");
     error.name = "NotFoundError";
