@@ -61,17 +61,22 @@ export const transformProductsData = (leadSource, products) => {
 /**
  * Prepare lead data for creation
  */
-export const prepareLeadData = ({
-  leadSource,
-  products,
-  street,
-  ...restArgs
-}) => {
-  return {
+export const prepareLeadData = (leadData) => {
+  const {
     leadSource,
-    products: transformProductsData(leadSource, products),
-    streetAddress: street || restArgs.streetAddress || "", // Map 'street' to 'streetAddress'
+    products,
+    street,
+    streetAddress,
+    usageType,
+    ...restArgs
+  } = leadData;
+  
+  return {
     ...restArgs,
+    leadSource: leadSource || "Web Lead",
+    usageType: usageType || "",
+    products: transformProductsData(leadSource || "Web Lead", products),
+    streetAddress: street || streetAddress || "", // Map 'street' to 'streetAddress'
   };
 };
 
@@ -100,10 +105,43 @@ export const sendLeadAlerts = async (lead, leadNo) => {
  * Create a new lead
  */
 export const createLead = async (leadData) => {
+  console.log("📥 HTTP API - Received lead data:", JSON.stringify(leadData, null, 2));
+  console.log("🔍 HTTP API - Key fields check:", {
+    usageType: leadData.usageType,
+    leadSource: leadData.leadSource,
+    fName: leadData.fName,
+    lName: leadData.lName,
+    cName: leadData.cName,
+    productsCount: leadData.products?.length || 0
+  });
+  
   const createdAt = new Date();
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
+  
+  console.log("🔄 HTTP API - Prepared lead data:", JSON.stringify(preparedData, null, 2));
+  console.log("💾 HTTP API - About to save to database:", {
+    usageType: preparedData.usageType,
+    leadSource: preparedData.leadSource,
+    fName: preparedData.fName,
+    lName: preparedData.lName,
+    cName: preparedData.cName,
+    productsCount: preparedData.products?.length || 0,
+    firstProduct: preparedData.products?.[0]
+  });
+  
   const lead = await leadsRepository.create(preparedData);
+  
+  console.log("✅ HTTP API - Saved to database:", {
+    _id: lead._id,
+    usageType: lead.usageType,
+    leadSource: lead.leadSource,
+    fName: lead.fName,
+    lName: lead.lName,
+    cName: lead.cName,
+    productsCount: lead.products?.length || 0,
+    firstProduct: lead.products?.[0]
+  });
 
   // Send alerts asynchronously (don't block on failure)
   sendLeadAlerts(lead, leadNo);

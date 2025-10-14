@@ -48,22 +48,39 @@ const productsData = (leadSource, products) => {
   return normalizedProducts;
 };
 
-const transformedLeadData = async ({
-  leadSource,
-  products,
-  street,
-  ...restArgs
-}) => ({
-  leadSource,
-  products: productsData(leadSource, products),
-  streetAddress: street || restArgs.streetAddress || "", // Map 'street' to 'streetAddress'
-  ...restArgs,
-});
+const transformedLeadData = async (leadData) => {
+  const {
+    leadSource,
+    products,
+    street,
+    streetAddress,
+    usageType,
+    ...restArgs
+  } = leadData;
+  
+  return {
+    ...restArgs,
+    leadSource: leadSource || "Web Lead",
+    usageType: usageType || "",
+    products: productsData(leadSource || "Web Lead", products),
+    streetAddress: street || streetAddress || "", // Map 'street' to 'streetAddress'
+  };
+};
 
 export function leadSocketHandler(leadsNamespace, socket) {
   // Create Lead
   socket.on("createLead", async (leadData) => {
     try {
+      console.log("📥 Received lead data:", JSON.stringify(leadData, null, 2));
+      console.log("🔍 Key fields check:", {
+        usageType: leadData.usageType,
+        leadSource: leadData.leadSource,
+        fName: leadData.fName,
+        lName: leadData.lName,
+        cName: leadData.cName,
+        productsCount: leadData.products?.length || 0
+      });
+      
       const createdAt = new Date();
       const latestLead = await Leads.findOne({}, "leadNo").sort({
         leadNo: -1,
@@ -71,12 +88,36 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const latestLeadNo = latestLead ? latestLead.leadNo : 999;
       const newLeadNo = latestLeadNo + 1;
       const leadNo = newLeadNo;
+      
       const webLead = await transformedLeadData({
         ...leadData,
         createdAt,
         leadNo,
       });
+      
+      console.log("🔄 Transformed lead data:", JSON.stringify(webLead, null, 2));
+      console.log("💾 About to save to database:", {
+        usageType: webLead.usageType,
+        leadSource: webLead.leadSource,
+        fName: webLead.fName,
+        lName: webLead.lName,
+        cName: webLead.cName,
+        productsCount: webLead.products?.length || 0,
+        firstProduct: webLead.products?.[0]
+      });
+      
       const lead = await Leads.create(webLead);
+      
+      console.log("✅ Saved to database:", {
+        _id: lead._id,
+        usageType: lead.usageType,
+        leadSource: lead.leadSource,
+        fName: lead.fName,
+        lName: lead.lName,
+        cName: lead.cName,
+        productsCount: lead.products?.length || 0,
+        firstProduct: lead.products?.[0]
+      });
 
       //  Send alerts after successful lead creation
       try {
