@@ -12,7 +12,7 @@ import alertService from "../../../services/alertService.js";
  * Transform products based on lead source
  */
 export const transformProductsData = (leadSource, products) => {
-  // Normalize all product data to consistent CRM format - all strings for forms
+  // Normalize all product data to proper types for database storage
   if (!Array.isArray(products)) {
     return [];
   }
@@ -23,39 +23,36 @@ export const transformProductsData = (leadSource, products) => {
       const qty = Number(product.quantity) || 1;
       const rate = Number(product.rate) || 0;
       const amount = rate * qty;
-
+      
       return {
         id: product.id || `legacy-${Date.now()}-${index}`,
         item: String(product.type || ""),
         desc: String(product.type || ""),
-        qty: qty.toString(), // Convert to string for form consistency
-        rate: rate.toFixed(2), // Convert to string with 2 decimals
-        amount: amount.toFixed(2), // Convert to string with 2 decimals
+        qty: qty, // Keep as number for database
+        rate: rate, // Keep as number for database
+        amount: amount, // Keep as number for database
       };
     }
-    // Handle new CRM format: {item, qty, rate, amount} - ensure all strings
+    // Handle new application state format: {item, qty, rate, amount} - ensure proper types
     else {
-      const qty = product.qty || "1";
-      const rate = product.rate || "0.00";
-      const amount = product.amount || "0.00";
-
+      const qty = Number(product.qty) || 1;
+      const rate = Number(product.rate) || 0;
+      const amount = Number(product.amount) || 0;
+      
       return {
         id: product.id || `product-${Date.now()}-${index}`,
         item: String(product.item || ""),
         desc: String(product.desc || product.item || ""),
-        qty: String(qty), // Ensure string
-        rate: String(rate), // Ensure string
-        amount: String(amount), // Ensure string
+        qty: qty, // Number for database
+        rate: rate, // Number for database
+        amount: amount, // Number for database
       };
     }
   });
 
   // Filter out products with no quantity for multi-step quote form
   if (leadSource === "Web Lead") {
-    return normalizedProducts.filter((product) => {
-      const qty = parseInt(product.qty || "0", 10) || 0;
-      return qty > 0;
-    });
+    return normalizedProducts.filter((product) => product.qty > 0);
   }
 
   return normalizedProducts;
