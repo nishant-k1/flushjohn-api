@@ -13,7 +13,7 @@ const productsData = (leadSource, products) => {
       const qty = Number(product.quantity) || 1;
       const rate = Number(product.rate) || 0;
       const amount = rate * qty;
-      
+
       return {
         id: product.id || `legacy-${Date.now()}-${index}`,
         item: String(product.type || ""),
@@ -28,7 +28,7 @@ const productsData = (leadSource, products) => {
       const qty = Number(product.qty) || 1;
       const rate = Number(product.rate) || 0;
       const amount = Number(product.amount) || 0;
-      
+
       return {
         id: product.id || `product-${Date.now()}-${index}`,
         item: String(product.item || ""),
