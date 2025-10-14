@@ -11,6 +11,9 @@ export const generateJobOrderNumber = async () => {
 };
 
 export const createJobOrder = async (jobOrderData) => {
+  console.log("🔍 Job Order Service - Received data:", JSON.stringify(jobOrderData, null, 2));
+  console.log("🔍 Job Order Service - Vendor data:", jobOrderData.vendor);
+  
   // Validate required fields
   if (!jobOrderData.salesOrderNo) {
     const error = new Error("Sales Order Number is required");
