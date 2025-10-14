@@ -8,16 +8,16 @@ const productsData = (leadSource, products) => {
   }
 
   const normalizedProducts = products.map((product, index) => {
-    // Handle old web form format: {type, quantity} - from Quick Quote
+    // Handle old web form format: {type, quantity} - from Quick Quote and legacy data
     if (product.type && product.quantity !== undefined) {
       const qty = Number(product.quantity);
       const rate = Number(product.rate) || 0;
-      const amount = rate * qty;
+      const amount = Number(product.amount) || (rate * qty);
 
       return {
         id: product.id || `legacy-${Date.now()}-${index}`,
         item: String(product.type || ""),
-        desc: String(product.type || ""),
+        desc: String(product.desc || product.type || ""),
         qty: qty,
         rate: rate,
         amount: amount,
@@ -27,7 +27,7 @@ const productsData = (leadSource, products) => {
     else {
       const qty = Number(product.qty);
       const rate = Number(product.rate) || 0;
-      const amount = Number(product.amount) || 0;
+      const amount = Number(product.amount) || (rate * qty);
 
       return {
         id: product.id || `product-${Date.now()}-${index}`,
@@ -61,14 +61,14 @@ const transformedLeadData = async (leadData) => {
 
   // Determine the actual lead source with proper defaults
   const actualLeadSource = leadSource || "Web Lead";
-  
-  // Handle usage type capitalization for web forms
+
+  // Handle usage type capitalization for web forms and normalize existing data
   // CRM forms already have proper capitalization
   let processedUsageType = usageType || "";
-  if (actualLeadSource === "Web Lead" || actualLeadSource === "Web Quick Lead") {
-    processedUsageType = usageType 
-      ? usageType.charAt(0).toUpperCase() + usageType.slice(1)
-      : "";
+  if (usageType) {
+    // Normalize to proper capitalization for all forms
+    // This handles both new web forms and existing leads with inconsistent casing
+    processedUsageType = usageType.charAt(0).toUpperCase() + usageType.slice(1).toLowerCase();
   }
 
   return {
@@ -92,12 +92,14 @@ export function leadSocketHandler(leadsNamespace, socket) {
         lName: leadData.lName,
         cName: leadData.cName,
         productsCount: leadData.products?.length || 0,
-        firstProductFormat: leadData.products?.[0] ? {
-          hasType: !!leadData.products[0].type,
-          hasQuantity: leadData.products[0].quantity !== undefined,
-          hasQty: leadData.products[0].qty !== undefined,
-          hasItem: !!leadData.products[0].item
-        } : "No products"
+        firstProductFormat: leadData.products?.[0]
+          ? {
+              hasType: !!leadData.products[0].type,
+              hasQuantity: leadData.products[0].quantity !== undefined,
+              hasQty: leadData.products[0].qty !== undefined,
+              hasItem: !!leadData.products[0].item,
+            }
+          : "No products",
       });
 
       const createdAt = new Date();
