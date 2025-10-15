@@ -1,6 +1,6 @@
 /**
  * Leads Routes - HTTP Request Handling Layer
- * 
+ *
  * This layer handles HTTP requests/responses only.
  * All business logic is delegated to the service layer.
  */
@@ -9,12 +9,14 @@ import { Router } from "express";
 import * as leadsService from "../services/leadsService.js";
 import alertService from "../../../services/alertService.js";
 import validateAndRecalculateProducts from "../../../middleware/validateProducts.js";
+import { authenticateToken } from "../../auth/middleware/auth.js";
 
 const router = Router();
 
 // POST /leads - Create a new lead
 router.post(
   "/",
+  authenticateToken,
   validateAndRecalculateProducts,
   async function (req, res, next) {
     try {
@@ -36,7 +38,9 @@ router.post(
           const { default: Leads } = await import("../models/lead.js");
           const leadsList = await Leads.find().sort({ _id: -1 });
           global.leadsNamespace.emit("leadCreated", leadsList);
-          console.log("📢 HTTP API - Emitted leadCreated event to Socket.IO clients");
+          console.log(
+            "📢 HTTP API - Emitted leadCreated event to Socket.IO clients"
+          );
         } catch (emitError) {
           console.error("⚠️ Failed to emit leadCreated event:", emitError);
         }
@@ -81,7 +85,7 @@ router.post(
 );
 
 // GET /leads - Get all leads with pagination, sorting, and filtering
-router.get("/", async function (req, res, next) {
+router.get("/", authenticateToken, async function (req, res, next) {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -136,7 +140,7 @@ router.get("/", async function (req, res, next) {
 });
 
 // GET /leads/:id - Get a single lead by ID
-router.get("/:id", async function (req, res, next) {
+router.get("/:id", authenticateToken, async function (req, res, next) {
   try {
     const { id } = req.params;
 
@@ -187,6 +191,7 @@ router.get("/:id", async function (req, res, next) {
 // PUT /leads/:id - Update a lead by ID
 router.put(
   "/:id",
+  authenticateToken,
   validateAndRecalculateProducts,
   async function (req, res, next) {
     try {
@@ -258,7 +263,7 @@ router.put(
 );
 
 // DELETE /leads/:id - Delete a lead by ID
-router.delete("/:id", async function (req, res, next) {
+router.delete("/:id", authenticateToken, async function (req, res, next) {
   try {
     const { id } = req.params;
 

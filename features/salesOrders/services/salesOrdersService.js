@@ -130,7 +130,8 @@ export const getSalesOrderById = async (id) => {
 export const updateSalesOrder = async (id, updateData) => {
   const salesOrder = await salesOrdersRepository.updateById(id, {
     ...updateData,
-    // Only set emailStatus to "Pending" if it's not already set in updateData
+    // Set emailStatus to "Pending" only if not explicitly provided in updateData
+    // This allows email operations to set "Sent" and regular saves to reset to "Pending"
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: new Date(),
   });
