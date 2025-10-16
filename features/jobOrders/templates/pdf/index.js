@@ -11,7 +11,7 @@ import {
   safeDate,
   safeCurrency,
   safePhone,
-} from "../../../../templates/utils/safeValue.js";
+} from "../../../../utils/safeValue.js";
 
 const itemRows = (products) => {
   if (!products || !Array.isArray(products)) {
@@ -79,7 +79,8 @@ const htmlTemplate = (jobOrderData) => {
               <img src="${localAssetsUrl}/logos/logo_quengenesis.svg" alt="logo" class="logo" style="max-width: 80px !important; width: 80px !important; height: 40px !important; object-fit: contain !important;" />          
             <div>
               <h4>${cName}</h4>
-              <p>${address}</p>
+              ${address ? `<p>${address}</p>` : ""}
+              <p><strong>Email: </strong>${email}</p>
               <p><strong>Phone: </strong>${phone}</p>
             </div>
             </div>

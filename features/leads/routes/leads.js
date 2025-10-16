@@ -188,9 +188,9 @@ router.get("/:id", authenticateToken, async function (req, res, next) {
   }
 });
 
-// PUT /leads/:id - Update a lead by ID
+// PUT /leads/update/:id - Update a lead by ID (alternative route to bypass CORS cache)
 router.put(
-  "/:id",
+  "/update/:id",
   authenticateToken,
   validateAndRecalculateProducts,
   async function (req, res, next) {

@@ -95,7 +95,7 @@ const corsOptionsAPI = {
   ],
   exposedHeaders: ["Content-Length", "Content-Type"],
   credentials: true,
-  maxAge: process.env.NODE_ENV === "production" ? 86400 : 0, // 24 hours in prod, no cache in dev
+  maxAge: 0, // Force no cache in development
   optionsSuccessStatus: 204,
   preflightContinue: false,
 };
@@ -104,26 +104,56 @@ const corsOptionsAPI = {
 const server = createServer(app);
 socketConnect(server);
 
-// Middleware
-app.use(cors(corsOptionsAPI));
-
-// CORS error handling middleware
+// Manual CORS handling - more aggressive approach
 app.use((req, res, next) => {
+  // Ultra-aggressive cache busting
+  res.header(
+    "Cache-Control",
+    "no-cache, no-store, must-revalidate, private, max-age=0"
+  );
+  res.header("Pragma", "no-cache");
+  res.header("Expires", "0");
+  res.header("Access-Control-Max-Age", "0");
+  res.header(
+    "Vary",
+    "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+  );
+
+  // Allow all origins for development
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+
   res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Origin", req.headers.origin);
   res.header(
     "Access-Control-Allow-Methods",
-    "GET,PUT,POST,DELETE,OPTIONS,PATCH"
+    "GET,PUT,POST,DELETE,OPTIONS,PATCH,HEAD"
   );
   res.header(
     "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, Content-Length, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+    "Content-Type, Authorization, Content-Length, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers, X-CORS-Bust, X-Request-ID, X-Timestamp"
+  );
+  res.header(
+    "Access-Control-Expose-Headers",
+    "Content-Length, Content-Type, X-CORS-Timestamp"
   );
 
   // Handle preflight requests
   if (req.method === "OPTIONS") {
+    // Add unique timestamp to prevent any caching
+    res.header("X-CORS-Timestamp", Date.now().toString());
+    res.header("X-CORS-Request-ID", Math.random().toString(36).substr(2, 9));
+    console.log(
+      `🔧 CORS Preflight: ${req.method} ${req.url} - Origin: ${origin}`
+    );
     res.status(200).end();
     return;
+  }
+
+  // Log all requests for debugging
+  if (req.method === "PUT" || req.method === "POST") {
+    console.log(`🔧 ${req.method} Request: ${req.url} - Origin: ${origin}`);
   }
 
   next();

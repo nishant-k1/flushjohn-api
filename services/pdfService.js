@@ -230,17 +230,57 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
   // For job orders, we need to fetch vendor details
   if (jobOrderData.vendor && jobOrderData.vendor._id) {
     try {
-      const { default: Vendors } = await import("../models/Vendors/index.js");
-      const vendor = await Vendors.findById(jobOrderData.vendor._id);
+      console.log(
+        "🔍 Fetching vendor details for ID:",
+        jobOrderData.vendor._id,
+        "Type:",
+        typeof jobOrderData.vendor._id
+      );
+      const { default: Vendors } = await import(
+        "../features/vendors/models/Vendors/index.js"
+      );
+
+      // Try to find vendor by ID (MongoDB will handle string to ObjectId conversion)
+      let vendor = await Vendors.findById(jobOrderData.vendor._id);
+
+      // If not found, try searching by name as fallback
+      if (!vendor && jobOrderData.vendor.name) {
+        console.log(
+          "🔍 Vendor not found by ID, trying name search:",
+          jobOrderData.vendor.name
+        );
+        vendor = await Vendors.findOne({ name: jobOrderData.vendor.name });
+      }
+
       if (vendor) {
+        console.log("✅ Vendor found:", {
+          name: vendor.name,
+          email: vendor.email,
+          phone: vendor.phone,
+          fax: vendor.fax,
+          streetAddress: vendor.streetAddress,
+          city: vendor.city,
+          state: vendor.state,
+          zip: vendor.zip,
+        });
         jobOrderData.vendor = {
           ...jobOrderData.vendor,
           ...vendor.toObject(),
         };
+      } else {
+        console.warn(
+          "⚠️ Vendor not found for ID:",
+          jobOrderData.vendor._id,
+          "or name:",
+          jobOrderData.vendor.name
+        );
       }
     } catch (error) {
-      console.warn("⚠️ Could not fetch vendor details:", error.message);
+      console.error("❌ Error fetching vendor details:", error.message);
+      console.error("❌ Full error:", error);
     }
+  } else {
+    console.warn("⚠️ No vendor data or vendor ID provided in job order data");
   }
 
   return generatePDF(jobOrderData, "jobOrder", jobOrderId);
