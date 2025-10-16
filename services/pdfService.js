@@ -232,9 +232,7 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
     try {
       console.log(
         "🔍 Fetching vendor details for ID:",
-        jobOrderData.vendor._id,
-        "Type:",
-        typeof jobOrderData.vendor._id
+        jobOrderData.vendor._id
       );
       const { default: Vendors } = await import(
         "../features/vendors/models/Vendors/index.js"
@@ -245,35 +243,17 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
 
       // If not found, try searching by name as fallback
       if (!vendor && jobOrderData.vendor.name) {
-        console.log(
-          "🔍 Vendor not found by ID, trying name search:",
-          jobOrderData.vendor.name
-        );
         vendor = await Vendors.findOne({ name: jobOrderData.vendor.name });
       }
 
       if (vendor) {
-        console.log("✅ Vendor found:", {
-          name: vendor.name,
-          email: vendor.email,
-          phone: vendor.phone,
-          fax: vendor.fax,
-          streetAddress: vendor.streetAddress,
-          city: vendor.city,
-          state: vendor.state,
-          zip: vendor.zip,
-        });
+        console.log("✅ Vendor found:", vendor.name);
         jobOrderData.vendor = {
           ...jobOrderData.vendor,
           ...vendor.toObject(),
         };
       } else {
-        console.warn(
-          "⚠️ Vendor not found for ID:",
-          jobOrderData.vendor._id,
-          "or name:",
-          jobOrderData.vendor.name
-        );
+        console.warn("⚠️ Vendor not found for ID:", jobOrderData.vendor._id);
       }
     } catch (error) {
       console.error("❌ Error fetching vendor details:", error.message);
