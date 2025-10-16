@@ -85,10 +85,6 @@ router.put("/:userId", async (req, res) => {
 // Update profile avatar - New endpoint to avoid CORS cache
 router.post("/update-avatar", authenticateToken, async (req, res) => {
   try {
-    console.log("📝 Profile update request received");
-    console.log("User from auth:", req.user);
-    console.log("Request body:", req.body);
-
     // Get user from authenticated session
     const userId = req.user?.userId;
 
@@ -108,9 +104,6 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
     if (fName !== undefined) updateData.fName = fName;
     if (lName !== undefined) updateData.lName = lName;
     if (phone !== undefined) updateData.phone = phone;
-
-    console.log("Updating user:", userId);
-    console.log("Update data:", updateData);
 
     const user = await User.findOneAndUpdate({ userId }, updateData, {
       new: true,

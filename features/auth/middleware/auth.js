@@ -94,7 +94,7 @@ export const authenticateToken = async (req, res, next) => {
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
         success: false,
-        message: "Invalid token",
+        message: "Invalid token. Please log in again.",
         error: "INVALID_TOKEN",
       });
     }
@@ -102,24 +102,82 @@ export const authenticateToken = async (req, res, next) => {
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({
         success: false,
-        message: "Token has expired. Please log in again.",
+        message: "Token expired. Please log in again.",
         error: "TOKEN_EXPIRED",
       });
     }
 
+    if (error.name === "NotBeforeError") {
+      return res.status(401).json({
+        success: false,
+        message: "Token not active yet. Please try again later.",
+        error: "TOKEN_NOT_ACTIVE",
+      });
+    }
+
+    // Generic error for other JWT errors
+    console.error("Unexpected JWT error:", error);
     return res.status(500).json({
       success: false,
-      message: "Authentication error",
-      error: "INTERNAL_SERVER_ERROR",
+      message: "Authentication failed due to server error.",
+      error: "AUTHENTICATION_ERROR",
     });
   }
 };
 
 /**
- * Role-based authorization middleware
- * @param {string[]} allowedRoles - Array of allowed roles
+ * Optional Authentication Middleware
+ * Similar to authenticateToken but doesn't require authentication
+ * If token is provided, it will be verified and user info added to request
  */
-export const authorizeRoles = (...allowedRoles) => {
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const queryToken = req.query.token;
+
+    let token = null;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
+    } else if (queryToken) {
+      token = queryToken;
+    } else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+
+    if (!token) {
+      // No token provided, continue without authentication
+      return next();
+    }
+
+    // Verify the token if provided
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const user = await User.findOne({ userId: decoded.userId });
+
+    if (user && user.isActive && !user.isLocked()) {
+      req.user = {
+        id: user._id,
+        userId: user.userId,
+        email: user.email,
+        fName: user.fName,
+        lName: user.lName,
+        role: user.role,
+        isActive: user.isActive,
+      };
+    }
+
+    next();
+  } catch (error) {
+    // For optional auth, we ignore token errors and continue
+    next();
+  }
+};
+
+/**
+ * Role-based Authorization Middleware
+ * Must be used after authenticateToken middleware
+ */
+export const authorizeRoles = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
@@ -129,10 +187,10 @@ export const authorizeRoles = (...allowedRoles) => {
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: "Insufficient permissions",
+        message: "Access denied. Insufficient permissions.",
         error: "FORBIDDEN",
       });
     }
@@ -142,72 +200,104 @@ export const authorizeRoles = (...allowedRoles) => {
 };
 
 /**
- * Check if user has access to specific document
- * @param {string} documentType - Type of document (quote, salesOrder, jobOrder)
- * @param {string} documentId - Document ID
+ * Admin-only Authorization Middleware
+ * Must be used after authenticateToken middleware
  */
-export const checkDocumentAccess = async (req, res, next) => {
-  try {
-    const { documentType, documentId } = req.params;
-
-    // Admin users have access to all documents
-    if (req.user.role === "admin") {
-      return next();
-    }
-
-    // For now, allow all authenticated users to access documents
-    // You can implement more granular access control here based on your business logic
-    // For example:
-    // - Check if user created the document
-    // - Check if user is assigned to the document
-    // - Check if user's role allows access to this document type
-
-    // Example implementation for document ownership:
-    /*
-    let document;
-    switch (documentType) {
-      case 'quote':
-        document = await Quotes.findById(documentId);
-        break;
-      case 'salesOrder':
-        document = await SalesOrders.findById(documentId);
-        break;
-      case 'jobOrder':
-        document = await JobOrders.findById(documentId);
-        break;
-      default:
-        return res.status(400).json({
-          success: false,
-          message: "Invalid document type",
-          error: "INVALID_DOCUMENT_TYPE"
-        });
-    }
-    
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: "Document not found",
-        error: "DOCUMENT_NOT_FOUND"
-      });
-    }
-    
-    // Check if user has access to this document
-    if (document.createdBy !== req.user.id && document.assignedTo !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied to this document",
-        error: "ACCESS_DENIED"
-      });
-    }
-    */
-
-    next();
-  } catch (error) {
-    console.error("Document access check error:", error);
-    return res.status(500).json({
+export const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
       success: false,
-      message: "Error checking document access",
-      error: "INTERNAL_SERVER_ERROR",
+      message: "Authentication required",
+      error: "UNAUTHORIZED",
     });
   }
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Admin access required",
+      error: "FORBIDDEN",
+    });
+  }
+
+  next();
+};
+
+/**
+ * Self or Admin Authorization Middleware
+ * Allows access if user is accessing their own data or is an admin
+ * Must be used after authenticateToken middleware
+ */
+export const selfOrAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required",
+      error: "UNAUTHORIZED",
+    });
+  }
+
+  const targetUserId = req.params.userId || req.params.id;
+  const isSelf = req.user.userId === targetUserId;
+  const isAdmin = req.user.role === "admin";
+
+  if (!isSelf && !isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: "Access denied. You can only access your own data.",
+      error: "FORBIDDEN",
+    });
+  }
+
+  next();
+};
+
+/**
+ * Document Access Check Middleware
+ * Checks if user has permission to access specific document types
+ * Must be used after authenticateToken middleware
+ */
+export const checkDocumentAccess = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required",
+      error: "UNAUTHORIZED",
+    });
+  }
+
+  const { documentType } = req.params;
+  const userRole = req.user.role;
+
+  // Define access rules for different document types
+  const accessRules = {
+    leads: ["admin", "user", "sales"],
+    quotes: ["admin", "user", "sales"],
+    salesOrders: ["admin", "user", "sales"],
+    jobOrders: ["admin", "user", "sales"],
+    customers: ["admin", "user", "sales"],
+    vendors: ["admin", "user", "sales"],
+    blogs: ["admin", "user"],
+  };
+
+  // Check if document type is allowed
+  if (!accessRules[documentType]) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid document type",
+      error: "INVALID_DOCUMENT_TYPE",
+    });
+  }
+
+  // Check if user role has access to this document type
+  if (!accessRules[documentType].includes(userRole)) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Access denied. Insufficient permissions for this document type.",
+      error: "FORBIDDEN",
+    });
+  }
+
+  next();
 };

@@ -76,13 +76,14 @@ router.post("/", async (req, res) => {
           path: "/",
         };
 
-        // For localhost development, use lax sameSite (works with HTTP)
-        // For production, use none + secure (requires HTTPS)
+        // For development, use SameSite=Lax which works with same-site requests
+        // For production, use SameSite=None with Secure for cross-origin support
         if (isProduction) {
           cookieOptions.sameSite = "none"; // Cross-origin support
           cookieOptions.secure = true; // HTTPS only
         } else {
-          cookieOptions.sameSite = "lax"; // Localhost-friendly
+          // Development: Use SameSite=Lax for localhost (same-site requests)
+          cookieOptions.sameSite = "lax"; // Works with same-site requests
           cookieOptions.secure = false; // Works with HTTP
         }
 
@@ -252,14 +253,13 @@ router.post("/logout", (req, res) => {
       cookieOptions.sameSite = "none";
       cookieOptions.secure = true;
     } else {
+      // Development: Match the same options used in login
       cookieOptions.sameSite = "lax";
       cookieOptions.secure = false;
     }
 
     // Clear the cookie
     res.clearCookie("token", cookieOptions);
-
-    console.log("✅ Cookie cleared successfully");
 
     res.status(200).json({
       success: true,

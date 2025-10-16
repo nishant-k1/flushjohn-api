@@ -66,7 +66,7 @@ const UserSchema = new mongoose.Schema(
     },
     passwordChangedAt: {
       type: Date,
-      default: Date.now,
+      default: null,
     },
     failedLoginAttempts: {
       type: Number,
