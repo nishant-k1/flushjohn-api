@@ -10,7 +10,7 @@ import {
   safeDate,
   safeCurrency,
   safePhone,
-} from "../../../../templates/utils/safeValue.js";
+} from "../../../../utils/safeValue.js";
 
 const itemRows = (products) => {
   if (!products || !Array.isArray(products)) {
