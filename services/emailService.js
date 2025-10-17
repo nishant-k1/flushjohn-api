@@ -82,7 +82,7 @@ export const sendEmailWithS3PDF = async (
         socketTimeout: 15000,
       },
       {
-        host: "smtp.zoho.in", 
+        host: "smtp.zoho.in",
         port: 587,
         secure: false,
         auth: emailConfig,
@@ -100,17 +100,21 @@ export const sendEmailWithS3PDF = async (
         connectionTimeout: 15000,
         greetingTimeout: 15000,
         socketTimeout: 15000,
-      }
+      },
     ];
 
     let transporter;
     let lastError;
-    
+
     // Try each SMTP configuration
     for (let i = 0; i < smtpConfigs.length; i++) {
       const config = smtpConfigs[i];
-      console.log(`🔌 Trying SMTP config ${i + 1}: ${config.host}:${config.port} (secure: ${config.secure})`);
-      
+      console.log(
+        `🔌 Trying SMTP config ${i + 1}: ${config.host}:${
+          config.port
+        } (secure: ${config.secure})`
+      );
+
       try {
         transporter = createTransport(config);
         await transporter.verify();
@@ -120,7 +124,9 @@ export const sendEmailWithS3PDF = async (
         console.log(`❌ SMTP config ${i + 1} failed:`, error.message);
         lastError = error;
         if (i === smtpConfigs.length - 1) {
-          throw new Error(`All SMTP configurations failed. Last error: ${lastError.message}`);
+          throw new Error(
+            `All SMTP configurations failed. Last error: ${lastError.message}`
+          );
         }
       }
     }
