@@ -64,7 +64,7 @@ router.post("/", async (req, res) => {
           { userId: user.userId },
           process.env.SECRET_KEY,
           {
-            expiresIn: "1h",
+            expiresIn: "24h", // Extended to 24 hours for better user experience
           }
         );
 
@@ -72,7 +72,7 @@ router.post("/", async (req, res) => {
         const isProduction = process.env.NODE_ENV === "production";
         const cookieOptions = {
           httpOnly: true, // ✅ Prevent XSS attacks
-          maxAge: 3600 * 1000, // 1 hour expiration
+          maxAge: 24 * 3600 * 1000, // 24 hours expiration to match JWT
           path: "/",
         };
 
