@@ -1,5 +1,6 @@
 import Leads from "../models/Leads/index.js";
 import alertService from "../../../services/alertService.js";
+import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 const productsData = (leadSource, products) => {
   // Normalize all product data to proper types for database storage
@@ -103,7 +104,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
           : "No products",
       });
 
-      const createdAt = new Date();
+      const createdAt = getCurrentDateTime();
       const latestLead = await Leads.findOne({}, "leadNo").sort({
         leadNo: -1,
       });

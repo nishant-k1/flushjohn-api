@@ -3,6 +3,7 @@
  */
 
 import * as customersRepository from "../repositories/customersRepository.js";
+import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 export const generateCustomerNumber = async () => {
   const latestCustomer = await customersRepository.findOne({}, "customerNo");
@@ -11,7 +12,7 @@ export const generateCustomerNumber = async () => {
 };
 
 export const createCustomer = async (customerData) => {
-  const createdAt = new Date();
+  const createdAt = getCurrentDateTime();
   const customerNo = await generateCustomerNumber();
   
   const newCustomerData = {
@@ -82,7 +83,7 @@ export const getCustomerById = async (id) => {
 export const updateCustomer = async (id, updateData) => {
   const customer = await customersRepository.updateById(id, {
     ...updateData,
-    updatedAt: new Date(),
+    updatedAt: getCurrentDateTime(),
   });
 
   if (!customer) {

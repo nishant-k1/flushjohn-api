@@ -3,6 +3,8 @@
  * Ensures financial accuracy by server-side verification
  */
 
+import { getCurrentDateTime } from "../lib/dayjs/index.js";
+
 const validateAndRecalculateProducts = (req, res, next) => {
   try {
     const { products } = req.body;
@@ -57,7 +59,7 @@ const validateAndRecalculateProducts = (req, res, next) => {
       console.warn("⚠️ FINANCIAL DISCREPANCY DETECTED:", {
         endpoint: req.originalUrl,
         method: req.method,
-        timestamp: new Date().toISOString(),
+        timestamp: getCurrentDateTime().toISOString(),
         discrepancies,
       });
     }

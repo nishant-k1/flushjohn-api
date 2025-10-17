@@ -3,6 +3,7 @@
  */
 
 import * as vendorsRepository from "../repositories/vendorsRepository.js";
+import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 export const generateVendorNumber = async () => {
   const latestVendor = await vendorsRepository.findOne({}, "vendorNo");
@@ -11,7 +12,7 @@ export const generateVendorNumber = async () => {
 };
 
 export const createVendor = async (vendorData) => {
-  const createdAt = new Date();
+  const createdAt = getCurrentDateTime();
   const vendorNo = await generateVendorNumber();
   
   const newVendorData = {
@@ -82,7 +83,7 @@ export const getVendorById = async (id) => {
 export const updateVendor = async (id, updateData) => {
   const vendor = await vendorsRepository.updateById(id, {
     ...updateData,
-    updatedAt: new Date(),
+    updatedAt: getCurrentDateTime(),
   });
 
   if (!vendor) {

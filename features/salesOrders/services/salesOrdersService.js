@@ -4,6 +4,7 @@
 
 import * as salesOrdersRepository from "../repositories/salesOrdersRepository.js";
 import * as customersRepository from "../../customers/repositories/customersRepository.js";
+import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 export const generateSalesOrderNumber = async () => {
   const latestSalesOrder = await salesOrdersRepository.findOne(
@@ -24,7 +25,7 @@ export const createSalesOrder = async (salesOrderData) => {
     throw error;
   }
 
-  const createdAt = new Date();
+  const createdAt = getCurrentDateTime();
   const salesOrderNo = await generateSalesOrderNumber();
 
   // Handle customer creation/update logic
@@ -133,7 +134,7 @@ export const updateSalesOrder = async (id, updateData) => {
     // Set emailStatus to "Pending" only if not explicitly provided in updateData
     // This allows email operations to set "Sent" and regular saves to reset to "Pending"
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
-    updatedAt: new Date(),
+    updatedAt: getCurrentDateTime(),
   });
 
   if (!salesOrder) {

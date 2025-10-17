@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import argon2 from "argon2";
+import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 const UserSchema = new mongoose.Schema(
   {
@@ -98,7 +99,7 @@ UserSchema.pre("save", async function (next) {
   try {
     // Hash the password with argon2
     this.password = await argon2.hash(this.password);
-    this.passwordChangedAt = new Date();
+    this.passwordChangedAt = getCurrentDateTime();
     next();
   } catch (error) {
     next(error);
@@ -149,7 +150,7 @@ UserSchema.methods.resetLoginAttempts = function () {
 
 // ✅ Update last login
 UserSchema.methods.updateLastLogin = function () {
-  return this.updateOne({ lastLogin: new Date() });
+  return this.updateOne({ lastLogin: getCurrentDateTime() });
 };
 
 // ✅ Check if password was changed after JWT was issued

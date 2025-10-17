@@ -3,6 +3,7 @@
  */
 
 import * as blogsRepository from "../repositories/blogsRepository.js";
+import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 export const generateBlogNumber = async () => {
   const latestBlog = await blogsRepository.findOne({}, "blogNo");
@@ -18,7 +19,7 @@ export const generateSlug = (title) => {
 };
 
 export const createBlog = async (blogData) => {
-  const createdAt = new Date();
+  const createdAt = getCurrentDateTime();
   const blogNo = await generateBlogNumber();
   const slug = generateSlug(blogData.title);
   
@@ -96,7 +97,7 @@ export const getBlogById = async (id) => {
 export const updateBlog = async (id, updateData) => {
   const blog = await blogsRepository.updateById(id, {
     ...updateData,
-    updatedAt: new Date(),
+    updatedAt: getCurrentDateTime(),
   });
 
   if (!blog) {

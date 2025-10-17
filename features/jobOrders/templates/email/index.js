@@ -12,7 +12,7 @@ const template = (vendorData) => {
     }
   );
 
-  return `Hi ${vendorData.vendorName ? vendorData.vendorName : "Vendor"},
+  return `Hi ${vendorData.fName || ""},
 
 As per our conversation, I have attached the Job_Order # ${
     vendorData.jobOrderNo ? vendorData.jobOrderNo : ""

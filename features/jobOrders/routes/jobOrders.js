@@ -310,7 +310,7 @@ router.post(
         createdAt: req.body.createdAt || jobOrder.createdAt,
         vendorName: vendor.name, // Add vendor name for email template
       };
-      
+
       // Explicitly set vendor email AFTER spreading req.body to ensure it overrides
       emailData.email = vendor.email;
 

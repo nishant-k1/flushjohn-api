@@ -3,6 +3,7 @@ import pkg from "whatsapp-web.js";
 const { Client, LocalAuth } = pkg;
 import qrcode from "qrcode-terminal";
 import QRCode from "qrcode";
+import { getCurrentDateTime } from "../lib/dayjs/index.js";
 
 class AlertService {
   constructor() {
@@ -142,7 +143,7 @@ class AlertService {
     const results = {
       telegram: { success: false, error: undefined },
       whatsapp: { success: false, error: undefined },
-      timestamp: new Date().toISOString(),
+      timestamp: getCurrentDateTime().toISOString(),
     };
 
     // Send Telegram alert
@@ -442,7 +443,7 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
     const results = {
       telegram: { success: false, error: undefined },
       whatsapp: { success: false, error: undefined },
-      timestamp: new Date().toISOString(),
+      timestamp: getCurrentDateTime().toISOString(),
     };
 
     // Test Telegram

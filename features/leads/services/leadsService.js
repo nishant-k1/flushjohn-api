@@ -7,6 +7,7 @@
 
 import * as leadsRepository from "../repositories/leadsRepository.js";
 import alertService from "../../../services/alertService.js";
+import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
 
 /**
  * Transform products based on lead source
@@ -147,7 +148,7 @@ export const createLead = async (leadData) => {
       : "No products",
   });
 
-  const createdAt = new Date();
+  const createdAt = getCurrentDateTime();
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
 
@@ -291,7 +292,7 @@ export const updateLead = async (id, updateData) => {
 
   const lead = await leadsRepository.updateById(id, {
     ...updateData,
-    updatedAt: new Date(),
+    updatedAt: getCurrentDateTime(),
   });
 
   if (!lead) {

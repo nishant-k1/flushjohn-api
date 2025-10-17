@@ -7,6 +7,7 @@ import {
   authorizeRoles,
   checkDocumentAccess,
 } from "../features/auth/middleware/auth.js";
+import { getCurrentDateTime } from "../lib/dayjs/index.js";
 
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -150,7 +151,7 @@ router.get(
           documentType,
           documentId,
           generatedBy: req.user.userId,
-          generatedAt: new Date().toISOString(),
+          generatedAt: getCurrentDateTime().toISOString(),
         },
       });
     } catch (error) {

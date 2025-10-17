@@ -3,6 +3,7 @@
  */
 
 import * as quotesRepository from "../repositories/quotesRepository.js";
+import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 export const generateQuoteNumber = async () => {
   const latestQuote = await quotesRepository.findOne({}, "quoteNo");
@@ -18,7 +19,7 @@ export const createQuote = async (quoteData) => {
     throw error;
   }
 
-  const createdAt = new Date();
+  const createdAt = getCurrentDateTime();
   const quoteNo = await generateQuoteNumber();
 
   const newQuoteData = {
@@ -102,7 +103,7 @@ export const updateQuote = async (id, updateData) => {
     ...updateData,
     // Only set emailStatus to "Pending" if it's not already set in updateData
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
-    updatedAt: new Date(),
+    updatedAt: getCurrentDateTime(),
   });
 
   if (!quote) {

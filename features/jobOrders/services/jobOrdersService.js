@@ -3,6 +3,7 @@
  */
 
 import * as jobOrdersRepository from "../repositories/jobOrdersRepository.js";
+import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
 
 export const generateJobOrderNumber = async () => {
   const latestJobOrder = await jobOrdersRepository.findOne({}, "jobOrderNo");
@@ -121,7 +122,7 @@ export const createJobOrder = async (jobOrderData) => {
     throw error;
   }
 
-  const createdAt = new Date();
+  const createdAt = getCurrentDateTime();
   const jobOrderNo = await generateJobOrderNumber();
 
   const newJobOrderData = {
@@ -194,7 +195,7 @@ export const updateJobOrder = async (id, updateData) => {
     ...updateData,
     // Only set emailStatus to "Pending" if it's not already set in updateData
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
-    updatedAt: new Date(),
+    updatedAt: getCurrentDateTime(),
   });
 
   if (!jobOrder) {
