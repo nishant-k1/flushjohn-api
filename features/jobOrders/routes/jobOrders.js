@@ -311,9 +311,11 @@ router.post(
         _id: id,
         jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
         createdAt: req.body.createdAt || jobOrder.createdAt,
-        email: vendor.email, // Use vendor email instead of customer email
         vendorName: vendor.name, // Add vendor name for email template
       };
+      
+      // Explicitly set vendor email AFTER spreading req.body to ensure it overrides
+      emailData.email = vendor.email;
       
       console.log("🔍 DEBUG - Final emailData.email:", emailData.email);
 
