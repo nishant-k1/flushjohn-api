@@ -62,14 +62,33 @@ export const sendEmailWithS3PDF = async (
         throw new Error(`Unknown document type: ${documentType}`);
     }
 
-    // Create transporter
+    // Create transporter with debugging
+    console.log(`🔧 Email config for ${documentType}:`, {
+      user: emailConfig.user,
+      hasPassword: !!emailConfig.pass,
+      passwordLength: emailConfig.pass?.length || 0
+    });
+    
     const transporter = createTransport({
       host: "smtp.zoho.in",
       port: 465,
       secure: true,
       auth: emailConfig,
       tls: { rejectUnauthorized: false },
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 30000,   // 30 seconds
+      socketTimeout: 30000,     // 30 seconds
     });
+    
+    // Test connection before sending
+    console.log(`🔌 Testing SMTP connection to smtp.zoho.in:465...`);
+    try {
+      await transporter.verify();
+      console.log(`✅ SMTP connection verified successfully`);
+    } catch (verifyError) {
+      console.error(`❌ SMTP connection failed:`, verifyError);
+      throw new Error(`SMTP connection failed: ${verifyError.message}`);
+    }
 
     // Generate email content
     const emailContent = emailTemplate(documentData);
