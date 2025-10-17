@@ -11,7 +11,6 @@ export const generateJobOrderNumber = async () => {
 };
 
 export const createJobOrder = async (jobOrderData) => {
-
   // Validate required fields
   if (!jobOrderData.salesOrderNo) {
     const error = new Error("Sales Order Number is required");
@@ -19,13 +18,19 @@ export const createJobOrder = async (jobOrderData) => {
     throw error;
   }
 
-  if (!jobOrderData.contactPersonName) {
+  if (
+    !jobOrderData.contactPersonName ||
+    jobOrderData.contactPersonName.trim() === ""
+  ) {
     const error = new Error("Contact Person Name is required");
     error.name = "ValidationError";
     throw error;
   }
 
-  if (!jobOrderData.contactPersonPhone) {
+  if (
+    !jobOrderData.contactPersonPhone ||
+    jobOrderData.contactPersonPhone.trim() === ""
+  ) {
     const error = new Error("Contact Person Phone is required");
     error.name = "ValidationError";
     throw error;
