@@ -303,9 +303,6 @@ router.post(
       }
 
       // Use fresh data from request body but replace email with vendor email
-      console.log("🔍 DEBUG - Request body email:", req.body.email);
-      console.log("🔍 DEBUG - Vendor email:", vendor.email);
-      
       const emailData = {
         ...req.body,
         _id: id,
@@ -316,8 +313,6 @@ router.post(
       
       // Explicitly set vendor email AFTER spreading req.body to ensure it overrides
       emailData.email = vendor.email;
-      
-      console.log("🔍 DEBUG - Final emailData.email:", emailData.email);
 
       // Generate PDF and send email
       const { generateJobOrderPDF } = await import(

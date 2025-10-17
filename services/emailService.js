@@ -26,7 +26,7 @@ export const sendEmailWithS3PDF = async (
     console.log(`🔍 DEBUG - Email service documentData:`, {
       email: documentData.email,
       vendorName: documentData.vendorName,
-      documentType: documentType
+      documentType: documentType,
     });
 
     // Select appropriate email configuration and template
