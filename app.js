@@ -69,11 +69,15 @@ socketConnect(server);
 app.use(
   cors({
     origin: (origin, callback) => {
+      console.log(`🔍 CORS check - Origin: ${origin}`);
       if (!origin) return callback(null, true);
       const allowedOrigins = getAllowedOrigins();
+      console.log(`🔍 Allowed origins:`, allowedOrigins);
       if (allowedOrigins.includes(origin)) {
+        console.log(`✅ CORS allowed for origin: ${origin}`);
         return callback(null, true);
       }
+      console.log(`❌ CORS blocked for origin: ${origin}`);
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
@@ -89,6 +93,7 @@ app.use(
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
+    maxAge: 86400, // Cache preflight for 24 hours
   })
 );
 

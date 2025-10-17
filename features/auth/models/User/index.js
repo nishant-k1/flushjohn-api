@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import argon2 from "argon2";
-import { getCurrentDateTime } from "/Users/nishantkumar/dev/flushjohn-api/lib/dayjs/index.js";
+import { getCurrentDateTime } from "../../../../lib/dayjs/index.js";
 
 const UserSchema = new mongoose.Schema(
   {
