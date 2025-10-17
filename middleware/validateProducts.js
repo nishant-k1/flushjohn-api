@@ -72,7 +72,9 @@ const validateAndRecalculateProducts = (req, res, next) => {
       hasDiscrepancy,
       discrepancies,
       productCount: validatedProducts.length,
-      totalAmount: validatedProducts.reduce((sum, p) => sum + p.amount, 0).toFixed(2),
+      totalAmount: validatedProducts
+        .reduce((sum, p) => sum + p.amount, 0)
+        .toFixed(2),
     };
 
     next();
@@ -88,4 +90,3 @@ const validateAndRecalculateProducts = (req, res, next) => {
 };
 
 export default validateAndRecalculateProducts;
-

@@ -14,7 +14,7 @@ export const generateCustomerNumber = async () => {
 export const createCustomer = async (customerData) => {
   const createdAt = getCurrentDateTime();
   const customerNo = await generateCustomerNumber();
-  
+
   const newCustomerData = {
     ...customerData,
     createdAt,
@@ -70,7 +70,7 @@ export const getAllCustomers = async ({
 
 export const getCustomerById = async (id) => {
   const customer = await customersRepository.findById(id);
-  
+
   if (!customer) {
     const error = new Error("Customer not found");
     error.name = "NotFoundError";
@@ -97,7 +97,7 @@ export const updateCustomer = async (id, updateData) => {
 
 export const deleteCustomer = async (id) => {
   const existingCustomer = await customersRepository.findById(id);
-  
+
   if (!existingCustomer) {
     const error = new Error("Customer not found");
     error.name = "NotFoundError";

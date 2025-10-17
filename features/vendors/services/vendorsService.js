@@ -14,7 +14,7 @@ export const generateVendorNumber = async () => {
 export const createVendor = async (vendorData) => {
   const createdAt = getCurrentDateTime();
   const vendorNo = await generateVendorNumber();
-  
+
   const newVendorData = {
     ...vendorData,
     createdAt,
@@ -70,7 +70,7 @@ export const getAllVendors = async ({
 
 export const getVendorById = async (id) => {
   const vendor = await vendorsRepository.findById(id);
-  
+
   if (!vendor) {
     const error = new Error("Vendor not found");
     error.name = "NotFoundError";
@@ -97,7 +97,7 @@ export const updateVendor = async (id, updateData) => {
 
 export const deleteVendor = async (id) => {
   const existingVendor = await vendorsRepository.findById(id);
-  
+
   if (!existingVendor) {
     const error = new Error("Vendor not found");
     error.name = "NotFoundError";

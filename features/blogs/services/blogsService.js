@@ -22,7 +22,7 @@ export const createBlog = async (blogData) => {
   const createdAt = getCurrentDateTime();
   const blogNo = await generateBlogNumber();
   const slug = generateSlug(blogData.title);
-  
+
   const newBlogData = {
     ...blogData,
     createdAt,
@@ -46,7 +46,7 @@ export const getAllBlogs = async ({
 
   // Build search query
   let query = {};
-  
+
   if (slug) {
     query.slug = slug;
   } else if (search) {
@@ -84,7 +84,7 @@ export const getAllBlogs = async ({
 
 export const getBlogById = async (id) => {
   const blog = await blogsRepository.findById(id);
-  
+
   if (!blog) {
     const error = new Error("Blog not found");
     error.name = "NotFoundError";
@@ -111,7 +111,7 @@ export const updateBlog = async (id, updateData) => {
 
 export const deleteBlog = async (id) => {
   const existingBlog = await blogsRepository.findById(id);
-  
+
   if (!existingBlog) {
     const error = new Error("Blog not found");
     error.name = "NotFoundError";

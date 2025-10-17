@@ -294,25 +294,52 @@ router.post(
         });
       }
 
-      if (!vendor.email) {
+      // Check if vendor has at least one email (vendor email or representative email)
+      if (!vendor.email && !vendor.repEmail) {
         return res.status(400).json({
           success: false,
-          message: "Selected vendor does not have an email address",
+          message: "Selected vendor does not have an email address or representative email",
           error: "VENDOR_NO_EMAIL",
         });
       }
 
-      // Use fresh data from request body but replace email with vendor email
+      // Determine email recipients and primary recipient
+      let primaryEmail, ccEmail, recipientName;
+      
+      if (vendor.repEmail && vendor.email) {
+        // Both emails present
+        if (vendor.repEmail === vendor.email) {
+          // Same email - use only vendor email, no CC
+          primaryEmail = vendor.email;
+          ccEmail = null;
+        } else {
+          // Different emails - use rep email as primary, vendor email as CC
+          primaryEmail = vendor.repEmail;
+          ccEmail = vendor.email;
+        }
+      } else if (vendor.repEmail) {
+        // Only representative email present
+        primaryEmail = vendor.repEmail;
+        ccEmail = null;
+      } else {
+        // Only vendor email present
+        primaryEmail = vendor.email;
+        ccEmail = null;
+      }
+
+      // Determine recipient name (representative name with vendor name fallback)
+      recipientName = vendor.repNames || vendor.name;
+
+      // Use fresh data from request body but replace email with determined primary email
       const emailData = {
         ...req.body,
         _id: id,
         jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
         createdAt: req.body.createdAt || jobOrder.createdAt,
-        vendorName: vendor.name, // Add vendor name for email template
+        vendorName: recipientName, // Use representative name with vendor name fallback
+        email: primaryEmail, // Use determined primary email
+        ccEmail: ccEmail, // Add CC email if different
       };
-
-      // Explicitly set vendor email AFTER spreading req.body to ensure it overrides
-      emailData.email = vendor.email;
 
       // Generate PDF and send email
       const { generateJobOrderPDF } = await import(

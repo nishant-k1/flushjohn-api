@@ -50,6 +50,9 @@ const VendorsSchema = new mongoose.Schema({
   repNames: {
     type: String,
   },
+  repEmail: {
+    type: String,
+  },
   serviceCities: {
     type: String,
   },

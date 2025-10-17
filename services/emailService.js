@@ -166,6 +166,12 @@ export const sendEmailWithS3PDF = async (
       ],
     };
 
+    // Add CC email if present
+    if (documentData.ccEmail) {
+      emailOptions.cc = documentData.ccEmail;
+      console.log(`📧 CC email added: ${documentData.ccEmail}`);
+    }
+
     // Send email
     console.log(`📤 Sending email with attachment from: ${s3PdfUrl}`);
     const info = await transporter.sendMail(emailOptions);

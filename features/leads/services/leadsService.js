@@ -121,7 +121,11 @@ export const sendLeadAlerts = async (lead, leadNo) => {
  */
 export const createLead = async (leadData) => {
   // Validate required fields
-  if (!leadData.usageType || leadData.usageType.trim() === "" || leadData.usageType === "None") {
+  if (
+    !leadData.usageType ||
+    leadData.usageType.trim() === "" ||
+    leadData.usageType === "None"
+  ) {
     const error = new Error("Usage type is required");
     error.name = "ValidationError";
     throw error;
@@ -284,7 +288,12 @@ export const getLeadById = async (id) => {
  */
 export const updateLead = async (id, updateData) => {
   // Validate required fields
-  if (updateData.usageType !== undefined && (!updateData.usageType || updateData.usageType.trim() === "" || updateData.usageType === "None")) {
+  if (
+    updateData.usageType !== undefined &&
+    (!updateData.usageType ||
+      updateData.usageType.trim() === "" ||
+      updateData.usageType === "None")
+  ) {
     const error = new Error("Usage type is required");
     error.name = "ValidationError";
     throw error;

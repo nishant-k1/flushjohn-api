@@ -13,7 +13,11 @@ export const generateQuoteNumber = async () => {
 
 export const createQuote = async (quoteData) => {
   // Validate required fields
-  if (!quoteData.usageType || quoteData.usageType.trim() === "" || quoteData.usageType === "None") {
+  if (
+    !quoteData.usageType ||
+    quoteData.usageType.trim() === "" ||
+    quoteData.usageType === "None"
+  ) {
     const error = new Error("Usage type is required");
     error.name = "ValidationError";
     throw error;
@@ -93,7 +97,12 @@ export const getQuoteById = async (id) => {
 
 export const updateQuote = async (id, updateData) => {
   // Validate required fields
-  if (updateData.usageType !== undefined && (!updateData.usageType || updateData.usageType.trim() === "" || updateData.usageType === "None")) {
+  if (
+    updateData.usageType !== undefined &&
+    (!updateData.usageType ||
+      updateData.usageType.trim() === "" ||
+      updateData.usageType === "None")
+  ) {
     const error = new Error("Usage type is required");
     error.name = "ValidationError";
     throw error;
