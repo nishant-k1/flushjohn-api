@@ -66,28 +66,63 @@ export const sendEmailWithS3PDF = async (
     console.log(`🔧 Email config for ${documentType}:`, {
       user: emailConfig.user,
       hasPassword: !!emailConfig.pass,
-      passwordLength: emailConfig.pass?.length || 0
+      passwordLength: emailConfig.pass?.length || 0,
     });
+
+    // Try multiple SMTP configurations for better connectivity
+    const smtpConfigs = [
+      {
+        host: "smtp.zoho.in",
+        port: 465,
+        secure: true,
+        auth: emailConfig,
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 15000,
+      },
+      {
+        host: "smtp.zoho.in", 
+        port: 587,
+        secure: false,
+        auth: emailConfig,
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 15000,
+      },
+      {
+        host: "smtp.zoho.com",
+        port: 465,
+        secure: true,
+        auth: emailConfig,
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 15000,
+      }
+    ];
+
+    let transporter;
+    let lastError;
     
-    const transporter = createTransport({
-      host: "smtp.zoho.in",
-      port: 465,
-      secure: true,
-      auth: emailConfig,
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 30000, // 30 seconds
-      greetingTimeout: 30000,   // 30 seconds
-      socketTimeout: 30000,     // 30 seconds
-    });
-    
-    // Test connection before sending
-    console.log(`🔌 Testing SMTP connection to smtp.zoho.in:465...`);
-    try {
-      await transporter.verify();
-      console.log(`✅ SMTP connection verified successfully`);
-    } catch (verifyError) {
-      console.error(`❌ SMTP connection failed:`, verifyError);
-      throw new Error(`SMTP connection failed: ${verifyError.message}`);
+    // Try each SMTP configuration
+    for (let i = 0; i < smtpConfigs.length; i++) {
+      const config = smtpConfigs[i];
+      console.log(`🔌 Trying SMTP config ${i + 1}: ${config.host}:${config.port} (secure: ${config.secure})`);
+      
+      try {
+        transporter = createTransport(config);
+        await transporter.verify();
+        console.log(`✅ SMTP connection successful with config ${i + 1}`);
+        break;
+      } catch (error) {
+        console.log(`❌ SMTP config ${i + 1} failed:`, error.message);
+        lastError = error;
+        if (i === smtpConfigs.length - 1) {
+          throw new Error(`All SMTP configurations failed. Last error: ${lastError.message}`);
+        }
+      }
     }
 
     // Generate email content
