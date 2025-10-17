@@ -5,10 +5,7 @@
 import JobOrders from "../models/JobOrders/index.js";
 
 export const create = async (jobOrderData) => {
-  console.log("🔍 Job Order Repository - Creating with data:", JSON.stringify(jobOrderData, null, 2));
-  console.log("🔍 Job Order Repository - Vendor data being saved:", jobOrderData.vendor);
   const result = await JobOrders.create(jobOrderData);
-  console.log("🔍 Job Order Repository - Created job order:", JSON.stringify(result, null, 2));
   return result;
 };
 

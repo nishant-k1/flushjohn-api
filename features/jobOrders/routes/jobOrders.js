@@ -271,12 +271,45 @@ router.post(
 
       const jobOrder = await jobOrdersService.getJobOrderById(id);
 
-      // Use fresh data from request body
+      // Check if vendor is selected
+      if (!req.body.vendor || !req.body.vendor._id) {
+        return res.status(400).json({
+          success: false,
+          message: "Vendor must be selected before sending job order email",
+          error: "NO_VENDOR_SELECTED",
+        });
+      }
+
+      // Fetch vendor details from database
+      const { getVendorById } = await import(
+        "../../vendors/services/vendorsService.js"
+      );
+      const vendor = await getVendorById(req.body.vendor._id);
+
+      if (!vendor) {
+        return res.status(404).json({
+          success: false,
+          message: "Selected vendor not found",
+          error: "VENDOR_NOT_FOUND",
+        });
+      }
+
+      if (!vendor.email) {
+        return res.status(400).json({
+          success: false,
+          message: "Selected vendor does not have an email address",
+          error: "VENDOR_NO_EMAIL",
+        });
+      }
+
+      // Use fresh data from request body but replace email with vendor email
       const emailData = {
         ...req.body,
         _id: id,
         jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
         createdAt: req.body.createdAt || jobOrder.createdAt,
+        email: vendor.email, // Use vendor email instead of customer email
+        vendorName: vendor.name, // Add vendor name for email template
       };
 
       // Generate PDF and send email

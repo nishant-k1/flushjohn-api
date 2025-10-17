@@ -12,9 +12,7 @@ const template = (vendorData) => {
     }
   );
 
-  return `Hi ${vendorData.fName ? vendorData.fName : ""} ${
-    vendorData.lName ? vendorData.lName : ""
-  },
+  return `Hi ${vendorData.vendorName ? vendorData.vendorName : "Vendor"},
 
 As per our conversation, I have attached the Job_Order # ${
     vendorData.jobOrderNo ? vendorData.jobOrderNo : ""

@@ -11,11 +11,6 @@ export const generateJobOrderNumber = async () => {
 };
 
 export const createJobOrder = async (jobOrderData) => {
-  console.log(
-    "🔍 Job Order Service - Received data:",
-    JSON.stringify(jobOrderData, null, 2)
-  );
-  console.log("🔍 Job Order Service - Vendor data:", jobOrderData.vendor);
 
   // Validate required fields
   if (!jobOrderData.salesOrderNo) {
@@ -24,28 +19,90 @@ export const createJobOrder = async (jobOrderData) => {
     throw error;
   }
 
+  if (!jobOrderData.contactPersonName) {
+    const error = new Error("Contact Person Name is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.contactPersonPhone) {
+    const error = new Error("Contact Person Phone is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.fName) {
+    const error = new Error("First name is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.email) {
+    const error = new Error("Email is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.phone) {
+    const error = new Error("Phone number is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.streetAddress) {
+    const error = new Error("Street address is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.city) {
+    const error = new Error("City is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.state) {
+    const error = new Error("State is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.zip) {
+    const error = new Error("Zip code is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.deliveryDate) {
+    const error = new Error("Delivery date is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.pickupDate) {
+    const error = new Error("Pickup date is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  if (!jobOrderData.usageType) {
+    const error = new Error("Usage type is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
   // Check if job order already exists for this sales order
-  console.log(
-    `🔍 Checking for existing job order with salesOrderNo: ${jobOrderData.salesOrderNo}`
-  );
   const existingJobOrder = await jobOrdersRepository.findOne({
     salesOrderNo: jobOrderData.salesOrderNo,
   });
 
   if (existingJobOrder) {
-    console.log(
-      `⚠️ Job Order already exists: ${existingJobOrder._id} (JO #${existingJobOrder.jobOrderNo})`
-    );
     const error = new Error("A job order already exists for this sales order");
     error.name = "DuplicateError";
     error.existingJobOrderId = existingJobOrder._id;
     error.jobOrderNo = existingJobOrder.jobOrderNo;
     throw error;
   }
-
-  console.log(
-    `✅ No existing job order found for sales order ${jobOrderData.salesOrderNo}, proceeding with creation`
-  );
 
   const createdAt = new Date();
   const jobOrderNo = await generateJobOrderNumber();
