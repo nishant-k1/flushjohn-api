@@ -298,14 +298,15 @@ router.post(
       if (!vendor.email && !vendor.repEmail) {
         return res.status(400).json({
           success: false,
-          message: "Selected vendor does not have an email address or representative email",
+          message:
+            "Selected vendor does not have an email address or representative email",
           error: "VENDOR_NO_EMAIL",
         });
       }
 
       // Determine email recipients and primary recipient
       let primaryEmail, ccEmail, recipientName;
-      
+
       if (vendor.repEmail && vendor.email) {
         // Both emails present
         if (vendor.repEmail === vendor.email) {

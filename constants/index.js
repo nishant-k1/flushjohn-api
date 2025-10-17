@@ -6,11 +6,11 @@ export const flushjohn = {
   phone: "(877) 790-7062",
   phone_link: "tel:+18777907062",
   email_signature: `
-    Best regards,
-    Flush John Team
-    support@flushjohn.com
-    (877) 790-7062
-    www.flushjohn.com`,
+  Best regards,
+  Flush John Team
+  support@flushjohn.com
+  (877) 790-7062
+  www.flushjohn.com`,
 };
 
 export const quengenesis = {
@@ -20,11 +20,11 @@ export const quengenesis = {
   phone: "(302) 645-2521",
   phone_link: "tel:+13026452521",
   email_signature: `
-    Best regards,
-    Quengenesis LLC
-    contact@quengenesis.com
-    (302) 645-2521
-    www.quengenesis.com`,
+  Best regards,
+  Quengenesis LLC
+  contact@quengenesis.com
+  (302) 645-2521
+  www.quengenesis.com`,
 };
 
 // S3 Assets URL
