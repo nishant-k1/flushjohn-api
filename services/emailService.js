@@ -69,7 +69,7 @@ export const sendEmailWithS3PDF = async (
       passwordLength: emailConfig.pass?.length || 0,
     });
 
-    // Try multiple SMTP configurations for better connectivity
+    // Try multiple SMTP configurations optimized for low-resource servers
     const smtpConfigs = [
       {
         host: "smtp.zoho.in",
@@ -77,9 +77,12 @@ export const sendEmailWithS3PDF = async (
         secure: true,
         auth: emailConfig,
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 15000,
+        connectionTimeout: 8000,  // Reduced for faster failure
+        greetingTimeout: 8000,    // Reduced for faster failure
+        socketTimeout: 8000,      // Reduced for faster failure
+        pool: false,              // Disable connection pooling
+        maxConnections: 1,        // Single connection
+        maxMessages: 1,           // Single message per connection
       },
       {
         host: "smtp.zoho.in",
@@ -87,9 +90,12 @@ export const sendEmailWithS3PDF = async (
         secure: false,
         auth: emailConfig,
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 15000,
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 8000,
+        pool: false,
+        maxConnections: 1,
+        maxMessages: 1,
       },
       {
         host: "smtp.zoho.com",
@@ -97,15 +103,22 @@ export const sendEmailWithS3PDF = async (
         secure: true,
         auth: emailConfig,
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 15000,
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 8000,
+        pool: false,
+        maxConnections: 1,
+        maxMessages: 1,
       },
     ];
 
     let transporter;
     let lastError;
 
+    // Log system resources before attempting SMTP
+    const memUsage = process.memoryUsage();
+    console.log(`💾 Memory usage before SMTP: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`);
+    
     // Try each SMTP configuration
     for (let i = 0; i < smtpConfigs.length; i++) {
       const config = smtpConfigs[i];
