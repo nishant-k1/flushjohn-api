@@ -119,6 +119,13 @@ export const sendLeadAlerts = async (lead, leadNo) => {
  * Create a new lead
  */
 export const createLead = async (leadData) => {
+  // Validate required fields
+  if (!leadData.usageType || leadData.usageType.trim() === "" || leadData.usageType === "None") {
+    const error = new Error("Usage type is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
   console.log(
     "📥 HTTP API - Received lead data:",
     JSON.stringify(leadData, null, 2)
@@ -275,6 +282,13 @@ export const getLeadById = async (id) => {
  * Update a lead by ID
  */
 export const updateLead = async (id, updateData) => {
+  // Validate required fields
+  if (updateData.usageType !== undefined && (!updateData.usageType || updateData.usageType.trim() === "" || updateData.usageType === "None")) {
+    const error = new Error("Usage type is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
   const lead = await leadsRepository.updateById(id, {
     ...updateData,
     updatedAt: new Date(),

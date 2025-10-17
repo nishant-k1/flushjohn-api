@@ -11,6 +11,13 @@ export const generateQuoteNumber = async () => {
 };
 
 export const createQuote = async (quoteData) => {
+  // Validate required fields
+  if (!quoteData.usageType || quoteData.usageType.trim() === "" || quoteData.usageType === "None") {
+    const error = new Error("Usage type is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
   const createdAt = new Date();
   const quoteNo = await generateQuoteNumber();
 
@@ -84,6 +91,13 @@ export const getQuoteById = async (id) => {
 };
 
 export const updateQuote = async (id, updateData) => {
+  // Validate required fields
+  if (updateData.usageType !== undefined && (!updateData.usageType || updateData.usageType.trim() === "" || updateData.usageType === "None")) {
+    const error = new Error("Usage type is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
   const quote = await quotesRepository.updateById(id, {
     ...updateData,
     // Only set emailStatus to "Pending" if it's not already set in updateData
