@@ -294,42 +294,38 @@ router.post(
         });
       }
 
-      // Check if vendor has at least one email (vendor email or representative email)
-      if (!vendor.email && !vendor.repEmail) {
+      // Check if vendor has email
+      if (!vendor.email) {
         return res.status(400).json({
           success: false,
-          message:
-            "Selected vendor does not have an email address or representative email",
+          message: "Selected vendor does not have an email address",
           error: "VENDOR_NO_EMAIL",
         });
       }
 
-      // Determine email recipients and primary recipient
+      // Determine email recipients based on selected representative
       let primaryEmail, ccEmail, recipientName;
 
-      if (vendor.repEmail && vendor.email) {
-        // Both emails present
-        if (vendor.repEmail === vendor.email) {
-          // Same email - use only vendor email, no CC
+      if (req.body.vendor.selectedRepresentative) {
+        const selectedRep = req.body.vendor.selectedRepresentative;
+        
+        if (selectedRep.type === "representative") {
+          // Send to representative with vendor as CC
+          primaryEmail = selectedRep.email;
+          ccEmail = vendor.email;
+          recipientName = selectedRep.name;
+        } else {
+          // Send directly to vendor
           primaryEmail = vendor.email;
           ccEmail = null;
-        } else {
-          // Different emails - use rep email as primary, vendor email as CC
-          primaryEmail = vendor.repEmail;
-          ccEmail = vendor.email;
+          recipientName = vendor.name;
         }
-      } else if (vendor.repEmail) {
-        // Only representative email present
-        primaryEmail = vendor.repEmail;
-        ccEmail = null;
       } else {
-        // Only vendor email present
+        // No representative selected, send directly to vendor
         primaryEmail = vendor.email;
         ccEmail = null;
+        recipientName = vendor.name;
       }
-
-      // Determine recipient name (representative name with vendor name fallback)
-      recipientName = vendor.repNames || vendor.name;
 
       // Use fresh data from request body but replace email with determined primary email
       const emailData = {
