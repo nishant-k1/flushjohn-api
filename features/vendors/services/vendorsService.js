@@ -12,6 +12,25 @@ export const generateVendorNumber = async () => {
 };
 
 export const createVendor = async (vendorData) => {
+  // Validate representatives array if provided
+  if (vendorData.representatives && Array.isArray(vendorData.representatives)) {
+    for (const rep of vendorData.representatives) {
+      if (!rep.name || !rep.email) {
+        const error = new Error("Each representative must have a name and email");
+        error.name = "ValidationError";
+        throw error;
+      }
+      
+      // Validate email format
+      const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+      if (!emailRegex.test(rep.email)) {
+        const error = new Error("Invalid email format for representative");
+        error.name = "ValidationError";
+        throw error;
+      }
+    }
+  }
+
   const createdAt = getCurrentDateTime();
   const vendorNo = await generateVendorNumber();
 
@@ -41,7 +60,8 @@ export const getAllVendors = async ({
         { cName: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
         { phone: { $regex: search, $options: "i" } },
-        { repNames: { $regex: search, $options: "i" } },
+        { "representatives.name": { $regex: search, $options: "i" } },
+        { "representatives.email": { $regex: search, $options: "i" } },
       ],
     };
   }
@@ -81,6 +101,25 @@ export const getVendorById = async (id) => {
 };
 
 export const updateVendor = async (id, updateData) => {
+  // Validate representatives array if provided
+  if (updateData.representatives && Array.isArray(updateData.representatives)) {
+    for (const rep of updateData.representatives) {
+      if (!rep.name || !rep.email) {
+        const error = new Error("Each representative must have a name and email");
+        error.name = "ValidationError";
+        throw error;
+      }
+      
+      // Validate email format
+      const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+      if (!emailRegex.test(rep.email)) {
+        const error = new Error("Invalid email format for representative");
+        error.name = "ValidationError";
+        throw error;
+      }
+    }
+  }
+
   const vendor = await vendorsRepository.updateById(id, {
     ...updateData,
     updatedAt: getCurrentDateTime(),
