@@ -90,7 +90,14 @@ export const createJobOrder = async (jobOrderData) => {
     throw error;
   }
 
-  if (!jobOrderData.usageType) {
+  console.log("🔍 DEBUG - Backend usageType validation:", {
+    usageType: jobOrderData.usageType,
+    type: typeof jobOrderData.usageType,
+    isEmpty: !jobOrderData.usageType,
+    isBlank: !jobOrderData.usageType || jobOrderData.usageType.trim() === "",
+  });
+
+  if (!jobOrderData.usageType || jobOrderData.usageType.trim() === "") {
     const error = new Error("Usage type is required");
     error.name = "ValidationError";
     throw error;
