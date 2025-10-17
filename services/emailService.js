@@ -77,12 +77,12 @@ export const sendEmailWithS3PDF = async (
         secure: true,
         auth: emailConfig,
         tls: { rejectUnauthorized: false },
-        connectionTimeout: 8000,  // Reduced for faster failure
-        greetingTimeout: 8000,    // Reduced for faster failure
-        socketTimeout: 8000,      // Reduced for faster failure
-        pool: false,              // Disable connection pooling
-        maxConnections: 1,        // Single connection
-        maxMessages: 1,           // Single message per connection
+        connectionTimeout: 8000, // Reduced for faster failure
+        greetingTimeout: 8000, // Reduced for faster failure
+        socketTimeout: 8000, // Reduced for faster failure
+        pool: false, // Disable connection pooling
+        maxConnections: 1, // Single connection
+        maxMessages: 1, // Single message per connection
       },
       {
         host: "smtp.zoho.in",
@@ -117,8 +117,12 @@ export const sendEmailWithS3PDF = async (
 
     // Log system resources before attempting SMTP
     const memUsage = process.memoryUsage();
-    console.log(`💾 Memory usage before SMTP: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`);
-    
+    console.log(
+      `💾 Memory usage before SMTP: ${Math.round(
+        memUsage.heapUsed / 1024 / 1024
+      )}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`
+    );
+
     // Try each SMTP configuration
     for (let i = 0; i < smtpConfigs.length; i++) {
       const config = smtpConfigs[i];

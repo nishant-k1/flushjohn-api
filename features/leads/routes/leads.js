@@ -188,6 +188,80 @@ router.get("/:id", authenticateToken, async function (req, res, next) {
   }
 });
 
+// PUT /leads/:id - Update a lead by ID
+router.put(
+  "/:id",
+  authenticateToken,
+  validateAndRecalculateProducts,
+  async function (req, res, next) {
+    try {
+      const { id } = req.params;
+
+      // Validate ObjectId format
+      if (!leadsService.isValidObjectId(id)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid lead ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      // Validate request body
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Request body is required for update",
+          error: "EMPTY_REQUEST_BODY",
+        });
+      }
+
+      const lead = await leadsService.updateLead(id, req.body);
+
+      res.status(200).json({
+        success: true,
+        message: "Lead updated successfully",
+        data: lead,
+      });
+    } catch (error) {
+      console.error("❌ Error updating lead:", error);
+
+      if (error.name === "NotFoundError") {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+          error: "LEAD_NOT_FOUND",
+        });
+      }
+
+      if (error.name === "ValidationError") {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: "VALIDATION_ERROR",
+          details: Object.values(error.errors).map((err) => err.message),
+        });
+      }
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Failed to update lead",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
+      });
+    }
+  }
+);
+
 // PUT /leads/update/:id - Update a lead by ID (alternative route to bypass CORS cache)
 router.put(
   "/update/:id",

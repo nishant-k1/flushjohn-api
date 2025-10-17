@@ -87,6 +87,8 @@ app.use(
       "Access-Control-Request-Headers",
     ],
     credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   })
 );
 
