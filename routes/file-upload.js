@@ -13,19 +13,7 @@ let s3Instance = null;
 
 const getS3Client = () => {
   if (!s3Instance) {
-
-
-
-
-      "- Access Key ID:",
-      process.env.AWS_ACCESS_KEY_ID
-        ? `${process.env.AWS_ACCESS_KEY_ID.substring(0, 10)}...`
-        : "NOT SET"
-    );
-
-      "- Secret Access Key:",
-      process.env.AWS_SECRET_ACCESS_KEY ? "***SET***" : "NOT SET"
-    );
+    // Initializing S3 Client with credentials
 
     s3Instance = new S3Client({
       region: process.env.AWS_REGION,
@@ -69,16 +57,9 @@ router.post("/", async (req, res) => {
     const s3 = getS3Client();
     const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 }); // 60 seconds
 
-
     res.status(201).json({ uploadURL });
   } catch (error) {
-
-
-      message: error.message,
-      code: error.code,
-      name: error.name,
-      stack: error.stack,
-    });
+    // Error generating upload URL
     res.status(500).json({
       error: "Could not generate upload URL",
       message:
@@ -110,7 +91,6 @@ router.put("/", async (req, res) => {
 
     res.status(200).json({ uploadURL });
   } catch (error) {
-
     res.status(500).json({
       error: "Could not generate upload URL for update",
     });
@@ -139,7 +119,6 @@ router.delete("/", async (req, res) => {
       message: "Image deleted successfully",
     });
   } catch (error) {
-
     res.status(500).json({
       error: "Could not delete image",
     });
