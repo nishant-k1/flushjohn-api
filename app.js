@@ -53,69 +53,67 @@ app.set("port", port);
 
 // CORS configuration
 const getAllowedOrigins = () => {
-  const origins = process.env.ORIGINS
-    ? process.env.ORIGINS.split(",")
-        .map((origin) => origin.trim())
+  return process.env.ORIGINS
+    ? process.env.ORIGINS.split(',')
+        .map(origin => origin.trim())
         .filter(Boolean)
     : [];
-
-  // Add some default origins for production
-  const defaultOrigins = [
-    "https://crm.flushjohn.com",
-    "https://www.flushjohn.com",
-    "http://localhost:3000",
-    "http://localhost:3001",
-  ];
-
-  const allOrigins = [...origins, ...defaultOrigins];
-  const uniqueOrigins = [...new Set(allOrigins)];
-
-  return uniqueOrigins;
 };
 
 // Create HTTP server
 const server = createServer(app);
 socketConnect(server);
 
-// CORS middleware with enhanced debugging
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) {
-        console.log(`🔍 CORS check - No origin (non-browser request)`);
-        return callback(null, true);
-      }
-      const allowedOrigins = getAllowedOrigins();
+// CORS configuration
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = getAllowedOrigins();
+    
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      console.log('🔍 CORS check - No origin (non-browser request)');
+      return callback(null, true);
+    }
 
-      // Enhanced debug logging
-      console.log(`🔍 CORS check - Origin: ${origin}`);
-      console.log(`🔍 CORS check - Allowed origins:`, allowedOrigins);
+    // Check if origin is allowed
+    if (allowedOrigins.includes(origin)) {
+      console.log(`✅ CORS check - Origin allowed: ${origin}`);
+      return callback(null, true);
+    }
 
-      if (allowedOrigins.includes(origin)) {
-        console.log(`✅ CORS check - Origin allowed: ${origin}`);
-        return callback(null, true);
-      }
+    // Log blocked origins for debugging
+    console.log(`❌ CORS check - Origin blocked: ${origin}`);
+    console.log('🌐 Allowed origins:', allowedOrigins);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-HTTP-Method-Override',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers',
+    'X-Custom-Header',
+    'X-Access-Token'
+  ],
+  exposedHeaders: [
+    'Content-Length',
+    'X-Request-ID'
+  ],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 600 // 10 minutes (in seconds)
+};
 
-      console.log(`❌ CORS check - Origin blocked: ${origin}`);
-      return callback(new Error("Not allowed by CORS"));
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "Accept",
-      "Origin",
-      "Access-Control-Request-Method",
-      "Access-Control-Request-Headers",
-      "X-Custom-Header",
-    ],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-    maxAge: 0, // Disable CORS preflight caching completely to prevent browser cache issues
-  })
-);
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
 
 app.use(logger("dev"));
 app.use(json());
