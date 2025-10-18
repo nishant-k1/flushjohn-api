@@ -108,6 +108,7 @@ app.use(
       "Origin",
       "Access-Control-Request-Method",
       "Access-Control-Request-Headers",
+      "X-Custom-Header",
     ],
     credentials: true,
     preflightContinue: false,
@@ -123,7 +124,9 @@ app.use(cookieParser());
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
-  console.log(`📥 ${req.method} ${req.url} - Origin: ${req.headers.origin || 'none'}`);
+  console.log(
+    `📥 ${req.method} ${req.url} - Origin: ${req.headers.origin || "none"}`
+  );
   next();
 });
 
@@ -149,8 +152,9 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
 
-  // Add timestamp header to force fresh CORS responses
+  // Add unique headers to force fresh CORS responses
   res.setHeader("X-Timestamp", Date.now().toString());
+  res.setHeader("X-Request-ID", Math.random().toString(36).substring(7));
 
   next();
 });
