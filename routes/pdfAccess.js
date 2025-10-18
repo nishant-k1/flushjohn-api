@@ -56,9 +56,6 @@ router.get(
 
       // Log PDF access for security auditing
 
-        `📄 PDF Access: User ${req.user.userId} (${req.user.role}) accessed ${documentType} PDF: ${documentId}`
-      );
-
       // Set appropriate headers
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
@@ -71,7 +68,6 @@ router.get(
       fileStream.pipe(res);
 
       fileStream.on("error", (error) => {
-
         if (!res.headersSent) {
           res.status(500).json({
             success: false,
@@ -81,7 +77,6 @@ router.get(
         }
       });
     } catch (error) {
-
       res.status(500).json({
         success: false,
         message: "Internal server error",
@@ -139,9 +134,6 @@ router.get(
 
       // Log URL generation for security auditing
 
-        `🔗 PDF URL Generated: User ${req.user.userId} (${req.user.role}) generated URL for ${documentType}: ${documentId}`
-      );
-
       res.json({
         success: true,
         message: "Secure PDF URL generated",
@@ -155,7 +147,6 @@ router.get(
         },
       });
     } catch (error) {
-
       res.status(500).json({
         success: false,
         message: "Internal server error",
