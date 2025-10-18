@@ -69,14 +69,7 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
       await s3Client.send(command);
 
     } catch (uploadError) {
-
-        message: uploadError.message,
-        code: uploadError.code,
-        name: uploadError.name,
-        bucket: bucketName,
-        key: key,
-        region: process.env.AWS_REGION,
-      });
+      // S3 upload error
       throw uploadError;
     }
 
@@ -98,12 +91,9 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
       cdnUrl: pdfUrl, // Single URL for all use cases
     };
 
-
-
-
     return result;
   } catch (error) {
-
+    // S3 service error
     throw error;
   }
 };
@@ -126,11 +116,11 @@ export const deletePDFFromS3 = async (pdfKey) => {
     const command = new DeleteObjectCommand(deleteParams);
     await s3Client.send(command);
 
-
+    // PDF deleted successfully
     return true;
   } catch (error) {
     // Don't throw error if file doesn't exist
-
+    // PDF deletion failed
     return false;
   }
 };

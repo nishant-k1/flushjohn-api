@@ -39,10 +39,9 @@ router.post(
           const leadsList = await Leads.find().sort({ _id: -1 });
           global.leadsNamespace.emit("leadCreated", leadsList);
 
-            "📢 HTTP API - Emitted leadCreated event to Socket.IO clients"
-          );
+          // HTTP API - Emitted leadCreated event to Socket.IO clients
         } catch (emitError) {
-
+          // Error emitting leadCreated event
         }
       }
 
@@ -52,8 +51,6 @@ router.post(
         data: lead,
       });
     } catch (error) {
-
-
       // Handle specific error types
       if (error.name === "ValidationError") {
         return res.status(400).json({

@@ -131,57 +131,17 @@ export const createLead = async (leadData) => {
     throw error;
   }
 
-
-    "📥 HTTP API - Received lead data:",
-    JSON.stringify(leadData, null, 2)
-  );
-
-    usageType: leadData.usageType,
-    leadSource: leadData.leadSource,
-    fName: leadData.fName,
-    lName: leadData.lName,
-    cName: leadData.cName,
-    productsCount: leadData.products?.length || 0,
-    firstProductFormat: leadData.products?.[0]
-      ? {
-          hasType: !!leadData.products[0].type,
-          hasQuantity: leadData.products[0].quantity !== undefined,
-          hasQty: leadData.products[0].qty !== undefined,
-          hasItem: !!leadData.products[0].item,
-        }
-      : "No products",
-  });
+  // HTTP API - Received lead data
 
   const createdAt = getCurrentDateTime();
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
 
-
-    "🔄 HTTP API - Prepared lead data:",
-    JSON.stringify(preparedData, null, 2)
-  );
-
-    usageType: preparedData.usageType,
-    leadSource: preparedData.leadSource,
-    fName: preparedData.fName,
-    lName: preparedData.lName,
-    cName: preparedData.cName,
-    productsCount: preparedData.products?.length || 0,
-    firstProduct: preparedData.products?.[0],
-  });
+  // HTTP API - Prepared lead data
 
   const lead = await leadsRepository.create(preparedData);
 
-
-    _id: lead._id,
-    usageType: lead.usageType,
-    leadSource: lead.leadSource,
-    fName: lead.fName,
-    lName: lead.lName,
-    cName: lead.cName,
-    productsCount: lead.products?.length || 0,
-    firstProduct: lead.products?.[0],
-  });
+  // Lead created successfully
 
   // Send alerts asynchronously (don't block on failure)
   sendLeadAlerts(lead, leadNo);

@@ -91,13 +91,7 @@ export const createJobOrder = async (jobOrderData) => {
     throw error;
   }
 
-
-    usageType: jobOrderData.usageType,
-    type: typeof jobOrderData.usageType,
-    isEmpty: !jobOrderData.usageType,
-    isBlank: !jobOrderData.usageType || jobOrderData.usageType.trim() === "",
-    isNone: jobOrderData.usageType === "None",
-  });
+  // Validate usage type
 
   if (
     !jobOrderData.usageType ||

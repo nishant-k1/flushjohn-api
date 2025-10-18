@@ -169,9 +169,7 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       // This ensures users never access a partially written file
       fs.renameSync(tempPath, finalPath);
 
-
-        `✅ PDF generated and saved locally (atomic write): ${fileName}`
-      );
+      // PDF generated and saved locally
     } catch (writeError) {
       // Clean up temp file if it exists
       if (fs.existsSync(tempPath)) {
@@ -188,14 +186,12 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       "http://localhost:8080";
     const pdfUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
 
-
-
     // Return single URL
     return {
       pdfUrl, // Single URL for all use cases
     };
   } catch (error) {
-
+    // PDF generation error
     throw error;
   }
 };
@@ -230,10 +226,7 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
   // For job orders, we need to fetch vendor details
   if (jobOrderData.vendor && jobOrderData.vendor._id) {
     try {
-
-        "🔍 Fetching vendor details for ID:",
-        jobOrderData.vendor._id
-      );
+      // Fetching vendor details
       const { default: Vendors } = await import(
         "../features/vendors/models/Vendors/index.js"
       );
@@ -247,20 +240,19 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
       }
 
       if (vendor) {
-
+        // Vendor found, updating data
         jobOrderData.vendor = {
           ...jobOrderData.vendor,
           ...vendor.toObject(),
         };
       } else {
-
+        // Vendor not found
       }
     } catch (error) {
-
-
+      // Error fetching vendor details
     }
   } else {
-
+    // No vendor ID provided
   }
 
   return generatePDF(jobOrderData, "jobOrder", jobOrderId);
@@ -305,10 +297,7 @@ export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
           size: stats.size,
         });
 
-          `🗑️ Deleted old PDF: ${file} (${Math.floor(
-            fileAge / (24 * 60 * 60 * 1000)
-          )} days old)`
-        );
+        // Old PDF file deleted
       }
     }
 
@@ -318,7 +307,7 @@ export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
       message: `Deleted ${deletedCount} PDF(s) older than ${maxAgeInDays} days`,
     };
   } catch (error) {
-
+    // PDF cleanup error
     throw error;
   }
 };
