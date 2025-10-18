@@ -2,6 +2,9 @@ import createError from "http-errors";
 import express, { json, urlencoded } from "express";
 import { config } from "dotenv";
 import debug from "debug";
+
+// Load environment variables
+config();
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import cors from "cors";
