@@ -77,23 +77,26 @@ const getAllowedOrigins = () => {
 const server = createServer(app);
 socketConnect(server);
 
-// CORS middleware
+// CORS middleware with enhanced debugging
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        console.log(`🔍 CORS check - No origin (non-browser request)`);
+        return callback(null, true);
+      }
       const allowedOrigins = getAllowedOrigins();
 
-      // Debug logging
-      console.log(`CORS check - Origin: ${origin}`);
-      console.log(`CORS check - Allowed origins:`, allowedOrigins);
+      // Enhanced debug logging
+      console.log(`🔍 CORS check - Origin: ${origin}`);
+      console.log(`🔍 CORS check - Allowed origins:`, allowedOrigins);
 
       if (allowedOrigins.includes(origin)) {
-        console.log(`CORS check - Origin allowed: ${origin}`);
+        console.log(`✅ CORS check - Origin allowed: ${origin}`);
         return callback(null, true);
       }
 
-      console.log(`CORS check - Origin blocked: ${origin}`);
+      console.log(`❌ CORS check - Origin blocked: ${origin}`);
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
@@ -118,10 +121,16 @@ app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.url} - Origin: ${req.headers.origin || 'none'}`);
+  next();
+});
+
 // Add cache control headers for API responses to prevent aggressive caching
 app.use((req, res, next) => {
   // Don't apply no-cache headers to OPTIONS requests (CORS preflight)
-  if (req.method !== 'OPTIONS') {
+  if (req.method !== "OPTIONS") {
     // Set cache control headers for API responses (but not CORS preflight)
     res.setHeader(
       "Cache-Control",
@@ -139,7 +148,7 @@ app.use((req, res, next) => {
   );
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
-  
+
   // Add timestamp header to force fresh CORS responses
   res.setHeader("X-Timestamp", Date.now().toString());
 
