@@ -58,18 +58,18 @@ const getAllowedOrigins = () => {
         .map((origin) => origin.trim())
         .filter(Boolean)
     : [];
-  
+
   // Add some default origins for production
   const defaultOrigins = [
     "https://crm.flushjohn.com",
     "https://www.flushjohn.com",
     "http://localhost:3000",
-    "http://localhost:3001"
+    "http://localhost:3001",
   ];
-  
+
   const allOrigins = [...origins, ...defaultOrigins];
   const uniqueOrigins = [...new Set(allOrigins)];
-  
+
   return uniqueOrigins;
 };
 
@@ -83,16 +83,16 @@ app.use(
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       const allowedOrigins = getAllowedOrigins();
-      
+
       // Debug logging
       console.log(`CORS check - Origin: ${origin}`);
       console.log(`CORS check - Allowed origins:`, allowedOrigins);
-      
+
       if (allowedOrigins.includes(origin)) {
         console.log(`CORS check - Origin allowed: ${origin}`);
         return callback(null, true);
       }
-      
+
       console.log(`CORS check - Origin blocked: ${origin}`);
       return callback(new Error("Not allowed by CORS"));
     },
