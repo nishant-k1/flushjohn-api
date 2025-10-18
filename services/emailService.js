@@ -59,7 +59,6 @@ export const sendEmailWithS3PDF = async (
         throw new Error(`Unknown document type: ${documentType}`);
     }
 
-
     // Try multiple SMTP configurations optimized for low-resource servers
     const smtpConfigs = [
       {
@@ -106,11 +105,9 @@ export const sendEmailWithS3PDF = async (
     let transporter;
     let lastError;
 
-
     // Try each SMTP configuration
     for (let i = 0; i < smtpConfigs.length; i++) {
       const config = smtpConfigs[i];
-
 
       try {
         transporter = createTransport(config);
