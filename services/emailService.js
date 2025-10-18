@@ -21,9 +21,6 @@ export const sendEmailWithS3PDF = async (
   s3PdfUrl
 ) => {
   try {
-
-
-
     // Select appropriate email configuration and template
     let emailConfig, emailTemplate, subject, companyName;
 
@@ -62,12 +59,6 @@ export const sendEmailWithS3PDF = async (
         throw new Error(`Unknown document type: ${documentType}`);
     }
 
-    // Create transporter with debugging
-    console.log("📧 Email config:", {
-      user: emailConfig.user,
-      hasPassword: !!emailConfig.pass,
-      passwordLength: emailConfig.pass?.length || 0,
-    });
 
     // Try multiple SMTP configurations optimized for low-resource servers
     const smtpConfigs = [
@@ -115,30 +106,17 @@ export const sendEmailWithS3PDF = async (
     let transporter;
     let lastError;
 
-    // Log system resources before attempting SMTP
-    const memUsage = process.memoryUsage();
-    console.log(
-      `💾 Memory usage before SMTP: ${Math.round(
-        memUsage.heapUsed / 1024 / 1024
-      )}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`
-    );
 
     // Try each SMTP configuration
     for (let i = 0; i < smtpConfigs.length; i++) {
       const config = smtpConfigs[i];
 
-        `🔌 Trying SMTP config ${i + 1}: ${config.host}:${
-          config.port
-        } (secure: ${config.secure})`
-      );
 
       try {
         transporter = createTransport(config);
         await transporter.verify();
-        console.log(`✅ SMTP config ${i + 1} verified successfully`);
         break;
       } catch (error) {
-        console.log(`❌ SMTP config ${i + 1} failed:`, error.message);
         lastError = error;
         if (i === smtpConfigs.length - 1) {
           throw new Error(
@@ -169,13 +147,10 @@ export const sendEmailWithS3PDF = async (
     // Add CC email if present
     if (documentData.ccEmail) {
       emailOptions.cc = documentData.ccEmail;
-      console.log(`📧 CC email added: ${documentData.ccEmail}`);
     }
 
     // Send email
-    console.log(`📧 Sending email to: ${documentData.email}`);
     const info = await transporter.sendMail(emailOptions);
-    console.log(`✅ Email sent successfully:`, info.messageId);
     return true;
   } catch (error) {
     console.error("❌ Email sending failed:", {
