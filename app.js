@@ -109,7 +109,7 @@ app.use(
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
-    maxAge: 0, // Disable preflight caching for development
+    maxAge: process.env.NODE_ENV === "development" ? 0 : 300, // Disable caching in dev, 5min in production
   })
 );
 
@@ -117,6 +117,22 @@ app.use(logger("dev"));
 app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Add cache control headers for API responses to prevent aggressive caching
+app.use((req, res, next) => {
+  // Set cache control headers for all API responses
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  
+  // Additional headers to prevent CDN/proxy caching issues
+  res.setHeader('Vary', 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  
+  next();
+});
 
 // Serve static files from public directory
 app.use("/logos", express.static("public/logos"));
