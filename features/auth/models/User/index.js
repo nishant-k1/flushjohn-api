@@ -111,7 +111,6 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
   try {
     return await argon2.verify(this.password, candidatePassword);
   } catch (error) {
-    console.error("Password comparison error:", error);
     return false;
   }
 };

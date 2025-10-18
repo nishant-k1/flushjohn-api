@@ -42,7 +42,7 @@ config({ path: "./.env" });
 
 // Verify AWS credentials are loaded
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-  console.warn("⚠️ AWS credentials not found in environment variables");
+  // AWS credentials not found in environment variables
 }
 
 const app = express();
@@ -69,15 +69,11 @@ socketConnect(server);
 app.use(
   cors({
     origin: (origin, callback) => {
-      console.log(`🔍 CORS check - Origin: ${origin}`);
       if (!origin) return callback(null, true);
       const allowedOrigins = getAllowedOrigins();
-      console.log(`🔍 Allowed origins:`, allowedOrigins);
       if (allowedOrigins.includes(origin)) {
-        console.log(`✅ CORS allowed for origin: ${origin}`);
         return callback(null, true);
       }
-      console.log(`❌ CORS blocked for origin: ${origin}`);
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
@@ -147,7 +143,6 @@ app.use("/jobOrders", jobOrdersRouter);
 
 // ✅ STANDARDIZED: Connect Database with enhanced error handling
 dbConnect().catch((error) => {
-  console.error("❌ Failed to connect to database:", error.message);
   process.exit(1);
 });
 
@@ -193,10 +188,8 @@ function onError(error) {
 
   switch (error.code) {
     case "EACCES":
-      console.error(bind + " requires elevated privileges");
       process.exit(1);
     case "EADDRINUSE":
-      console.error(bind + " is already in use");
       process.exit(1);
     default:
       throw error;
@@ -207,7 +200,6 @@ function onError(error) {
 function onListening() {
   const addr = server.address();
   const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
-  console.log("🚀 Listening on " + bind);
   log("Listening on " + bind);
 }
 

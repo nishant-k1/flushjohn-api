@@ -14,7 +14,7 @@ router.post("/", validateAndRecalculateProducts, async function (req, res) {
     const salesOrder = await salesOrdersService.createSalesOrder(req.body);
     res.status(201).json({ success: true, data: salesOrder });
   } catch (error) {
-    console.error("❌ Error creating sales order:", error);
+
 
     if (error.name === "ValidationError") {
       return res.status(400).json({
@@ -52,7 +52,7 @@ router.get("/", async function (req, res) {
       ...result,
     });
   } catch (error) {
-    console.error("❌ Error retrieving sales orders:", error);
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -73,7 +73,7 @@ router.get("/:id", async function (req, res) {
     const salesOrder = await salesOrdersService.getSalesOrderById(id);
     res.status(200).json({ success: true, data: salesOrder });
   } catch (error) {
-    console.error("❌ Error retrieving sales order:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -111,7 +111,7 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
     const salesOrder = await salesOrdersService.updateSalesOrder(id, req.body);
     res.status(200).json({ success: true, data: salesOrder });
   } catch (error) {
-    console.error("❌ Error updating sales order:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -159,7 +159,7 @@ router.delete("/:id", async function (req, res) {
       data: result,
     });
   } catch (error) {
-    console.error("❌ Error deleting sales order:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -217,7 +217,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("❌ Error generating sales order PDF:", error);
+
 
       if (error.name === "NotFoundError") {
         return res.status(404).json({
@@ -285,7 +285,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("❌ Error sending sales order email:", error);
+
 
       if (error.name === "NotFoundError") {
         return res.status(404).json({

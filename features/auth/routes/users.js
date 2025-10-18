@@ -14,7 +14,7 @@ router.get("/", async (req, res) => {
       data: users,
     });
   } catch (error) {
-    console.error("Get users error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch users",
@@ -42,7 +42,7 @@ router.get("/:userId", async (req, res) => {
       data: user,
     });
   } catch (error) {
-    console.error("Get user error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch user",
@@ -74,7 +74,7 @@ router.put("/:userId", async (req, res) => {
       message: "User updated successfully",
     });
   } catch (error) {
-    console.error("Update user error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to update user",
@@ -89,7 +89,7 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
     const userId = req.user?.userId;
 
     if (!userId) {
-      console.error("❌ No userId in request");
+
       return res.status(401).json({
         success: false,
         message: "Unauthorized - No user ID found",
@@ -111,14 +111,14 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
     });
 
     if (!user) {
-      console.error("❌ User not found:", userId);
+
       return res.status(404).json({
         success: false,
         message: "User not found",
       });
     }
 
-    console.log("✅ Profile updated successfully");
+
 
     res.status(200).json({
       success: true,
@@ -126,8 +126,8 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
       message: "Profile updated successfully",
     });
   } catch (error) {
-    console.error("❌ Update profile error:", error);
-    console.error("Error stack:", error.stack);
+
+
     res.status(500).json({
       success: false,
       message: "Failed to update profile",
@@ -153,7 +153,7 @@ router.delete("/:userId", async (req, res) => {
       message: "User deleted successfully",
     });
   } catch (error) {
-    console.error("Delete user error:", error);
+
     res.status(500).json({
       success: false,
       message: "Failed to delete user",

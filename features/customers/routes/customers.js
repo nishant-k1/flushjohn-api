@@ -13,7 +13,7 @@ router.post("/", async function (req, res) {
     const customer = await customersService.createCustomer(req.body);
     res.status(201).json({ success: true, data: customer });
   } catch (error) {
-    console.error("❌ Error creating customer:", error);
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -43,7 +43,7 @@ router.get("/", async function (req, res) {
       ...result,
     });
   } catch (error) {
-    console.error("❌ Error retrieving customers:", error);
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -64,7 +64,7 @@ router.get("/:id", async function (req, res) {
     const customer = await customersService.getCustomerById(id);
     res.status(200).json({ success: true, data: customer });
   } catch (error) {
-    console.error("❌ Error retrieving customer:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -102,7 +102,7 @@ router.put("/:id", async function (req, res) {
     const customer = await customersService.updateCustomer(id, req.body);
     res.status(200).json({ success: true, data: customer });
   } catch (error) {
-    console.error("❌ Error updating customer:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -150,7 +150,7 @@ router.delete("/:id", async function (req, res) {
       data: result,
     });
   } catch (error) {
-    console.error("❌ Error deleting customer:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({

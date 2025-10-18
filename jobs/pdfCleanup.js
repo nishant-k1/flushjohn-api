@@ -12,13 +12,13 @@ export const schedulePDFCleanup = () => {
   const cronSchedule = process.env.PDF_CLEANUP_SCHEDULE || "0 2 * * *"; // Daily at 2 AM
 
   if (!cleanupEnabled) {
-    console.log("ℹ️ Automatic PDF cleanup is disabled");
+
     return;
   }
 
   // Validate cron schedule
   if (!cron.validate(cronSchedule)) {
-    console.error(`❌ Invalid PDF cleanup schedule: ${cronSchedule}`);
+
     return;
   }
 
@@ -27,17 +27,17 @@ export const schedulePDFCleanup = () => {
     cronSchedule,
     async () => {
       try {
-        console.log(
+
           `🧹 Running scheduled PDF cleanup (delete files older than ${maxAgeInDays} days)...`
         );
         const result = await cleanupOldPDFs(maxAgeInDays);
-        console.log(`✅ ${result.message}`);
+
 
         if (result.deleted > 0) {
-          console.log(`🗑️ Deleted files:`, result.files);
+
         }
       } catch (error) {
-        console.error("❌ Scheduled PDF cleanup failed:", error);
+
       }
     },
     {
@@ -46,10 +46,10 @@ export const schedulePDFCleanup = () => {
     }
   );
 
-  console.log(
+
     `✅ PDF cleanup scheduled: ${cronSchedule} (Delete files older than ${maxAgeInDays} days)`
   );
-  console.log(`ℹ️ Timezone: ${process.env.TIMEZONE || "UTC"}`);
+
 
   return task;
 };
@@ -66,12 +66,12 @@ export const runCleanupOnStartup = async () => {
 
   try {
     const maxAgeInDays = parseInt(process.env.PDF_MAX_AGE_DAYS) || 1;
-    console.log(
+
       `🧹 Running PDF cleanup on startup (delete files older than ${maxAgeInDays} days)...`
     );
     const result = await cleanupOldPDFs(maxAgeInDays);
-    console.log(`✅ ${result.message}`);
+
   } catch (error) {
-    console.error("❌ Startup PDF cleanup failed:", error);
+
   }
 };

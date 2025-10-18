@@ -14,7 +14,7 @@ router.post("/", validateAndRecalculateProducts, async function (req, res) {
     const quote = await quotesService.createQuote(req.body);
     res.status(201).json({ success: true, data: quote });
   } catch (error) {
-    console.error("❌ Error creating quote:", error);
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -44,7 +44,7 @@ router.get("/", async function (req, res) {
       ...result,
     });
   } catch (error) {
-    console.error("❌ Error retrieving quotes:", error);
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -65,7 +65,7 @@ router.get("/:id", async function (req, res) {
     const quote = await quotesService.getQuoteById(id);
     res.status(200).json({ success: true, data: quote });
   } catch (error) {
-    console.error("❌ Error retrieving quote:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -103,7 +103,7 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
     const quote = await quotesService.updateQuote(id, req.body);
     res.status(200).json({ success: true, data: quote });
   } catch (error) {
-    console.error("❌ Error updating quote:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -151,7 +151,7 @@ router.delete("/:id", async function (req, res) {
       data: result,
     });
   } catch (error) {
-    console.error("❌ Error deleting quote:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -217,7 +217,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("❌ Error generating quote PDF:", error);
+
 
       if (error.name === "NotFoundError") {
         return res.status(404).json({
@@ -293,7 +293,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("❌ Error sending quote email:", error);
+
 
       if (error.name === "NotFoundError") {
         return res.status(404).json({

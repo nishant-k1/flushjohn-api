@@ -110,9 +110,9 @@ export const generateLeadNumber = async () => {
 export const sendLeadAlerts = async (lead, leadNo) => {
   try {
     const alertResults = await alertService.sendLeadAlerts(lead);
-    console.log(`📢 Alert results for lead #${leadNo}:`, alertResults);
+
   } catch (alertError) {
-    console.error(`⚠️ Alert sending failed for lead #${leadNo}:`, alertError);
+
   }
 };
 
@@ -131,11 +131,11 @@ export const createLead = async (leadData) => {
     throw error;
   }
 
-  console.log(
+
     "📥 HTTP API - Received lead data:",
     JSON.stringify(leadData, null, 2)
   );
-  console.log("🔍 HTTP API - Key fields check:", {
+
     usageType: leadData.usageType,
     leadSource: leadData.leadSource,
     fName: leadData.fName,
@@ -156,11 +156,11 @@ export const createLead = async (leadData) => {
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
 
-  console.log(
+
     "🔄 HTTP API - Prepared lead data:",
     JSON.stringify(preparedData, null, 2)
   );
-  console.log("💾 HTTP API - About to save to database:", {
+
     usageType: preparedData.usageType,
     leadSource: preparedData.leadSource,
     fName: preparedData.fName,
@@ -172,7 +172,7 @@ export const createLead = async (leadData) => {
 
   const lead = await leadsRepository.create(preparedData);
 
-  console.log("✅ HTTP API - Saved to database:", {
+
     _id: lead._id,
     usageType: lead.usageType,
     leadSource: lead.leadSource,

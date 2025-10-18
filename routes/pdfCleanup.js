@@ -42,7 +42,7 @@ router.get(
         },
       });
     } catch (error) {
-      console.error("❌ Error in PDF cleanup:", error);
+
       res.status(500).json({
         success: false,
         message: "Failed to cleanup PDFs",
@@ -119,7 +119,7 @@ router.get(
         },
       });
     } catch (error) {
-      console.error("❌ Error getting PDF stats:", error);
+
       res.status(500).json({
         success: false,
         message: "Failed to get PDF statistics",

@@ -55,7 +55,7 @@ router.get(
       }
 
       // Log PDF access for security auditing
-      console.log(
+
         `📄 PDF Access: User ${req.user.userId} (${req.user.role}) accessed ${documentType} PDF: ${documentId}`
       );
 
@@ -71,7 +71,7 @@ router.get(
       fileStream.pipe(res);
 
       fileStream.on("error", (error) => {
-        console.error("Error streaming PDF:", error);
+
         if (!res.headersSent) {
           res.status(500).json({
             success: false,
@@ -81,7 +81,7 @@ router.get(
         }
       });
     } catch (error) {
-      console.error("Error serving PDF:", error);
+
       res.status(500).json({
         success: false,
         message: "Internal server error",
@@ -138,7 +138,7 @@ router.get(
       )}/pdf/${documentType}/${documentId}?token=${token}`;
 
       // Log URL generation for security auditing
-      console.log(
+
         `🔗 PDF URL Generated: User ${req.user.userId} (${req.user.role}) generated URL for ${documentType}: ${documentId}`
       );
 
@@ -155,7 +155,7 @@ router.get(
         },
       });
     } catch (error) {
-      console.error("Error generating secure URL:", error);
+
       res.status(500).json({
         success: false,
         message: "Internal server error",

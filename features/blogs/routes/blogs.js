@@ -13,7 +13,7 @@ router.post("/", async function (req, res) {
     const blog = await blogsService.createBlog(req.body);
     res.status(201).json({ success: true, data: blog });
   } catch (error) {
-    console.error("❌ Error creating blog:", error);
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -45,7 +45,7 @@ router.get("/", async function (req, res) {
       ...result,
     });
   } catch (error) {
-    console.error("❌ Error retrieving blogs:", error);
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -66,7 +66,7 @@ router.get("/:id", async function (req, res) {
     const blog = await blogsService.getBlogById(id);
     res.status(200).json({ success: true, data: blog });
   } catch (error) {
-    console.error("❌ Error retrieving blog:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -104,7 +104,7 @@ router.put("/:id", async function (req, res) {
     const blog = await blogsService.updateBlog(id, req.body);
     res.status(200).json({ success: true, data: blog });
   } catch (error) {
-    console.error("❌ Error updating blog:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -152,7 +152,7 @@ router.delete("/:id", async function (req, res) {
       data: result,
     });
   } catch (error) {
-    console.error("❌ Error deleting blog:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({

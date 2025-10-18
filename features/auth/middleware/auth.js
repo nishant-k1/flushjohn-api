@@ -89,7 +89,7 @@ export const authenticateToken = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Authentication error:", error);
+
 
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
@@ -116,7 +116,7 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     // Generic error for other JWT errors
-    console.error("Unexpected JWT error:", error);
+
     return res.status(500).json({
       success: false,
       message: "Authentication failed due to server error.",

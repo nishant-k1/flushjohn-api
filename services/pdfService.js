@@ -19,15 +19,15 @@ let usePuppeteer = false;
 try {
   const playwright = await import("playwright");
   browserLib = playwright.chromium;
-  console.log("✅ Using Playwright for PDF generation");
+
 } catch (playwrightError) {
-  console.warn("⚠️ Playwright not available, falling back to Puppeteer");
+
   try {
     browserLib = await import("puppeteer");
     usePuppeteer = true;
-    console.log("✅ Using Puppeteer for PDF generation");
+
   } catch (puppeteerError) {
-    console.error("❌ Neither Playwright nor Puppeteer available!");
+
     throw new Error("No PDF generation library available");
   }
 }
@@ -41,7 +41,7 @@ try {
  */
 export const generatePDF = async (documentData, documentType, documentId) => {
   try {
-    console.log(`🔄 Generating ${documentType} PDF for ID: ${documentId}`);
+
 
     // Select appropriate template
     let htmlContent;
@@ -132,16 +132,16 @@ export const generatePDF = async (documentData, documentType, documentId) => {
           documentType,
           documentId
         );
-        console.log(`✅ PDF generated and uploaded to S3/CloudFront`);
+
 
         return {
           pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
         };
       } catch (s3Error) {
-        console.warn("⚠️ S3 upload failed, saving locally:", s3Error.message);
+
       }
     } else {
-      console.log("ℹ️ S3 storage disabled, using local storage");
+
     }
 
     // Fall back to local storage
@@ -169,7 +169,7 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       // This ensures users never access a partially written file
       fs.renameSync(tempPath, finalPath);
 
-      console.log(
+
         `✅ PDF generated and saved locally (atomic write): ${fileName}`
       );
     } catch (writeError) {
@@ -188,14 +188,14 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       "http://localhost:8080";
     const pdfUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
 
-    console.log(`✅ PDF URL: ${pdfUrl}`);
+
 
     // Return single URL
     return {
       pdfUrl, // Single URL for all use cases
     };
   } catch (error) {
-    console.error(`❌ Error generating ${documentType} PDF:`, error);
+
     throw error;
   }
 };
@@ -230,7 +230,7 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
   // For job orders, we need to fetch vendor details
   if (jobOrderData.vendor && jobOrderData.vendor._id) {
     try {
-      console.log(
+
         "🔍 Fetching vendor details for ID:",
         jobOrderData.vendor._id
       );
@@ -247,20 +247,20 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
       }
 
       if (vendor) {
-        console.log("✅ Vendor found:", vendor.name);
+
         jobOrderData.vendor = {
           ...jobOrderData.vendor,
           ...vendor.toObject(),
         };
       } else {
-        console.warn("⚠️ Vendor not found for ID:", jobOrderData.vendor._id);
+
       }
     } catch (error) {
-      console.error("❌ Error fetching vendor details:", error.message);
-      console.error("❌ Full error:", error);
+
+
     }
   } else {
-    console.warn("⚠️ No vendor data or vendor ID provided in job order data");
+
   }
 
   return generatePDF(jobOrderData, "jobOrder", jobOrderId);
@@ -304,7 +304,7 @@ export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
           ageInDays: Math.floor(fileAge / (24 * 60 * 60 * 1000)),
           size: stats.size,
         });
-        console.log(
+
           `🗑️ Deleted old PDF: ${file} (${Math.floor(
             fileAge / (24 * 60 * 60 * 1000)
           )} days old)`
@@ -318,7 +318,7 @@ export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
       message: `Deleted ${deletedCount} PDF(s) older than ${maxAgeInDays} days`,
     };
   } catch (error) {
-    console.error("❌ Error cleaning up old PDFs:", error);
+
     throw error;
   }
 };

@@ -56,7 +56,7 @@ const validateAndRecalculateProducts = (req, res, next) => {
 
     // Log discrepancies for audit trail
     if (hasDiscrepancy) {
-      console.warn("⚠️ FINANCIAL DISCREPANCY DETECTED:", {
+
         endpoint: req.originalUrl,
         method: req.method,
         timestamp: getCurrentDateTime().toISOString(),
@@ -79,7 +79,7 @@ const validateAndRecalculateProducts = (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("❌ Error in product validation middleware:", error);
+
     return res.status(500).json({
       success: false,
       message: "Failed to validate product calculations",

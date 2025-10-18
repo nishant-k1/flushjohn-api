@@ -38,11 +38,11 @@ router.post(
           const { default: Leads } = await import("../models/lead.js");
           const leadsList = await Leads.find().sort({ _id: -1 });
           global.leadsNamespace.emit("leadCreated", leadsList);
-          console.log(
+
             "📢 HTTP API - Emitted leadCreated event to Socket.IO clients"
           );
         } catch (emitError) {
-          console.error("⚠️ Failed to emit leadCreated event:", emitError);
+
         }
       }
 
@@ -52,7 +52,7 @@ router.post(
         data: lead,
       });
     } catch (error) {
-      console.error("❌ Error creating lead:", error);
+
 
       // Handle specific error types
       if (error.name === "ValidationError") {
@@ -120,7 +120,7 @@ router.get("/", authenticateToken, async function (req, res, next) {
       ...result,
     });
   } catch (error) {
-    console.error("❌ Error retrieving leads:", error);
+
 
     if (error.name === "CastError") {
       return res.status(400).json({
@@ -161,7 +161,7 @@ router.get("/:id", authenticateToken, async function (req, res, next) {
       data: lead,
     });
   } catch (error) {
-    console.error("❌ Error retrieving lead:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -223,7 +223,7 @@ router.put(
         data: lead,
       });
     } catch (error) {
-      console.error("❌ Error updating lead:", error);
+
 
       if (error.name === "NotFoundError") {
         return res.status(404).json({
@@ -297,7 +297,7 @@ router.put(
         data: lead,
       });
     } catch (error) {
-      console.error("❌ Error updating lead:", error);
+
 
       if (error.name === "NotFoundError") {
         return res.status(404).json({
@@ -358,7 +358,7 @@ router.delete("/:id", authenticateToken, async function (req, res, next) {
       data: result,
     });
   } catch (error) {
-    console.error("❌ Error deleting lead:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -396,7 +396,7 @@ router.post("/test-alerts", async function (req, res, next) {
       data: result,
     });
   } catch (error) {
-    console.error("❌ Error testing alerts:", error);
+
 
     res.status(500).json({
       success: false,
@@ -515,7 +515,7 @@ router.get("/whatsapp-qr", async function (req, res, next) {
       </html>
     `);
   } catch (error) {
-    console.error("❌ Error displaying WhatsApp QR code:", error);
+
 
     res.status(500).send(`
       <html>

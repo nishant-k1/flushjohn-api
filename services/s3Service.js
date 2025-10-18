@@ -63,13 +63,13 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
 
     const command = new PutObjectCommand(uploadParams);
 
-    console.log(`📤 Uploading to S3: ${bucketName}/${key}`);
+
 
     try {
       await s3Client.send(command);
-      console.log(`✅ Successfully uploaded to S3: ${key}`);
+
     } catch (uploadError) {
-      console.error(`❌ S3 Upload Failed:`, {
+
         message: uploadError.message,
         code: uploadError.code,
         name: uploadError.name,
@@ -98,12 +98,12 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
       cdnUrl: pdfUrl, // Single URL for all use cases
     };
 
-    console.log(`✅ PDF uploaded to S3: ${bucketName}/${key}`);
-    console.log(`✅ PDF URL: ${pdfUrl}`);
+
+
 
     return result;
   } catch (error) {
-    console.error("❌ Error uploading PDF to S3:", error);
+
     throw error;
   }
 };
@@ -126,11 +126,11 @@ export const deletePDFFromS3 = async (pdfKey) => {
     const command = new DeleteObjectCommand(deleteParams);
     await s3Client.send(command);
 
-    console.log(`✅ PDF deleted from S3: ${pdfKey}`);
+
     return true;
   } catch (error) {
     // Don't throw error if file doesn't exist
-    console.log(`ℹ️ PDF not found in S3 (this is OK): ${pdfKey}`);
+
     return false;
   }
 };
@@ -156,7 +156,7 @@ export const getPDFSignedUrl = async (pdfKey, expiresIn = 3600) => {
 
     return signedUrl;
   } catch (error) {
-    console.error("❌ Error generating signed URL:", error);
+
     throw error;
   }
 };

@@ -91,7 +91,7 @@ export const createJobOrder = async (jobOrderData) => {
     throw error;
   }
 
-  console.log("🔍 DEBUG - Backend usageType validation:", {
+
     usageType: jobOrderData.usageType,
     type: typeof jobOrderData.usageType,
     isEmpty: !jobOrderData.usageType,

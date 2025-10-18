@@ -14,7 +14,7 @@ router.post("/", validateAndRecalculateProducts, async function (req, res) {
     const jobOrder = await jobOrdersService.createJobOrder(req.body);
     res.status(201).json({ success: true, data: jobOrder });
   } catch (error) {
-    console.error("❌ Error creating job order:", error);
+
 
     if (error.name === "ValidationError") {
       return res.status(400).json({
@@ -64,7 +64,7 @@ router.get("/", async function (req, res) {
       ...result,
     });
   } catch (error) {
-    console.error("❌ Error retrieving job orders:", error);
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -85,7 +85,7 @@ router.get("/:id", async function (req, res) {
     const jobOrder = await jobOrdersService.getJobOrderById(id);
     res.status(200).json({ success: true, data: jobOrder });
   } catch (error) {
-    console.error("❌ Error retrieving job order:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -123,7 +123,7 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
     const jobOrder = await jobOrdersService.updateJobOrder(id, req.body);
     res.status(200).json({ success: true, data: jobOrder });
   } catch (error) {
-    console.error("❌ Error updating job order:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -171,7 +171,7 @@ router.delete("/:id", async function (req, res) {
       data: result,
     });
   } catch (error) {
-    console.error("❌ Error deleting job order:", error);
+
 
     if (error.name === "NotFoundError") {
       return res.status(404).json({
@@ -231,7 +231,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("❌ Error generating job order PDF:", error);
+
 
       if (error.name === "NotFoundError") {
         return res.status(404).json({
@@ -365,7 +365,7 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("❌ Error sending job order email:", error);
+
 
       if (error.name === "NotFoundError") {
         return res.status(404).json({

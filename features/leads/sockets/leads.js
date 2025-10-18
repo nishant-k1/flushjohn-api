@@ -86,8 +86,8 @@ export function leadSocketHandler(leadsNamespace, socket) {
   // Create Lead
   socket.on("createLead", async (leadData) => {
     try {
-      console.log("📥 Received lead data:", JSON.stringify(leadData, null, 2));
-      console.log("🔍 Key fields check:", {
+
+
         usageType: leadData.usageType,
         leadSource: leadData.leadSource,
         fName: leadData.fName,
@@ -118,11 +118,11 @@ export function leadSocketHandler(leadsNamespace, socket) {
         leadNo,
       });
 
-      console.log(
+
         "🔄 Transformed lead data:",
         JSON.stringify(webLead, null, 2)
       );
-      console.log("💾 About to save to database:", {
+
         usageType: webLead.usageType,
         leadSource: webLead.leadSource,
         fName: webLead.fName,
@@ -134,7 +134,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
 
       const lead = await Leads.create(webLead);
 
-      console.log("✅ Saved to database:", {
+
         _id: lead._id,
         usageType: lead.usageType,
         leadSource: lead.leadSource,
@@ -148,15 +148,15 @@ export function leadSocketHandler(leadsNamespace, socket) {
       //  Send alerts after successful lead creation
       try {
         const alertResults = await alertService.sendLeadAlerts(lead);
-        console.log(`📢 Alert sent for lead #${leadNo}`);
+
       } catch (alertError) {
-        console.error(`⚠️ Alert failed for lead #${leadNo}:`, alertError);
+
       }
 
       const leadsList = await Leads.find().sort({ _id: -1 });
       leadsNamespace.emit("leadCreated", leadsList);
     } catch (error) {
-      console.error("❌ Create Lead Error:", error);
+
     }
   });
 
@@ -166,7 +166,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const leadsList = await Leads.find().sort({ _id: -1 });
       socket.emit("leadList", leadsList);
     } catch (error) {
-      console.error("❌ Get Leads Error:", error);
+
     }
   });
 
@@ -176,7 +176,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const lead = await Leads.findById(leadId);
       socket.emit("leadData", lead);
     } catch (error) {
-      console.error("❌ Get Lead Error:", error);
+
     }
   });
 
@@ -188,7 +188,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
       });
       socket.emit("leadUpdated", lead);
     } catch (error) {
-      console.error("❌ Update Lead Error:", error);
+
     }
   });
 
@@ -199,11 +199,11 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const leadsList = await Leads.find().sort({ _id: -1 });
       socket.emit("leadDeleted", leadsList);
     } catch (error) {
-      console.error("❌ Delete Lead Error:", error);
+
     }
   });
 
   socket.on("disconnect", () => {
-    console.log("🔴 Lead Socket Disconnected:", socket.id);
+
   });
 }

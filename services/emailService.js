@@ -21,8 +21,8 @@ export const sendEmailWithS3PDF = async (
   s3PdfUrl
 ) => {
   try {
-    console.log(`📧 Sending ${documentType} email to: ${documentData.email}`);
-    console.log(`📎 PDF URL for attachment: ${s3PdfUrl}`);
+
+
 
     // Select appropriate email configuration and template
     let emailConfig, emailTemplate, subject, companyName;
@@ -63,7 +63,7 @@ export const sendEmailWithS3PDF = async (
     }
 
     // Create transporter with debugging
-    console.log(`🔧 Email config for ${documentType}:`, {
+
       user: emailConfig.user,
       hasPassword: !!emailConfig.pass,
       passwordLength: emailConfig.pass?.length || 0,
@@ -117,7 +117,7 @@ export const sendEmailWithS3PDF = async (
 
     // Log system resources before attempting SMTP
     const memUsage = process.memoryUsage();
-    console.log(
+
       `💾 Memory usage before SMTP: ${Math.round(
         memUsage.heapUsed / 1024 / 1024
       )}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`
@@ -126,7 +126,7 @@ export const sendEmailWithS3PDF = async (
     // Try each SMTP configuration
     for (let i = 0; i < smtpConfigs.length; i++) {
       const config = smtpConfigs[i];
-      console.log(
+
         `🔌 Trying SMTP config ${i + 1}: ${config.host}:${
           config.port
         } (secure: ${config.secure})`
@@ -135,10 +135,10 @@ export const sendEmailWithS3PDF = async (
       try {
         transporter = createTransport(config);
         await transporter.verify();
-        console.log(`✅ SMTP connection successful with config ${i + 1}`);
+
         break;
       } catch (error) {
-        console.log(`❌ SMTP config ${i + 1} failed:`, error.message);
+
         lastError = error;
         if (i === smtpConfigs.length - 1) {
           throw new Error(
@@ -169,19 +169,19 @@ export const sendEmailWithS3PDF = async (
     // Add CC email if present
     if (documentData.ccEmail) {
       emailOptions.cc = documentData.ccEmail;
-      console.log(`📧 CC email added: ${documentData.ccEmail}`);
+
     }
 
     // Send email
-    console.log(`📤 Sending email with attachment from: ${s3PdfUrl}`);
+
     const info = await transporter.sendMail(emailOptions);
 
-    console.log(`✅ Email sent successfully to: ${documentData.email}`);
-    console.log(`✅ Message ID: ${info.messageId}`);
+
+
     return true;
   } catch (error) {
-    console.error(`❌ Error sending ${documentType} email:`, error);
-    console.error(`❌ Error details:`, {
+
+
       message: error.message,
       code: error.code,
       command: error.command,

@@ -20,13 +20,13 @@ class AlertService {
     this.whatsappQRCodeImage = null;
 
     if (!this.telegramEnabled) {
-      console.warn(
+
         "⚠️ Telegram alerts disabled - missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"
       );
     }
 
     if (!this.whatsappEnabled) {
-      console.warn(
+
         "⚠️ WhatsApp alerts disabled - set WHATSAPP_ENABLED=true to enable"
       );
     }
@@ -67,9 +67,9 @@ class AlertService {
       });
 
       this.whatsappClient.on("qr", async (qr) => {
-        console.log("📱 WhatsApp QR Code:");
+
         qrcode.generate(qr, { small: true });
-        console.log("Scan this QR code with WhatsApp to authenticate");
+
 
         // Store QR code for web display
         this.whatsappQRCode = qr;
@@ -82,16 +82,16 @@ class AlertService {
               light: "#FFFFFF",
             },
           });
-          console.log(
+
             "🌐 QR code ready for web display at: http://localhost:8080/leads/whatsapp-qr"
           );
         } catch (error) {
-          console.error("❌ Error generating web QR code:", error);
+
         }
       });
 
       this.whatsappClient.on("ready", async () => {
-        console.log("✅ WhatsApp client is ready!");
+
         this.whatsappReady = true;
 
         // Clear QR code since we're now authenticated
@@ -101,38 +101,38 @@ class AlertService {
         // List available chats to help identify chat IDs
         try {
           const chats = await this.whatsappClient.getChats();
-          console.log("📱 Available WhatsApp chats:");
+
           chats.slice(0, 10).forEach((chat, index) => {
-            console.log(
+
               `${index + 1}. ${chat.name || "Unknown"} - ID: ${
                 chat.id._serialized
               }`
             );
           });
           if (chats.length > 10) {
-            console.log(`... and ${chats.length - 10} more chats`);
+
           }
         } catch (error) {
-          console.log("Could not fetch chat list:", error.message);
+
         }
       });
 
       this.whatsappClient.on("authenticated", () => {
-        console.log("✅ WhatsApp authenticated successfully");
+
       });
 
       this.whatsappClient.on("auth_failure", (msg) => {
-        console.error("❌ WhatsApp authentication failed:", msg);
+
       });
 
       this.whatsappClient.on("disconnected", (reason) => {
-        console.log("📱 WhatsApp client disconnected:", reason);
+
         this.whatsappReady = false;
       });
 
       await this.whatsappClient.initialize();
     } catch (error) {
-      console.error("❌ Failed to initialize WhatsApp client:", error);
+
     }
   }
 
@@ -353,7 +353,7 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       );
 
       if (response.data.ok) {
-        console.log(
+
           `✅ Telegram alert sent for lead #${this.extractLeadNumber(message)}`
         );
         return { success: true, error: undefined };
@@ -361,7 +361,7 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
         throw new Error(response.data.description || "Unknown error");
       }
     } catch (error) {
-      console.error("❌ Telegram API error:", error.message);
+
       throw error;
     }
   }
@@ -386,14 +386,14 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       const chatId = `${phoneNumber.replace("+", "")}@c.us`;
       await this.whatsappClient.sendMessage(chatId, message);
 
-      console.log(
+
         `✅ WhatsApp alert sent to ${phoneNumber} for lead #${this.extractLeadNumber(
           message
         )}`
       );
       return { success: true, error: undefined };
     } catch (error) {
-      console.error("❌ WhatsApp error:", error.message);
+
       throw error;
     }
   }

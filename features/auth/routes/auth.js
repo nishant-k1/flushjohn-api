@@ -44,7 +44,7 @@ router.post("/", async (req, res) => {
       try {
         validPassword = await user.comparePassword(password);
       } catch (error) {
-        console.error("Password verification error:", error);
+
         // Increment failed login attempts
         await user.incLoginAttempts();
         return res.status(401).json({
@@ -117,7 +117,7 @@ router.post("/", async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Authentication error:", error);
+
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -174,7 +174,7 @@ router.post("/register", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Registration error:", error);
+
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -230,7 +230,7 @@ router.get("/verify", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Token verification error:", error);
+
     res.status(401).json({
       success: false,
       message: "Invalid token",
@@ -266,7 +266,7 @@ router.post("/logout", (req, res) => {
       message: "Logout successful",
     });
   } catch (error) {
-    console.error("❌ Logout error:", error);
+
     res.status(500).json({
       success: false,
       message: "Internal server error",
