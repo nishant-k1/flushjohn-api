@@ -122,6 +122,15 @@ app.use(json());
 app.use(urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Method override middleware to handle X-HTTP-Method-Override
+app.use((req, res, next) => {
+  if (req.headers["x-http-method-override"]) {
+    req.method = req.headers["x-http-method-override"].toUpperCase();
+    console.log(`🔄 Method overridden to: ${req.method}`);
+  }
+  next();
+});
+
 // Debug middleware to log all requests
 app.use((req, res, next) => {
   console.log(
