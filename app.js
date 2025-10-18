@@ -109,7 +109,7 @@ app.use(
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
-    maxAge: 86400, // Cache preflight for 24 hours
+    maxAge: 0, // Disable preflight caching for development
   })
 );
 
