@@ -20,15 +20,11 @@ class AlertService {
     this.whatsappQRCodeImage = null;
 
     if (!this.telegramEnabled) {
-
-        "⚠️ Telegram alerts disabled - missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID"
-      );
+      // Telegram alerts disabled - missing credentials
     }
 
     if (!this.whatsappEnabled) {
-
-        "⚠️ WhatsApp alerts disabled - set WHATSAPP_ENABLED=true to enable"
-      );
+      // WhatsApp alerts disabled
     }
 
     // Initialize WhatsApp client if enabled
@@ -83,8 +79,7 @@ class AlertService {
             },
           });
 
-            "🌐 QR code ready for web display at: http://localhost:8080/leads/whatsapp-qr"
-          );
+          // QR code ready for web display
         } catch (error) {
 
         }
@@ -103,36 +98,32 @@ class AlertService {
           const chats = await this.whatsappClient.getChats();
 
           chats.slice(0, 10).forEach((chat, index) => {
-
-              `${index + 1}. ${chat.name || "Unknown"} - ID: ${
-                chat.id._serialized
-              }`
-            );
+            // Log chat information
           });
           if (chats.length > 10) {
-
+            // More chats available
           }
         } catch (error) {
-
+          // Error getting chats
         }
       });
 
       this.whatsappClient.on("authenticated", () => {
-
+        // WhatsApp authenticated
       });
 
       this.whatsappClient.on("auth_failure", (msg) => {
-
+        // WhatsApp authentication failed
       });
 
       this.whatsappClient.on("disconnected", (reason) => {
-
+        // WhatsApp disconnected
         this.whatsappReady = false;
       });
 
       await this.whatsappClient.initialize();
     } catch (error) {
-
+      // Error initializing WhatsApp client
     }
   }
 
@@ -353,15 +344,13 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       );
 
       if (response.data.ok) {
-
-          `✅ Telegram alert sent for lead #${this.extractLeadNumber(message)}`
-        );
+        // Telegram alert sent successfully
         return { success: true, error: undefined };
       } else {
         throw new Error(response.data.description || "Unknown error");
       }
     } catch (error) {
-
+      // Telegram send error
       throw error;
     }
   }
@@ -386,14 +375,10 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       const chatId = `${phoneNumber.replace("+", "")}@c.us`;
       await this.whatsappClient.sendMessage(chatId, message);
 
-
-        `✅ WhatsApp alert sent to ${phoneNumber} for lead #${this.extractLeadNumber(
-          message
-        )}`
-      );
+      // WhatsApp alert sent successfully
       return { success: true, error: undefined };
     } catch (error) {
-
+      // WhatsApp send error
       throw error;
     }
   }

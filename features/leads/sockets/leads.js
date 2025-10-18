@@ -86,23 +86,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
   // Create Lead
   socket.on("createLead", async (leadData) => {
     try {
-
-
-        usageType: leadData.usageType,
-        leadSource: leadData.leadSource,
-        fName: leadData.fName,
-        lName: leadData.lName,
-        cName: leadData.cName,
-        productsCount: leadData.products?.length || 0,
-        firstProductFormat: leadData.products?.[0]
-          ? {
-              hasType: !!leadData.products[0].type,
-              hasQuantity: leadData.products[0].quantity !== undefined,
-              hasQty: leadData.products[0].qty !== undefined,
-              hasItem: !!leadData.products[0].item,
-            }
-          : "No products",
-      });
+      // Lead creation started
 
       const createdAt = getCurrentDateTime();
       const latestLead = await Leads.findOne({}, "leadNo").sort({
@@ -118,45 +102,24 @@ export function leadSocketHandler(leadsNamespace, socket) {
         leadNo,
       });
 
-
-        "🔄 Transformed lead data:",
-        JSON.stringify(webLead, null, 2)
-      );
-
-        usageType: webLead.usageType,
-        leadSource: webLead.leadSource,
-        fName: webLead.fName,
-        lName: webLead.lName,
-        cName: webLead.cName,
-        productsCount: webLead.products?.length || 0,
-        firstProduct: webLead.products?.[0],
-      });
+      // Lead data transformed successfully
 
       const lead = await Leads.create(webLead);
 
-
-        _id: lead._id,
-        usageType: lead.usageType,
-        leadSource: lead.leadSource,
-        fName: lead.fName,
-        lName: lead.lName,
-        cName: lead.cName,
-        productsCount: lead.products?.length || 0,
-        firstProduct: lead.products?.[0],
-      });
+      // Lead created successfully
 
       //  Send alerts after successful lead creation
       try {
         const alertResults = await alertService.sendLeadAlerts(lead);
-
+        // Alerts sent successfully
       } catch (alertError) {
-
+        // Alert sending failed
       }
 
       const leadsList = await Leads.find().sort({ _id: -1 });
       leadsNamespace.emit("leadCreated", leadsList);
     } catch (error) {
-
+      // Lead creation failed
     }
   });
 
@@ -166,7 +129,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const leadsList = await Leads.find().sort({ _id: -1 });
       socket.emit("leadList", leadsList);
     } catch (error) {
-
+      // Error getting leads
     }
   });
 
@@ -176,7 +139,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const lead = await Leads.findById(leadId);
       socket.emit("leadData", lead);
     } catch (error) {
-
+      // Error getting lead
     }
   });
 
@@ -188,7 +151,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
       });
       socket.emit("leadUpdated", lead);
     } catch (error) {
-
+      // Error updating lead
     }
   });
 
@@ -199,11 +162,11 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const leadsList = await Leads.find().sort({ _id: -1 });
       socket.emit("leadDeleted", leadsList);
     } catch (error) {
-
+      // Error deleting lead
     }
   });
 
   socket.on("disconnect", () => {
-
+    // Client disconnected
   });
 }
