@@ -110,10 +110,7 @@ export const generateLeadNumber = async () => {
 export const sendLeadAlerts = async (lead, leadNo) => {
   try {
     const alertResults = await alertService.sendLeadAlerts(lead);
-
-  } catch (alertError) {
-
-  }
+  } catch (alertError) {}
 };
 
 /**

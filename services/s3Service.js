@@ -63,11 +63,8 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
 
     const command = new PutObjectCommand(uploadParams);
 
-
-
     try {
       await s3Client.send(command);
-
     } catch (uploadError) {
       // S3 upload error
       throw uploadError;
@@ -146,7 +143,6 @@ export const getPDFSignedUrl = async (pdfKey, expiresIn = 3600) => {
 
     return signedUrl;
   } catch (error) {
-
     throw error;
   }
 };

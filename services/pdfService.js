@@ -19,15 +19,11 @@ let usePuppeteer = false;
 try {
   const playwright = await import("playwright");
   browserLib = playwright.chromium;
-
 } catch (playwrightError) {
-
   try {
     browserLib = await import("puppeteer");
     usePuppeteer = true;
-
   } catch (puppeteerError) {
-
     throw new Error("No PDF generation library available");
   }
 }
@@ -41,8 +37,6 @@ try {
  */
 export const generatePDF = async (documentData, documentType, documentId) => {
   try {
-
-
     // Select appropriate template
     let htmlContent;
     switch (documentType) {
@@ -133,15 +127,11 @@ export const generatePDF = async (documentData, documentType, documentId) => {
           documentId
         );
 
-
         return {
           pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
         };
-      } catch (s3Error) {
-
-      }
+      } catch (s3Error) {}
     } else {
-
     }
 
     // Fall back to local storage

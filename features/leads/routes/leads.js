@@ -117,8 +117,6 @@ router.get("/", authenticateToken, async function (req, res, next) {
       ...result,
     });
   } catch (error) {
-
-
     if (error.name === "CastError") {
       return res.status(400).json({
         success: false,
@@ -158,8 +156,6 @@ router.get("/:id", authenticateToken, async function (req, res, next) {
       data: lead,
     });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -220,8 +216,6 @@ router.put(
         data: lead,
       });
     } catch (error) {
-
-
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
@@ -294,8 +288,6 @@ router.put(
         data: lead,
       });
     } catch (error) {
-
-
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
@@ -355,8 +347,6 @@ router.delete("/:id", authenticateToken, async function (req, res, next) {
       data: result,
     });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -393,8 +383,6 @@ router.post("/test-alerts", async function (req, res, next) {
       data: result,
     });
   } catch (error) {
-
-
     res.status(500).json({
       success: false,
       message: "Failed to test alerts",
@@ -512,8 +500,6 @@ router.get("/whatsapp-qr", async function (req, res, next) {
       </html>
     `);
   } catch (error) {
-
-
     res.status(500).send(`
       <html>
         <head><title>Error</title></head>
