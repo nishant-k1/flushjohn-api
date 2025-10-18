@@ -27,17 +27,14 @@ export const schedulePDFCleanup = () => {
     cronSchedule,
     async () => {
       try {
-
-          `🧹 Running scheduled PDF cleanup (delete files older than ${maxAgeInDays} days)...`
-        );
+        // Running scheduled PDF cleanup
         const result = await cleanupOldPDFs(maxAgeInDays);
 
-
         if (result.deleted > 0) {
-
+          // Files deleted successfully
         }
       } catch (error) {
-
+        // Scheduled PDF cleanup failed
       }
     },
     {
@@ -46,11 +43,7 @@ export const schedulePDFCleanup = () => {
     }
   );
 
-
-    `✅ PDF cleanup scheduled: ${cronSchedule} (Delete files older than ${maxAgeInDays} days)`
-  );
-
-
+  // PDF cleanup scheduled
   return task;
 };
 
@@ -66,12 +59,10 @@ export const runCleanupOnStartup = async () => {
 
   try {
     const maxAgeInDays = parseInt(process.env.PDF_MAX_AGE_DAYS) || 1;
-
-      `🧹 Running PDF cleanup on startup (delete files older than ${maxAgeInDays} days)...`
-    );
+    // Running PDF cleanup on startup
     const result = await cleanupOldPDFs(maxAgeInDays);
-
+    // Startup PDF cleanup completed
   } catch (error) {
-
+    // Startup PDF cleanup failed
   }
 };
