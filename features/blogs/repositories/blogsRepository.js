@@ -20,8 +20,8 @@ export const findById = async (id) => {
   return await Blogs.findById(id);
 };
 
-export const findOne = async (query, projection = null) => {
-  return await Blogs.findOne(query, projection);
+export const findOne = async (query, projection = null, options = {}) => {
+  return await Blogs.findOne(query, projection, options);
 };
 
 export const updateById = async (id, updateData) => {

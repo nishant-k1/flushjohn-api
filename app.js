@@ -18,6 +18,7 @@ import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
 import pdfCleanupRouter from "./routes/pdfCleanup.js";
+import s3CorsRouter from "./routes/s3-cors.js";
 
 // Feature-based imports
 import leadsFeature from "./features/leads/index.js";
@@ -57,8 +58,8 @@ app.set("port", port);
 // CORS configuration
 const getAllowedOrigins = () => {
   return process.env.ORIGINS
-    ? process.env.ORIGINS.split(',')
-        .map(origin => origin.trim())
+    ? process.env.ORIGINS.split(",")
+        .map((origin) => origin.trim())
         .filter(Boolean)
     : [];
 };
@@ -71,10 +72,10 @@ socketConnect(server);
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = getAllowedOrigins();
-    
+
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
-      console.log('🔍 CORS check - No origin (non-browser request)');
+      console.log("🔍 CORS check - No origin (non-browser request)");
       return callback(null, true);
     }
 
@@ -86,41 +87,38 @@ const corsOptions = {
 
     // Log blocked origins for debugging
     console.log(`❌ CORS check - Origin blocked: ${origin}`);
-    console.log('🌐 Allowed origins:', allowedOrigins);
-    return callback(new Error('Not allowed by CORS'));
+    console.log("🌐 Allowed origins:", allowedOrigins);
+    return callback(new Error("Not allowed by CORS"));
   },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
   allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'X-HTTP-Method-Override',
-    'Accept',
-    'Origin',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers',
-    'X-Custom-Header',
-    'X-Access-Token'
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "X-HTTP-Method-Override",
+    "Accept",
+    "Origin",
+    "Access-Control-Request-Method",
+    "Access-Control-Request-Headers",
+    "X-Custom-Header",
+    "X-Access-Token",
   ],
-  exposedHeaders: [
-    'Content-Length',
-    'X-Request-ID'
-  ],
+  exposedHeaders: ["Content-Length", "X-Request-ID"],
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 204,
-  maxAge: 600 // 10 minutes (in seconds)
+  maxAge: 600, // 10 minutes (in seconds)
 };
 
 // Apply CORS middleware
 app.use(cors(corsOptions));
 
 // Handle preflight requests
-app.options('*', cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(logger("dev"));
-app.use(json());
-app.use(urlencoded({ extended: false }));
+app.use(json({ limit: "50mb" }));
+app.use(urlencoded({ extended: false, limit: "50mb" }));
 app.use(cookieParser());
 
 // Method override middleware to handle X-HTTP-Method-Override
@@ -203,6 +201,7 @@ app.use("/pdf-cleanup", pdfCleanupRouter);
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/file-upload", fileUploadRouter);
+app.use("/s3-cors", s3CorsRouter);
 app.use("/users", usersRouter);
 app.use("/leads", leadsRouter);
 app.use("/blogs", blogsRouter);
