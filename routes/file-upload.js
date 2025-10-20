@@ -1,3 +1,13 @@
+/**
+ * File Upload Routes - Blog Images Only
+ *
+ * This file handles ONLY blog-related image uploads:
+ * - Blog cover images (replacement with automatic cleanup)
+ * - Blog content images (for rich text editor)
+ *
+ * PDF uploads are handled separately in other routes.
+ */
+
 import express from "express";
 import {
   S3Client,
@@ -5,6 +15,11 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { queueImageCleanup } from "../services/imageCleanupQueue.js";
+import {
+  getBlogById,
+  updateBlog,
+} from "../features/blogs/services/blogsService.js";
 
 const router = express.Router();
 
@@ -88,8 +103,8 @@ router.put("/", async (req, res) => {
   }
 });
 
-// **POST: Direct Upload (bypasses CORS by uploading through API)**
-router.post("/direct", async (req, res) => {
+// **POST: Upload Blog Content Images (bypasses CORS by uploading through API)**
+router.post("/blog-content-image", async (req, res) => {
   try {
     const { name, type, fileData } = req.body;
 
@@ -114,15 +129,18 @@ router.post("/direct", async (req, res) => {
       });
     }
 
-    // Use timestamp for cache busting (like PDF uploads)
+    // ✅ NEW APPROACH: Generate unique filename for content images
     const timestamp = Date.now();
+    const fileExtension = type.split("/")[1] || "jpg";
+    const fileName = `content-${timestamp}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}.${fileExtension}`;
 
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: `images/blog/${name}`,
+      Key: `images/blog/${fileName}`,
       Body: fileBuffer,
       ContentType: type,
-      // Add cache control headers like PDF uploads
       CacheControl: "public, max-age=31536000", // 1 year cache for images
       ContentDisposition: "inline",
     };
@@ -131,26 +149,26 @@ router.post("/direct", async (req, res) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    // Return the public URL with cache busting (like PDF uploads)
+    // ✅ NEW APPROACH: No cache busting needed - new file = new URL
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
-    // URL encode the filename to handle special characters
-    const encodedName = encodeURIComponent(name);
+    const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
-      ? `${cloudFrontUrl}/images/blog/${encodedName}?t=${timestamp}`
-      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}?t=${timestamp}`;
+      ? `${cloudFrontUrl}/images/blog/${encodedName}`
+      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
 
-    console.log("=== IMAGE UPLOAD DEBUG ===");
+    console.log("=== BLOG CONTENT IMAGE UPLOAD DEBUG ===");
     console.log("CloudFront URL env var:", cloudFrontUrl);
     console.log("Original file name:", name);
+    console.log("New file name:", fileName);
     console.log("Encoded file name:", encodedName);
     console.log("Generated image URL:", imageUrl);
     console.log("Timestamp:", timestamp);
-    console.log("=========================");
+    console.log("=========================================");
 
     res.status(200).json({
       message: "Image uploaded successfully",
       imageUrl: imageUrl,
-      fileName: name,
+      fileName: fileName,
     });
   } catch (error) {
     console.error("Direct upload error:", error);
@@ -162,8 +180,8 @@ router.post("/direct", async (req, res) => {
   }
 });
 
-// **PUT: Replace Cover Image (uses consistent filename for direct replacement)**
-router.put("/replace-cover", async (req, res) => {
+// **PUT: Replace Blog Cover Image (uses new file approach with automatic cleanup)**
+router.put("/blog-cover-image", async (req, res) => {
   try {
     const { blogId, type, fileData } = req.body;
 
@@ -243,10 +261,10 @@ router.put("/replace-cover", async (req, res) => {
       });
     }
 
-    // Use consistent filename for cover images: cover-{blogId}.{extension}
-    const fileExtension = type.split("/")[1] || "jpg";
-    const fileName = `cover-${blogId}.${fileExtension}`;
+    // ✅ NEW APPROACH: Generate unique filename with timestamp
     const timestamp = Date.now();
+    const fileExtension = type.split("/")[1] || "jpg";
+    const fileName = `cover-${blogId}-${timestamp}.${fileExtension}`;
 
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
@@ -261,35 +279,49 @@ router.put("/replace-cover", async (req, res) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    // Return the public URL with cache busting
+    // ✅ NEW APPROACH: No cache busting needed - new file = new URL
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
     const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
-      ? `${cloudFrontUrl}/images/blog/${encodedName}?t=${timestamp}`
-      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}?t=${timestamp}`;
+      ? `${cloudFrontUrl}/images/blog/${encodedName}`
+      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
 
-    // Update database with new cover image URL
+    // Get existing blog for cleanup
+    let existingBlog = null;
     try {
-      const { default: blogsService } = await import(
-        "../features/blogs/services/blogsService.js"
-      );
-      await blogsService.updateBlog(blogId, {
+      existingBlog = await getBlogById(blogId);
+
+      // Update database with new cover image URL
+      console.log(`Updating database for blog ${blogId} with cover image:`, {
+        src: imageUrl,
+        alt: "Cover Image",
+      });
+
+      const updatedBlog = await updateBlog(blogId, {
         coverImage: {
           src: imageUrl,
           alt: "Cover Image",
         },
       });
+
       console.log(`Cover image URL updated in database for blog ${blogId}`);
+      console.log(`Updated blog coverImage:`, updatedBlog?.coverImage);
     } catch (dbError) {
       console.error("Error updating database:", dbError);
     }
 
-    console.log("=== COVER IMAGE REPLACEMENT DEBUG ===");
+    // ✅ NEW APPROACH: Queue cleanup of old image (with 5 second delay)
+    if (existingBlog?.coverImage?.src) {
+      await queueImageCleanup(existingBlog.coverImage.src, 5000);
+    }
+
+    console.log("=== BLOG COVER IMAGE REPLACEMENT DEBUG ===");
     console.log("Blog ID:", blogId);
-    console.log("File name:", fileName);
-    console.log("Generated image URL:", imageUrl);
+    console.log("New file name:", fileName);
+    console.log("New image URL:", imageUrl);
+    console.log("Old image URL:", existingBlog?.coverImage?.src);
     console.log("Timestamp:", timestamp);
-    console.log("=====================================");
+    console.log("===========================================");
 
     res.status(200).json({
       message: "Cover image replaced successfully",

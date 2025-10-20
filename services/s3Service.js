@@ -156,3 +156,91 @@ export const getPDFPublicUrl = (pdfKey) => {
   const bucketName = getBucketName();
   return `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${pdfKey}`;
 };
+
+/**
+ * Generate presigned URL for blog cover image upload
+ * @param {string} blogId - Blog ID for consistent naming
+ * @param {string} fileType - MIME type of the file
+ * @param {number} expiresIn - URL expiration time in seconds (default: 300 = 5 minutes)
+ * @returns {Promise<Object>} - Object with presignedUrl, key, and publicUrl
+ */
+export const generateBlogCoverImagePresignedUrl = async (blogId, fileType, expiresIn = 300) => {
+  try {
+    const bucketName = getBucketName();
+    const s3Client = getS3Client();
+    
+    // Generate consistent filename: cover-{blogId}.{extension}
+    const fileExtension = fileType.split("/")[1] || "jpg";
+    const fileName = `cover-${blogId}.${fileExtension}`;
+    const key = `images/blog/${fileName}`;
+    
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      ContentType: fileType,
+      CacheControl: "public, max-age=31536000", // 1 year cache for images
+      ContentDisposition: "inline",
+    });
+    
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
+    
+    // Generate public URL for after upload
+    const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    const timestamp = Date.now();
+    const publicUrl = cloudFrontUrl
+      ? `${cloudFrontUrl}/${key}?t=${timestamp}`
+      : `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}?t=${timestamp}`;
+    
+    return {
+      presignedUrl,
+      key,
+      publicUrl,
+      fileName,
+    };
+  } catch (error) {
+    console.error("Error generating presigned URL for blog cover image:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete blog cover image from S3
+ * @param {string} blogId - Blog ID to construct filename
+ * @returns {Promise<boolean>} - Success status
+ */
+export const deleteBlogCoverImageFromS3 = async (blogId) => {
+  try {
+    const bucketName = getBucketName();
+    const s3Client = getS3Client();
+    
+    // Try common image extensions
+    const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
+    
+    for (const ext of extensions) {
+      const fileName = `cover-${blogId}.${ext}`;
+      const key = `images/blog/${fileName}`;
+      
+      try {
+        const command = new DeleteObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+        });
+        
+        await s3Client.send(command);
+        console.log(`Blog cover image deleted from S3: ${fileName}`);
+        return true;
+      } catch (error) {
+        // Continue to next extension if file not found
+        if (error.name !== "NoSuchKey") {
+          console.error(`Error deleting blog cover image ${fileName}:`, error);
+        }
+      }
+    }
+    
+    console.log(`No blog cover image found for blog ${blogId}`);
+    return true; // Consider it successful if no file exists
+  } catch (error) {
+    console.error("Error deleting blog cover image from S3:", error);
+    return false;
+  }
+};
