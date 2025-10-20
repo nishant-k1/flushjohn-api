@@ -156,14 +156,6 @@ router.post("/blog-content-image", async (req, res) => {
       ? `${cloudFrontUrl}/images/blog/${encodedName}`
       : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
 
-    console.log("=== BLOG CONTENT IMAGE UPLOAD DEBUG ===");
-    console.log("CloudFront URL env var:", cloudFrontUrl);
-    console.log("Original file name:", name);
-    console.log("New file name:", fileName);
-    console.log("Encoded file name:", encodedName);
-    console.log("Generated image URL:", imageUrl);
-    console.log("Timestamp:", timestamp);
-    console.log("=========================================");
 
     res.status(200).json({
       message: "Image uploaded successfully",
@@ -171,7 +163,6 @@ router.post("/blog-content-image", async (req, res) => {
       fileName: fileName,
     });
   } catch (error) {
-    console.error("Direct upload error:", error);
     res.status(500).json({
       error: "Could not upload image",
       message:
@@ -193,7 +184,6 @@ router.put("/blog-cover-image", async (req, res) => {
 
     // Handle deletion case (fileData is null)
     if (fileData === null) {
-      console.log(`Deleting cover image for blog ${blogId}`);
 
       // Try common image extensions
       const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
@@ -211,13 +201,11 @@ router.put("/blog-cover-image", async (req, res) => {
           const command = new DeleteObjectCommand(params);
           const s3 = getS3Client();
           await s3.send(command);
-          console.log(`Cover image deleted from S3: ${fileName}`);
           deleted = true;
           break;
         } catch (error) {
           // Continue to next extension if file not found
           if (error.name !== "NoSuchKey") {
-            console.error(`Error deleting cover image ${fileName}:`, error);
           }
         }
       }
@@ -228,9 +216,7 @@ router.put("/blog-cover-image", async (req, res) => {
           "../features/blogs/services/blogsService.js"
         );
         await blogsService.updateBlog(blogId, { coverImage: null });
-        console.log(`Cover image removed from database for blog ${blogId}`);
       } catch (dbError) {
-        console.error("Error updating database:", dbError);
       }
 
       return res.status(200).json({
@@ -292,22 +278,13 @@ router.put("/blog-cover-image", async (req, res) => {
       existingBlog = await getBlogById(blogId);
 
       // Update database with new cover image URL
-      console.log(`Updating database for blog ${blogId} with cover image:`, {
-        src: imageUrl,
-        alt: "Cover Image",
-      });
-
-      const updatedBlog = await updateBlog(blogId, {
+      await updateBlog(blogId, {
         coverImage: {
           src: imageUrl,
           alt: "Cover Image",
         },
       });
-
-      console.log(`Cover image URL updated in database for blog ${blogId}`);
-      console.log(`Updated blog coverImage:`, updatedBlog?.coverImage);
     } catch (dbError) {
-      console.error("Error updating database:", dbError);
     }
 
     // ✅ NEW APPROACH: Queue cleanup of old image (with 5 second delay)
@@ -315,13 +292,6 @@ router.put("/blog-cover-image", async (req, res) => {
       await queueImageCleanup(existingBlog.coverImage.src, 5000);
     }
 
-    console.log("=== BLOG COVER IMAGE REPLACEMENT DEBUG ===");
-    console.log("Blog ID:", blogId);
-    console.log("New file name:", fileName);
-    console.log("New image URL:", imageUrl);
-    console.log("Old image URL:", existingBlog?.coverImage?.src);
-    console.log("Timestamp:", timestamp);
-    console.log("===========================================");
 
     res.status(200).json({
       message: "Cover image replaced successfully",
@@ -330,7 +300,6 @@ router.put("/blog-cover-image", async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.error("Cover image replacement error:", error);
     res.status(500).json({
       error: "Could not replace cover image",
       message:

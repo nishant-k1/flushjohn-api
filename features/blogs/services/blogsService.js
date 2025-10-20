@@ -53,7 +53,6 @@ export const createBlogWithRetry = async (blogData, maxRetries = 3) => {
     } catch (error) {
       // If it's a duplicate key error and we have retries left, try again
       if (error.code === 11000 && attempt < maxRetries) {
-        console.log(`Blog creation attempt ${attempt} failed, retrying...`);
         // Add a small delay to reduce race condition likelihood
         await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
         continue;
@@ -138,10 +137,8 @@ const uploadCoverImageToS3 = async (blogId, fileType, fileData) => {
       ? `${cloudFrontUrl}/images/blog/${encodedName}`
       : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
 
-    console.log("Cover image uploaded to S3:", imageUrl);
     return imageUrl;
   } catch (error) {
-    console.error("Error uploading cover image to S3:", error);
     throw error;
   }
 };
@@ -155,12 +152,8 @@ const deleteCoverImageFromS3 = async (blogId) => {
   try {
     // Note: With new file approach, we don't need to delete by blogId pattern
     // Old images are cleaned up automatically via the cleanup service
-    console.log(
-      `Cover image cleanup for blog ${blogId} - handled by cleanup service`
-    );
     return true; // Consider it successful as cleanup is handled elsewhere
   } catch (error) {
-    console.error("Error deleting cover image from S3:", error);
     return false;
   }
 };
@@ -174,8 +167,6 @@ const transformBlobUrls = async (blogData, blogId = null) => {
     blogData.coverImageFileData &&
     blogId
   ) {
-    console.log("Converting blob URL to S3 URL:", blogData.coverImage.src);
-
     try {
       // Upload the file data to S3 and get the CDN URL
       const s3Url = await uploadCoverImageToS3(
@@ -200,7 +191,6 @@ const transformBlobUrls = async (blogData, blogId = null) => {
         },
       };
     } catch (error) {
-      console.error("Error converting blob URL:", error);
       // Return null for coverImage if conversion fails
       return {
         ...blogData,
@@ -215,10 +205,6 @@ const transformBlobUrls = async (blogData, blogId = null) => {
     blogData.coverImage.src &&
     blogData.coverImage.src.startsWith("blob:")
   ) {
-    console.warn(
-      "Blob URL detected but no file data provided:",
-      blogData.coverImage.src
-    );
     return {
       ...blogData,
       coverImage: null,
@@ -314,19 +300,11 @@ export const updateBlog = async (id, updateData) => {
     throw error;
   }
 
-  console.log("=== updateBlog DEBUG ===");
-  console.log("Blog ID:", id);
-  console.log("Existing coverImage:", existingBlog.coverImage);
-  console.log("Update data coverImage:", updateData.coverImage);
-  console.log("=========================");
-
   // Handle cover image operations
   let transformedUpdateData = { ...updateData };
 
   // If coverImage is being set to null/empty, delete from S3
   if (updateData.coverImage === null || updateData.coverImage === "") {
-    console.log(`Deleting cover image for blog ${id}`);
-
     // ✅ NEW APPROACH: Queue cleanup of old image
     if (existingBlog.coverImage?.src) {
       await queueImageCleanup(existingBlog.coverImage.src, 2000);
@@ -341,7 +319,6 @@ export const updateBlog = async (id, updateData) => {
     updateData.coverImage.src.startsWith("blob:") &&
     updateData.coverImageFileData
   ) {
-    console.log(`Replacing cover image for blog ${id}`);
     // Delete old cover image first
     await deleteCoverImageFromS3(id);
     // Upload new cover image
@@ -354,7 +331,6 @@ export const updateBlog = async (id, updateData) => {
     !updateData.coverImage.src.startsWith("blob:") &&
     !existingBlog.coverImage
   ) {
-    console.log(`Setting cover image for blog ${id} (first time)`);
     // No cleanup needed since there's no existing image
   }
   // If coverImage is being updated with a new S3 URL, delete old cover image
@@ -365,8 +341,6 @@ export const updateBlog = async (id, updateData) => {
     existingBlog.coverImage?.src &&
     updateData.coverImage.src !== existingBlog.coverImage.src
   ) {
-    console.log(`Updating cover image URL for blog ${id}`);
-
     // ✅ NEW APPROACH: Queue cleanup of old image
     await queueImageCleanup(existingBlog.coverImage.src, 2000);
   }
@@ -377,8 +351,6 @@ export const updateBlog = async (id, updateData) => {
     !updateData.coverImage.src.startsWith("blob:") &&
     updateData.coverImage.src.includes("amazonaws.com")
   ) {
-    console.log(`Cover image updated with S3 URL for blog ${id}`);
-
     // ✅ NEW APPROACH: Queue cleanup of old image
     if (
       existingBlog.coverImage?.src &&
@@ -388,18 +360,10 @@ export const updateBlog = async (id, updateData) => {
     }
   }
 
-  console.log("=== FINAL UPDATE DATA ===");
-  console.log("Transformed update data:", transformedUpdateData);
-  console.log("========================");
-
   const blog = await blogsRepository.updateById(id, {
     ...transformedUpdateData,
     updatedAt: getCurrentDateTime(),
   });
-
-  console.log("=== UPDATED BLOG RESULT ===");
-  console.log("Updated blog coverImage:", blog?.coverImage);
-  console.log("===========================");
 
   return blog;
 };
@@ -415,7 +379,6 @@ export const deleteBlog = async (id) => {
 
   // Delete cover image from S3 before deleting blog
   if (existingBlog.coverImage?.src) {
-    console.log(`Deleting cover image for blog ${id} before blog deletion`);
     await deleteCoverImageFromS3(id);
   }
 

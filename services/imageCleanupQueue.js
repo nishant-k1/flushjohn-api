@@ -36,7 +36,6 @@ export const queueImageCleanup = async (imageUrl, delay = 0) => {
   }
 
   cleanupQueue.push(cleanupTask);
-  console.log(`📋 Image queued for cleanup: ${imageUrl}`);
 
   // Process queue if not already processing
   if (!processingQueue.has("cleanup")) {
@@ -58,19 +57,14 @@ const processCleanupQueue = async () => {
     const task = cleanupQueue.shift();
 
     try {
-      console.log(`🔄 Processing cleanup: ${task.imageUrl}`);
 
       const success = await deleteImageFromS3(task.imageUrl);
 
       if (success) {
-        console.log(`✅ Cleanup successful: ${task.imageUrl}`);
       } else {
         // Retry logic
         task.attempts++;
         if (task.attempts < task.maxAttempts) {
-          console.log(
-            `🔄 Retrying cleanup (${task.attempts}/${task.maxAttempts}): ${task.imageUrl}`
-          );
           cleanupQueue.push(task);
 
           // Exponential backoff
@@ -78,13 +72,9 @@ const processCleanupQueue = async () => {
             setTimeout(resolve, Math.pow(2, task.attempts) * 1000)
           );
         } else {
-          console.error(
-            `❌ Cleanup failed after ${task.maxAttempts} attempts: ${task.imageUrl}`
-          );
         }
       }
     } catch (error) {
-      console.error(`❌ Cleanup error: ${task.imageUrl}`, error);
 
       // Retry logic
       task.attempts++;
