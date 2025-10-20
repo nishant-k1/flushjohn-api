@@ -23,18 +23,32 @@ export const createBlogWithRetry = async (blogData, maxRetries = 3) => {
       const blogNo = await generateBlogNumber();
       const slug = generateSlug(blogData.title);
 
-      // Transform blob URLs before creating the blog
-      const transformedBlogData = await transformBlobUrls(blogData);
-
+      // Create blog first to get the ID
       const newBlogData = {
-        ...transformedBlogData,
+        ...blogData,
         createdAt,
         blogNo,
         slug,
         publishedAt: createdAt,
       };
 
-      return await blogsRepository.create(newBlogData);
+      const createdBlog = await blogsRepository.create(newBlogData);
+
+      // Transform blob URLs after creating the blog (now we have the ID)
+      const transformedBlogData = await transformBlobUrls(
+        blogData,
+        createdBlog._id.toString()
+      );
+
+      // Update the blog with transformed URLs if needed
+      if (transformedBlogData !== blogData) {
+        return await blogsRepository.updateById(
+          createdBlog._id,
+          transformedBlogData
+        );
+      }
+
+      return createdBlog;
     } catch (error) {
       // If it's a duplicate key error and we have retries left, try again
       if (error.code === 11000 && attempt < maxRetries) {
@@ -77,13 +91,13 @@ const getS3Client = () => {
 };
 
 /**
- * Upload cover image to S3 and return CDN URL
- * @param {string} fileName - File name
+ * Upload cover image to S3 with consistent naming and return CDN URL
+ * @param {string} blogId - Blog ID for consistent naming
  * @param {string} fileType - MIME type
  * @param {string} fileData - Base64 file data
  * @returns {Promise<string>} - S3 CDN URL
  */
-const uploadCoverImageToS3 = async (fileName, fileType, fileData) => {
+const uploadCoverImageToS3 = async (blogId, fileType, fileData) => {
   try {
     // Convert base64 to buffer
     let fileBuffer;
@@ -98,13 +112,14 @@ const uploadCoverImageToS3 = async (fileName, fileType, fileData) => {
       throw new Error("Invalid fileData format");
     }
 
-    // Use timestamp for cache busting
+    // Use consistent filename: cover-{blogId}.{extension}
+    const fileExtension = fileType.split("/")[1] || "jpg";
+    const fileName = `cover-${blogId}.${fileExtension}`;
     const timestamp = Date.now();
-    const uniqueFileName = `${timestamp}-${fileName}`;
 
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: `images/blog/${uniqueFileName}`,
+      Key: `images/blog/${fileName}`,
       Body: fileBuffer,
       ContentType: fileType,
       CacheControl: "public, max-age=31536000", // 1 year cache for images
@@ -117,7 +132,7 @@ const uploadCoverImageToS3 = async (fileName, fileType, fileData) => {
 
     // Return the public URL with cache busting
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
-    const encodedName = encodeURIComponent(uniqueFileName);
+    const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/images/blog/${encodedName}?t=${timestamp}`
       : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}?t=${timestamp}`;
@@ -130,20 +145,61 @@ const uploadCoverImageToS3 = async (fileName, fileType, fileData) => {
   }
 };
 
-const transformBlobUrls = async (blogData) => {
+/**
+ * Delete cover image from S3 using consistent naming
+ * @param {string} blogId - Blog ID to construct filename
+ * @returns {Promise<boolean>} - Success status
+ */
+const deleteCoverImageFromS3 = async (blogId) => {
+  try {
+    // Try common image extensions
+    const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
+
+    for (const ext of extensions) {
+      const fileName = `cover-${blogId}.${ext}`;
+      const params = {
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: `images/blog/${fileName}`,
+      };
+
+      try {
+        const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+        const command = new DeleteObjectCommand(params);
+        const s3 = getS3Client();
+        await s3.send(command);
+        console.log(`Cover image deleted from S3: ${fileName}`);
+        return true;
+      } catch (error) {
+        // Continue to next extension if file not found
+        if (error.name !== "NoSuchKey") {
+          console.error(`Error deleting cover image ${fileName}:`, error);
+        }
+      }
+    }
+
+    console.log(`No cover image found for blog ${blogId}`);
+    return true; // Consider it successful if no file exists
+  } catch (error) {
+    console.error("Error deleting cover image from S3:", error);
+    return false;
+  }
+};
+
+const transformBlobUrls = async (blogData, blogId = null) => {
   // Check if coverImage exists and has a blob URL with file data
   if (
     blogData.coverImage &&
     blogData.coverImage.src &&
     blogData.coverImage.src.startsWith("blob:") &&
-    blogData.coverImageFileData
+    blogData.coverImageFileData &&
+    blogId
   ) {
     console.log("Converting blob URL to S3 URL:", blogData.coverImage.src);
 
     try {
       // Upload the file data to S3 and get the CDN URL
       const s3Url = await uploadCoverImageToS3(
-        blogData.coverImageFileName || "cover-image.jpg",
+        blogId,
         blogData.coverImageFileType || "image/jpeg",
         blogData.coverImageFileData
       );
@@ -257,19 +313,73 @@ export const getBlogById = async (id) => {
 };
 
 export const updateBlog = async (id, updateData) => {
-  // Transform blob URLs before updating the blog
-  const transformedUpdateData = await transformBlobUrls(updateData);
+  // Get existing blog to check current cover image
+  const existingBlog = await blogsRepository.findById(id);
+  if (!existingBlog) {
+    const error = new Error("Blog not found");
+    error.name = "NotFoundError";
+    throw error;
+  }
+
+  // Handle cover image operations
+  let transformedUpdateData = { ...updateData };
+
+  // If coverImage is being set to null/empty, delete from S3
+  if (updateData.coverImage === null || updateData.coverImage === "") {
+    console.log(`Deleting cover image for blog ${id}`);
+    await deleteCoverImageFromS3(id);
+    transformedUpdateData.coverImage = null;
+  }
+  // If coverImage has blob URL with file data, upload to S3
+  else if (
+    updateData.coverImage &&
+    updateData.coverImage.src &&
+    updateData.coverImage.src.startsWith("blob:") &&
+    updateData.coverImageFileData
+  ) {
+    console.log(`Replacing cover image for blog ${id}`);
+    // Delete old cover image first
+    await deleteCoverImageFromS3(id);
+    // Upload new cover image
+    transformedUpdateData = await transformBlobUrls(updateData, id);
+  }
+  // If coverImage is being updated with a new S3 URL, delete old cover image
+  else if (
+    updateData.coverImage &&
+    updateData.coverImage.src &&
+    !updateData.coverImage.src.startsWith("blob:") &&
+    updateData.coverImage.src !== existingBlog.coverImage?.src
+  ) {
+    console.log(`Updating cover image URL for blog ${id}`);
+    // Delete old cover image if it exists and is different
+    if (
+      existingBlog.coverImage?.src &&
+      existingBlog.coverImage.src !== updateData.coverImage.src
+    ) {
+      await deleteCoverImageFromS3(id);
+    }
+  }
+  // If coverImage is being updated with a new S3 URL (from frontend upload), handle replacement
+  else if (
+    updateData.coverImage &&
+    updateData.coverImage.src &&
+    !updateData.coverImage.src.startsWith("blob:") &&
+    updateData.coverImage.src.includes("amazonaws.com")
+  ) {
+    console.log(`Cover image updated with S3 URL for blog ${id}`);
+    // Delete old cover image if it exists and is different
+    if (
+      existingBlog.coverImage?.src &&
+      existingBlog.coverImage.src !== updateData.coverImage.src
+    ) {
+      await deleteCoverImageFromS3(id);
+    }
+  }
 
   const blog = await blogsRepository.updateById(id, {
     ...transformedUpdateData,
     updatedAt: getCurrentDateTime(),
   });
-
-  if (!blog) {
-    const error = new Error("Blog not found");
-    error.name = "NotFoundError";
-    throw error;
-  }
 
   return blog;
 };
@@ -281,6 +391,12 @@ export const deleteBlog = async (id) => {
     const error = new Error("Blog not found");
     error.name = "NotFoundError";
     throw error;
+  }
+
+  // Delete cover image from S3 before deleting blog
+  if (existingBlog.coverImage?.src) {
+    console.log(`Deleting cover image for blog ${id} before blog deletion`);
+    await deleteCoverImageFromS3(id);
   }
 
   await blogsRepository.deleteById(id);

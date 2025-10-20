@@ -162,6 +162,151 @@ router.post("/direct", async (req, res) => {
   }
 });
 
+// **PUT: Replace Cover Image (uses consistent filename for direct replacement)**
+router.put("/replace-cover", async (req, res) => {
+  try {
+    const { blogId, type, fileData } = req.body;
+
+    if (!blogId) {
+      return res.status(400).json({
+        error: "Invalid request: Missing blogId",
+      });
+    }
+
+    // Handle deletion case (fileData is null)
+    if (fileData === null) {
+      console.log(`Deleting cover image for blog ${blogId}`);
+
+      // Try common image extensions
+      const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
+      let deleted = false;
+
+      for (const ext of extensions) {
+        const fileName = `cover-${blogId}.${ext}`;
+        const params = {
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Key: `images/blog/${fileName}`,
+        };
+
+        try {
+          const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+          const command = new DeleteObjectCommand(params);
+          const s3 = getS3Client();
+          await s3.send(command);
+          console.log(`Cover image deleted from S3: ${fileName}`);
+          deleted = true;
+          break;
+        } catch (error) {
+          // Continue to next extension if file not found
+          if (error.name !== "NoSuchKey") {
+            console.error(`Error deleting cover image ${fileName}:`, error);
+          }
+        }
+      }
+
+      // Update database to remove cover image
+      try {
+        const { default: blogsService } = await import(
+          "../features/blogs/services/blogsService.js"
+        );
+        await blogsService.updateBlog(blogId, { coverImage: null });
+        console.log(`Cover image removed from database for blog ${blogId}`);
+      } catch (dbError) {
+        console.error("Error updating database:", dbError);
+      }
+
+      return res.status(200).json({
+        message: "Cover image deleted successfully",
+        success: true,
+      });
+    }
+
+    // Handle upload/replacement case
+    if (!type || !fileData) {
+      return res.status(400).json({
+        error: "Invalid request: Missing type or fileData for upload",
+      });
+    }
+
+    // Convert base64 to buffer if needed
+    let fileBuffer;
+    if (typeof fileData === "string" && fileData.startsWith("data:")) {
+      // Handle data URL format
+      const base64Data = fileData.split(",")[1];
+      fileBuffer = Buffer.from(base64Data, "base64");
+    } else if (typeof fileData === "string") {
+      // Handle plain base64
+      fileBuffer = Buffer.from(fileData, "base64");
+    } else {
+      return res.status(400).json({
+        error: "Invalid fileData format",
+      });
+    }
+
+    // Use consistent filename for cover images: cover-{blogId}.{extension}
+    const fileExtension = type.split("/")[1] || "jpg";
+    const fileName = `cover-${blogId}.${fileExtension}`;
+    const timestamp = Date.now();
+
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: `images/blog/${fileName}`,
+      Body: fileBuffer,
+      ContentType: type,
+      CacheControl: "public, max-age=31536000", // 1 year cache for images
+      ContentDisposition: "inline",
+    };
+
+    const command = new PutObjectCommand(params);
+    const s3 = getS3Client();
+    await s3.send(command);
+
+    // Return the public URL with cache busting
+    const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    const encodedName = encodeURIComponent(fileName);
+    const imageUrl = cloudFrontUrl
+      ? `${cloudFrontUrl}/images/blog/${encodedName}?t=${timestamp}`
+      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}?t=${timestamp}`;
+
+    // Update database with new cover image URL
+    try {
+      const { default: blogsService } = await import(
+        "../features/blogs/services/blogsService.js"
+      );
+      await blogsService.updateBlog(blogId, {
+        coverImage: {
+          src: imageUrl,
+          alt: "Cover Image",
+        },
+      });
+      console.log(`Cover image URL updated in database for blog ${blogId}`);
+    } catch (dbError) {
+      console.error("Error updating database:", dbError);
+    }
+
+    console.log("=== COVER IMAGE REPLACEMENT DEBUG ===");
+    console.log("Blog ID:", blogId);
+    console.log("File name:", fileName);
+    console.log("Generated image URL:", imageUrl);
+    console.log("Timestamp:", timestamp);
+    console.log("=====================================");
+
+    res.status(200).json({
+      message: "Cover image replaced successfully",
+      imageUrl: imageUrl,
+      fileName: fileName,
+      success: true,
+    });
+  } catch (error) {
+    console.error("Cover image replacement error:", error);
+    res.status(500).json({
+      error: "Could not replace cover image",
+      message:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
 // **DELETE: Remove an Image from S3 - Exact copy from original CRM**
 router.delete("/", async (req, res) => {
   try {
