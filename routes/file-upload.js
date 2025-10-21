@@ -89,32 +89,51 @@ router.put("/", async (req, res) => {
 
 // **POST: Upload Blog Content Images (bypasses CORS by uploading through API)**
 router.post("/blog-content-image", async (req, res) => {
+  console.log("=== blog-content-image endpoint called ===");
+  console.log("Request body keys:", Object.keys(req.body));
+  console.log("File name:", req.body.name);
+  console.log("File type:", req.body.type);
+  console.log("File data length:", req.body.fileData?.length);
+
   try {
     const { name, type, fileData } = req.body;
 
     if (!name || !type || !fileData) {
+      console.log("Missing required fields:", {
+        name: !!name,
+        type: !!type,
+        fileData: !!fileData,
+      });
       return res.status(400).json({
         error: "Invalid request: Missing name, type, or fileData",
       });
     }
 
+    console.log("Processing file data...");
     let fileBuffer;
     if (typeof fileData === "string" && fileData.startsWith("data:")) {
+      console.log("Processing data URL format");
       const base64Data = fileData.split(",")[1];
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
+      console.log("Processing base64 string format");
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
+      console.log("Invalid fileData format:", typeof fileData);
       return res.status(400).json({
         error: "Invalid fileData format",
       });
     }
+
+    console.log("File buffer size:", fileBuffer.length);
 
     const timestamp = Date.now();
     const fileExtension = type.split("/")[1] || "jpg";
     const fileName = `content-${timestamp}-${Math.random()
       .toString(36)
       .substr(2, 9)}.${fileExtension}`;
+
+    console.log("Generated file name:", fileName);
 
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
@@ -125,22 +144,32 @@ router.post("/blog-content-image", async (req, res) => {
       ContentDisposition: "inline",
     };
 
+    console.log("Uploading to S3...");
     const command = new PutObjectCommand(params);
     const s3 = getS3Client();
     await s3.send(command);
+    console.log("S3 upload completed");
 
+    console.log("Generating response URL...");
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
     const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/images/blog/${encodedName}`
       : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
 
+    console.log("Generated image URL:", imageUrl);
+    console.log("Sending response...");
+
     res.status(200).json({
       message: "Image uploaded successfully",
       imageUrl: imageUrl,
       fileName: fileName,
     });
+
+    console.log("Response sent successfully");
   } catch (error) {
+    console.error("Error in blog-content-image endpoint:", error);
+    console.error("Error stack:", error.stack);
     res.status(500).json({
       error: "Could not upload image",
       message:
