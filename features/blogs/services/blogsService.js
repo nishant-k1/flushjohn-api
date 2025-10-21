@@ -121,6 +121,28 @@ const uploadCoverImageToS3 = async (blogId, fileType, fileData) => {
  */
 const deleteCoverImageFromS3 = async (blogId) => {
   try {
+    const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
+    
+    for (const ext of extensions) {
+      const fileName = `cover-${blogId}.${ext}`;
+      const params = {
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: `images/blog/${fileName}`,
+      };
+
+      try {
+        const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+        const command = new DeleteObjectCommand(params);
+        const s3 = getS3Client();
+        await s3.send(command);
+        return true;
+      } catch (error) {
+        if (error.name !== "NoSuchKey") {
+          continue;
+        }
+      }
+    }
+    
     return true;
   } catch (error) {
     return false;
