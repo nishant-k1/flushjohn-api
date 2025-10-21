@@ -110,12 +110,16 @@ const htmlTemplate = (quoteData) => {
                 </span>
               </p>
             </div>
-            ${quoteData.cName ? `
+            ${
+              quoteData.cName
+                ? `
             <div>
               <h3>Company Name</h3>
               <p>${quoteData.cName}</p>
             </div>
-            ` : ""}
+            `
+                : ""
+            }
             <div>
               <h3>Delivery Address</h3>
               <p>${quoteData.streetAddress ? quoteData.streetAddress : ""}</p>
