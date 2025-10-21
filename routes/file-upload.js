@@ -5,16 +5,18 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { queueImageCleanup } from "../services/imageCleanupQueue.js";
+import {
+  getBlogById,
+  updateBlog,
+} from "../features/blogs/services/blogsService.js";
 
 const router = express.Router();
 
-// Lazy initialization of S3 Client - Only create when needed
 let s3Instance = null;
 
 const getS3Client = () => {
   if (!s3Instance) {
-    // Initializing S3 Client with credentials
-
     s3Instance = new S3Client({
       region: process.env.AWS_REGION,
       credentials: {
@@ -26,7 +28,6 @@ const getS3Client = () => {
   return s3Instance;
 };
 
-// **POST: Generate Upload URL (for new image upload) - Exact copy from original CRM**
 router.post("/", async (req, res) => {
   try {
     const { name, type } = req.body;
@@ -40,17 +41,16 @@ router.post("/", async (req, res) => {
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
       Key: `images/blog/${name}`,
-      ContentType: type, // Ensure this is a valid MIME type (e.g., "image/jpeg")
+      ContentType: type,
     };
 
     const command = new PutObjectCommand(params);
 
     const s3 = getS3Client();
-    const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 }); // 60 seconds
+    const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 });
 
     res.status(201).json({ uploadURL });
   } catch (error) {
-    // Error generating upload URL
     res.status(500).json({
       error: "Could not generate upload URL",
       message:
@@ -59,7 +59,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// **PUT: Update an Image (Same as Upload) - Exact copy from original CRM**
 router.put("/", async (req, res) => {
   try {
     const { name, type } = req.body;
@@ -73,12 +72,12 @@ router.put("/", async (req, res) => {
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
       Key: `images/blog/${name}`,
-      ContentType: type, // Ensure this is a valid MIME type (e.g., "image/jpeg")
+      ContentType: type,
     };
 
     const command = new PutObjectCommand(params);
     const s3 = getS3Client();
-    const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 }); // 60 seconds
+    const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 });
 
     res.status(200).json({ uploadURL });
   } catch (error) {
@@ -88,8 +87,8 @@ router.put("/", async (req, res) => {
   }
 });
 
-// **POST: Direct Upload (bypasses CORS by uploading through API)**
-router.post("/direct", async (req, res) => {
+// **POST: Upload Blog Content Images (bypasses CORS by uploading through API)**
+router.post("/blog-content-image", async (req, res) => {
   try {
     const { name, type, fileData } = req.body;
 
@@ -99,14 +98,11 @@ router.post("/direct", async (req, res) => {
       });
     }
 
-    // Convert base64 to buffer if needed
     let fileBuffer;
     if (typeof fileData === "string" && fileData.startsWith("data:")) {
-      // Handle data URL format
       const base64Data = fileData.split(",")[1];
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
-      // Handle plain base64
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
       return res.status(400).json({
@@ -114,16 +110,18 @@ router.post("/direct", async (req, res) => {
       });
     }
 
-    // Use timestamp for cache busting (like PDF uploads)
     const timestamp = Date.now();
+    const fileExtension = type.split("/")[1] || "jpg";
+    const fileName = `content-${timestamp}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}.${fileExtension}`;
 
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: `images/blog/${name}`,
+      Key: `images/blog/${fileName}`,
       Body: fileBuffer,
       ContentType: type,
-      // Add cache control headers like PDF uploads
-      CacheControl: "public, max-age=31536000", // 1 year cache for images
+      CacheControl: "public, max-age=31536000",
       ContentDisposition: "inline",
     };
 
@@ -131,29 +129,18 @@ router.post("/direct", async (req, res) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    // Return the public URL with cache busting (like PDF uploads)
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
-    // URL encode the filename to handle special characters
-    const encodedName = encodeURIComponent(name);
+    const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
-      ? `${cloudFrontUrl}/images/blog/${encodedName}?t=${timestamp}`
-      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}?t=${timestamp}`;
-
-    console.log("=== IMAGE UPLOAD DEBUG ===");
-    console.log("CloudFront URL env var:", cloudFrontUrl);
-    console.log("Original file name:", name);
-    console.log("Encoded file name:", encodedName);
-    console.log("Generated image URL:", imageUrl);
-    console.log("Timestamp:", timestamp);
-    console.log("=========================");
+      ? `${cloudFrontUrl}/images/blog/${encodedName}`
+      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
 
     res.status(200).json({
       message: "Image uploaded successfully",
       imageUrl: imageUrl,
-      fileName: name,
+      fileName: fileName,
     });
   } catch (error) {
-    console.error("Direct upload error:", error);
     res.status(500).json({
       error: "Could not upload image",
       message:
@@ -162,8 +149,8 @@ router.post("/direct", async (req, res) => {
   }
 });
 
-// **PUT: Replace Cover Image (uses consistent filename for direct replacement)**
-router.put("/replace-cover", async (req, res) => {
+// **PUT: Replace Blog Cover Image (uses new file approach with automatic cleanup)**
+router.put("/blog-cover-image", async (req, res) => {
   try {
     const { blogId, type, fileData } = req.body;
 
@@ -175,12 +162,17 @@ router.put("/replace-cover", async (req, res) => {
 
     // Handle deletion case (fileData is null)
     if (fileData === null) {
-      console.log(`Deleting cover image for blog ${blogId}`);
-
       // Try common image extensions
       const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
       let deleted = false;
 
+      // Try to delete both old format (without timestamp) and new format (with timestamp)
+      const fileNamePatterns = [
+        `cover-${blogId}`, // Old format without timestamp
+        `cover-${blogId}-*`, // New format with timestamp (we'll use ListObjects to find exact files)
+      ];
+
+      // First, try old format files
       for (const ext of extensions) {
         const fileName = `cover-${blogId}.${ext}`;
         const params = {
@@ -193,26 +185,65 @@ router.put("/replace-cover", async (req, res) => {
           const command = new DeleteObjectCommand(params);
           const s3 = getS3Client();
           await s3.send(command);
-          console.log(`Cover image deleted from S3: ${fileName}`);
           deleted = true;
           break;
         } catch (error) {
-          // Continue to next extension if file not found
-          if (error.name !== "NoSuchKey") {
+          if (error.name === "NoSuchKey") {
+            // File doesn't exist, continue to next extension
+            continue;
+          } else {
+            // Real S3 error occurred, log it and continue to next extension
             console.error(`Error deleting cover image ${fileName}:`, error);
+            continue;
           }
         }
       }
 
-      // Update database to remove cover image
+      // If old format not found, try to find and delete new format files with timestamp
+      if (!deleted) {
+        try {
+          const { ListObjectsV2Command, DeleteObjectCommand } = await import(
+            "@aws-sdk/client-s3"
+          );
+          const listParams = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Prefix: `images/blog/cover-${blogId}-`,
+          };
+
+          const s3 = getS3Client();
+          const listCommand = new ListObjectsV2Command(listParams);
+          const listResponse = await s3.send(listCommand);
+
+          if (listResponse.Contents && listResponse.Contents.length > 0) {
+            for (const object of listResponse.Contents) {
+              const deleteParams = {
+                Bucket: process.env.AWS_S3_BUCKET_NAME,
+                Key: object.Key,
+              };
+              const deleteCommand = new DeleteObjectCommand(deleteParams);
+              await s3.send(deleteCommand);
+              deleted = true;
+            }
+          }
+        } catch (error) {
+          console.error(
+            `Error deleting timestamped cover images for blog ${blogId}:`,
+            error
+          );
+        }
+      }
+
       try {
         const { default: blogsService } = await import(
           "../features/blogs/services/blogsService.js"
         );
         await blogsService.updateBlog(blogId, { coverImage: null });
-        console.log(`Cover image removed from database for blog ${blogId}`);
       } catch (dbError) {
         console.error("Error updating database:", dbError);
+        return res.status(500).json({
+          error: "Failed to update database",
+          message: "Cover image deleted from S3 but database update failed",
+        });
       }
 
       return res.status(200).json({
@@ -221,21 +252,17 @@ router.put("/replace-cover", async (req, res) => {
       });
     }
 
-    // Handle upload/replacement case
     if (!type || !fileData) {
       return res.status(400).json({
         error: "Invalid request: Missing type or fileData for upload",
       });
     }
 
-    // Convert base64 to buffer if needed
     let fileBuffer;
     if (typeof fileData === "string" && fileData.startsWith("data:")) {
-      // Handle data URL format
       const base64Data = fileData.split(",")[1];
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
-      // Handle plain base64
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
       return res.status(400).json({
@@ -243,17 +270,16 @@ router.put("/replace-cover", async (req, res) => {
       });
     }
 
-    // Use consistent filename for cover images: cover-{blogId}.{extension}
-    const fileExtension = type.split("/")[1] || "jpg";
-    const fileName = `cover-${blogId}.${fileExtension}`;
     const timestamp = Date.now();
+    const fileExtension = type.split("/")[1] || "jpg";
+    const fileName = `cover-${blogId}-${timestamp}.${fileExtension}`;
 
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
       Key: `images/blog/${fileName}`,
       Body: fileBuffer,
       ContentType: type,
-      CacheControl: "public, max-age=31536000", // 1 year cache for images
+      CacheControl: "public, max-age=31536000",
       ContentDisposition: "inline",
     };
 
@@ -261,35 +287,33 @@ router.put("/replace-cover", async (req, res) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    // Return the public URL with cache busting
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
     const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
-      ? `${cloudFrontUrl}/images/blog/${encodedName}?t=${timestamp}`
-      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}?t=${timestamp}`;
+      ? `${cloudFrontUrl}/images/blog/${encodedName}`
+      : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
 
-    // Update database with new cover image URL
+    let existingBlog = null;
     try {
-      const { default: blogsService } = await import(
-        "../features/blogs/services/blogsService.js"
-      );
-      await blogsService.updateBlog(blogId, {
+      existingBlog = await getBlogById(blogId);
+
+      await updateBlog(blogId, {
         coverImage: {
           src: imageUrl,
           alt: "Cover Image",
         },
       });
-      console.log(`Cover image URL updated in database for blog ${blogId}`);
     } catch (dbError) {
       console.error("Error updating database:", dbError);
+      return res.status(500).json({
+        error: "Failed to update database",
+        message: "Cover image uploaded to S3 but database update failed",
+      });
     }
 
-    console.log("=== COVER IMAGE REPLACEMENT DEBUG ===");
-    console.log("Blog ID:", blogId);
-    console.log("File name:", fileName);
-    console.log("Generated image URL:", imageUrl);
-    console.log("Timestamp:", timestamp);
-    console.log("=====================================");
+    if (existingBlog?.coverImage?.src) {
+      await queueImageCleanup(existingBlog.coverImage.src, 5000);
+    }
 
     res.status(200).json({
       message: "Cover image replaced successfully",
@@ -298,7 +322,6 @@ router.put("/replace-cover", async (req, res) => {
       success: true,
     });
   } catch (error) {
-    console.error("Cover image replacement error:", error);
     res.status(500).json({
       error: "Could not replace cover image",
       message:
