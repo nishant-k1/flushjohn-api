@@ -123,7 +123,7 @@ const deleteCoverImageFromS3 = async (blogId) => {
   try {
     const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
     let deleted = false;
-    
+
     // First, try old format files (without timestamp)
     for (const ext of extensions) {
       const fileName = `cover-${blogId}.${ext}`;
@@ -154,7 +154,9 @@ const deleteCoverImageFromS3 = async (blogId) => {
     // If old format not found, try to find and delete new format files with timestamp
     if (!deleted) {
       try {
-        const { ListObjectsV2Command, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+        const { ListObjectsV2Command, DeleteObjectCommand } = await import(
+          "@aws-sdk/client-s3"
+        );
         const listParams = {
           Bucket: process.env.AWS_S3_BUCKET_NAME,
           Prefix: `images/blog/cover-${blogId}-`,
@@ -176,10 +178,13 @@ const deleteCoverImageFromS3 = async (blogId) => {
           }
         }
       } catch (error) {
-        console.error(`Error deleting timestamped cover images for blog ${blogId}:`, error);
+        console.error(
+          `Error deleting timestamped cover images for blog ${blogId}:`,
+          error
+        );
       }
     }
-    
+
     return true; // Return true even if no files were found to delete
   } catch (error) {
     console.error(`Error in deleteCoverImageFromS3 for blog ${blogId}:`, error);
