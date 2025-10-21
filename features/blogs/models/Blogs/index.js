@@ -187,14 +187,16 @@ BlogsSchema.pre("save", function (next) {
     // Calculate word count by stripping HTML tags
     const textContent = this.content.replace(/<[^>]*>/g, "");
     const trimmedContent = textContent.trim();
-    
+
     // Handle empty content correctly
     if (!trimmedContent) {
       this.wordCount = 0;
       this.readingTime = 0;
     } else {
       // Split by whitespace and filter out empty strings
-      const words = trimmedContent.split(/\s+/).filter(word => word.length > 0);
+      const words = trimmedContent
+        .split(/\s+/)
+        .filter((word) => word.length > 0);
       this.wordCount = words.length;
       this.readingTime = Math.ceil(this.wordCount / 200);
     }
