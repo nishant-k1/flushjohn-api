@@ -265,6 +265,7 @@ export const getAllBlogs = async ({
   sortOrder = "desc",
   slug = null,
   search = "",
+  status = null, // ✅ NEW: Add status parameter
 }) => {
   const skip = (page - 1) * limit;
 
@@ -281,6 +282,11 @@ export const getAllBlogs = async ({
         { author: { $regex: search, $options: "i" } },
       ],
     };
+  }
+
+  // ✅ NEW: Add status filtering
+  if (status) {
+    query.status = status;
   }
 
   const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
