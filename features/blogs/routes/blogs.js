@@ -45,6 +45,7 @@ router.get("/", async function (req, res) {
       slug = null,
       search = "",
       searchQuery = "",
+      status = null, // ✅ NEW: Add status parameter
     } = req.query;
 
     const result = await blogsService.getAllBlogs({
@@ -54,6 +55,7 @@ router.get("/", async function (req, res) {
       sortOrder,
       slug,
       search: search || searchQuery,
+      status, // ✅ NEW: Pass status to service
     });
 
     res.status(200).json({
