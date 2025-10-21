@@ -1,13 +1,3 @@
-/**
- * Blog Image Cleanup Service - Handles cleanup of old/unused blog images from S3
- *
- * This service is specifically for blog-related images:
- * - Blog cover images
- * - Blog content images
- *
- * PDF cleanup is handled separately.
- */
-
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 let s3Client = null;
@@ -25,17 +15,11 @@ const getS3Client = () => {
   return s3Client;
 };
 
-/**
- * Extract S3 key from CDN URL
- * @param {string} cdnUrl - CDN URL like https://cdn.myapp.com/images/blog/cover-123-1698347429.jpg
- * @returns {string} - S3 key like images/blog/cover-123-1698347429.jpg
- */
 const extractS3KeyFromUrl = (cdnUrl) => {
   try {
     const url = new URL(cdnUrl);
     const pathname = url.pathname;
 
-    // Remove leading slash and extract path after domain
     const s3Key = pathname.startsWith("/") ? pathname.slice(1) : pathname;
 
     return s3Key;
@@ -44,11 +28,6 @@ const extractS3KeyFromUrl = (cdnUrl) => {
   }
 };
 
-/**
- * Delete image from S3
- * @param {string} imageUrl - Full CDN URL of the image
- * @returns {Promise<boolean>} - Success status
- */
 export const deleteImageFromS3 = async (imageUrl) => {
   try {
     const s3Key = extractS3KeyFromUrl(imageUrl);
@@ -72,13 +51,6 @@ export const deleteImageFromS3 = async (imageUrl) => {
   }
 };
 
-// Note: scheduleImageCleanup function removed - now using queue-based approach
-
-/**
- * Clean up multiple images
- * @param {string[]} imageUrls - Array of image URLs to clean up
- * @returns {Promise<Object>} - Cleanup results
- */
 export const cleanupMultipleImages = async (imageUrls) => {
   const results = {
     successful: [],
@@ -102,13 +74,6 @@ export const cleanupMultipleImages = async (imageUrls) => {
   return results;
 };
 
-/**
- * Clean up orphaned images (images not referenced in any blog)
- * @param {Array} allImageUrls - All image URLs from database
- * @returns {Promise<Object>} - Cleanup results
- */
 export const cleanupOrphanedImages = async (allImageUrls) => {
-  // This would require checking which images are still referenced in blogs
-  // Implementation depends on your database structure
   return { successful: [], failed: [], total: 0 };
 };

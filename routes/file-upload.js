@@ -1,13 +1,3 @@
-/**
- * File Upload Routes - Blog Images Only
- *
- * This file handles ONLY blog-related image uploads:
- * - Blog cover images (replacement with automatic cleanup)
- * - Blog content images (for rich text editor)
- *
- * PDF uploads are handled separately in other routes.
- */
-
 import express from "express";
 import {
   S3Client,
@@ -23,13 +13,10 @@ import {
 
 const router = express.Router();
 
-// Lazy initialization of S3 Client - Only create when needed
 let s3Instance = null;
 
 const getS3Client = () => {
   if (!s3Instance) {
-    // Initializing S3 Client with credentials
-
     s3Instance = new S3Client({
       region: process.env.AWS_REGION,
       credentials: {
@@ -41,7 +28,6 @@ const getS3Client = () => {
   return s3Instance;
 };
 
-// **POST: Generate Upload URL (for new image upload) - Exact copy from original CRM**
 router.post("/", async (req, res) => {
   try {
     const { name, type } = req.body;
@@ -55,17 +41,16 @@ router.post("/", async (req, res) => {
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
       Key: `images/blog/${name}`,
-      ContentType: type, // Ensure this is a valid MIME type (e.g., "image/jpeg")
+      ContentType: type,
     };
 
     const command = new PutObjectCommand(params);
 
     const s3 = getS3Client();
-    const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 }); // 60 seconds
+    const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 });
 
     res.status(201).json({ uploadURL });
   } catch (error) {
-    // Error generating upload URL
     res.status(500).json({
       error: "Could not generate upload URL",
       message:
@@ -74,7 +59,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// **PUT: Update an Image (Same as Upload) - Exact copy from original CRM**
 router.put("/", async (req, res) => {
   try {
     const { name, type } = req.body;
@@ -88,12 +72,12 @@ router.put("/", async (req, res) => {
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
       Key: `images/blog/${name}`,
-      ContentType: type, // Ensure this is a valid MIME type (e.g., "image/jpeg")
+      ContentType: type,
     };
 
     const command = new PutObjectCommand(params);
     const s3 = getS3Client();
-    const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 }); // 60 seconds
+    const uploadURL = await getSignedUrl(s3, command, { expiresIn: 60 });
 
     res.status(200).json({ uploadURL });
   } catch (error) {
@@ -114,14 +98,11 @@ router.post("/blog-content-image", async (req, res) => {
       });
     }
 
-    // Convert base64 to buffer if needed
     let fileBuffer;
     if (typeof fileData === "string" && fileData.startsWith("data:")) {
-      // Handle data URL format
       const base64Data = fileData.split(",")[1];
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
-      // Handle plain base64
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
       return res.status(400).json({
@@ -129,7 +110,6 @@ router.post("/blog-content-image", async (req, res) => {
       });
     }
 
-    // ✅ NEW APPROACH: Generate unique filename for content images
     const timestamp = Date.now();
     const fileExtension = type.split("/")[1] || "jpg";
     const fileName = `content-${timestamp}-${Math.random()
@@ -141,7 +121,7 @@ router.post("/blog-content-image", async (req, res) => {
       Key: `images/blog/${fileName}`,
       Body: fileBuffer,
       ContentType: type,
-      CacheControl: "public, max-age=31536000", // 1 year cache for images
+      CacheControl: "public, max-age=31536000",
       ContentDisposition: "inline",
     };
 
@@ -149,13 +129,11 @@ router.post("/blog-content-image", async (req, res) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    // ✅ NEW APPROACH: No cache busting needed - new file = new URL
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
     const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/images/blog/${encodedName}`
       : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
-
 
     res.status(200).json({
       message: "Image uploaded successfully",
@@ -184,7 +162,6 @@ router.put("/blog-cover-image", async (req, res) => {
 
     // Handle deletion case (fileData is null)
     if (fileData === null) {
-
       // Try common image extensions
       const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
       let deleted = false;
@@ -204,20 +181,17 @@ router.put("/blog-cover-image", async (req, res) => {
           deleted = true;
           break;
         } catch (error) {
-          // Continue to next extension if file not found
           if (error.name !== "NoSuchKey") {
           }
         }
       }
 
-      // Update database to remove cover image
       try {
         const { default: blogsService } = await import(
           "../features/blogs/services/blogsService.js"
         );
         await blogsService.updateBlog(blogId, { coverImage: null });
-      } catch (dbError) {
-      }
+      } catch (dbError) {}
 
       return res.status(200).json({
         message: "Cover image deleted successfully",
@@ -225,21 +199,17 @@ router.put("/blog-cover-image", async (req, res) => {
       });
     }
 
-    // Handle upload/replacement case
     if (!type || !fileData) {
       return res.status(400).json({
         error: "Invalid request: Missing type or fileData for upload",
       });
     }
 
-    // Convert base64 to buffer if needed
     let fileBuffer;
     if (typeof fileData === "string" && fileData.startsWith("data:")) {
-      // Handle data URL format
       const base64Data = fileData.split(",")[1];
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
-      // Handle plain base64
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
       return res.status(400).json({
@@ -247,7 +217,6 @@ router.put("/blog-cover-image", async (req, res) => {
       });
     }
 
-    // ✅ NEW APPROACH: Generate unique filename with timestamp
     const timestamp = Date.now();
     const fileExtension = type.split("/")[1] || "jpg";
     const fileName = `cover-${blogId}-${timestamp}.${fileExtension}`;
@@ -257,7 +226,7 @@ router.put("/blog-cover-image", async (req, res) => {
       Key: `images/blog/${fileName}`,
       Body: fileBuffer,
       ContentType: type,
-      CacheControl: "public, max-age=31536000", // 1 year cache for images
+      CacheControl: "public, max-age=31536000",
       ContentDisposition: "inline",
     };
 
@@ -265,33 +234,27 @@ router.put("/blog-cover-image", async (req, res) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    // ✅ NEW APPROACH: No cache busting needed - new file = new URL
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
     const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/images/blog/${encodedName}`
       : `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/images/blog/${encodedName}`;
 
-    // Get existing blog for cleanup
     let existingBlog = null;
     try {
       existingBlog = await getBlogById(blogId);
 
-      // Update database with new cover image URL
       await updateBlog(blogId, {
         coverImage: {
           src: imageUrl,
           alt: "Cover Image",
         },
       });
-    } catch (dbError) {
-    }
+    } catch (dbError) {}
 
-    // ✅ NEW APPROACH: Queue cleanup of old image (with 5 second delay)
     if (existingBlog?.coverImage?.src) {
       await queueImageCleanup(existingBlog.coverImage.src, 5000);
     }
-
 
     res.status(200).json({
       message: "Cover image replaced successfully",

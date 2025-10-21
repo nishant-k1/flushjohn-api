@@ -1,24 +1,8 @@
-/**
- * Blog Image Cleanup Queue Service - Background cleanup with retry logic
- *
- * This service handles background cleanup of blog-related images:
- * - Blog cover images (when replaced)
- * - Blog content images (when orphaned)
- *
- * PDF cleanup is handled separately.
- */
-
 import { deleteImageFromS3 } from "./imageCleanupService.js";
 
-// Simple in-memory queue (for production, use Redis/Bull/Agenda)
 const cleanupQueue = [];
 const processingQueue = new Set();
 
-/**
- * Add image to cleanup queue
- * @param {string} imageUrl - Image URL to clean up
- * @param {number} delay - Delay in milliseconds before cleanup
- */
 export const queueImageCleanup = async (imageUrl, delay = 0) => {
   const cleanupTask = {
     imageUrl,
@@ -37,15 +21,11 @@ export const queueImageCleanup = async (imageUrl, delay = 0) => {
 
   cleanupQueue.push(cleanupTask);
 
-  // Process queue if not already processing
   if (!processingQueue.has("cleanup")) {
     processCleanupQueue();
   }
 };
 
-/**
- * Process cleanup queue
- */
 const processCleanupQueue = async () => {
   if (processingQueue.has("cleanup") || cleanupQueue.length === 0) {
     return;
@@ -57,17 +37,14 @@ const processCleanupQueue = async () => {
     const task = cleanupQueue.shift();
 
     try {
-
       const success = await deleteImageFromS3(task.imageUrl);
 
       if (success) {
       } else {
-        // Retry logic
         task.attempts++;
         if (task.attempts < task.maxAttempts) {
           cleanupQueue.push(task);
 
-          // Exponential backoff
           await new Promise((resolve) =>
             setTimeout(resolve, Math.pow(2, task.attempts) * 1000)
           );
@@ -75,8 +52,6 @@ const processCleanupQueue = async () => {
         }
       }
     } catch (error) {
-
-      // Retry logic
       task.attempts++;
       if (task.attempts < task.maxAttempts) {
         cleanupQueue.push(task);
@@ -87,20 +62,12 @@ const processCleanupQueue = async () => {
   processingQueue.delete("cleanup");
 };
 
-/**
- * Clean up multiple images with delay
- * @param {string[]} imageUrls - Array of image URLs
- * @param {number} delay - Delay between cleanups in milliseconds
- */
 export const queueMultipleImageCleanup = async (imageUrls, delay = 1000) => {
   for (let i = 0; i < imageUrls.length; i++) {
     await queueImageCleanup(imageUrls[i], i * delay);
   }
 };
 
-/**
- * Get queue status
- */
 export const getQueueStatus = () => {
   return {
     pending: cleanupQueue.length,
