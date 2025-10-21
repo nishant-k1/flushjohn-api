@@ -68,6 +68,7 @@ const BlogsSchema = new Schema(
       type: String,
       required: [true, "Category is required"],
       trim: true,
+      default: "general",
       enum: {
         values: [
           "porta-potty-rental",
@@ -185,8 +186,22 @@ BlogsSchema.pre("save", function (next) {
   if (this.content) {
     // Calculate word count by stripping HTML tags
     const textContent = this.content.replace(/<[^>]*>/g, "");
-    this.wordCount = textContent.trim().split(/\s+/).length;
-    this.readingTime = Math.ceil(this.wordCount / 200);
+    const trimmedContent = textContent.trim();
+    
+    // Handle empty content correctly
+    if (!trimmedContent) {
+      this.wordCount = 0;
+      this.readingTime = 0;
+    } else {
+      // Split by whitespace and filter out empty strings
+      const words = trimmedContent.split(/\s+/).filter(word => word.length > 0);
+      this.wordCount = words.length;
+      this.readingTime = Math.ceil(this.wordCount / 200);
+    }
+  } else {
+    // No content
+    this.wordCount = 0;
+    this.readingTime = 0;
   }
 
   // Set publishedAt when status changes to published
