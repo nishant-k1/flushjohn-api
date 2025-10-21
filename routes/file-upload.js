@@ -234,10 +234,10 @@ router.put("/blog-cover-image", async (req, res) => {
       }
 
       try {
-        const { default: blogsService } = await import(
+        const { updateBlog } = await import(
           "../features/blogs/services/blogsService.js"
         );
-        await blogsService.updateBlog(blogId, { coverImage: null });
+        await updateBlog(blogId, { coverImage: null });
       } catch (dbError) {
         console.error("Error updating database:", dbError);
         return res.status(500).json({
