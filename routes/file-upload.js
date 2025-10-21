@@ -166,6 +166,13 @@ router.put("/blog-cover-image", async (req, res) => {
       const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
       let deleted = false;
 
+      // Try to delete both old format (without timestamp) and new format (with timestamp)
+      const fileNamePatterns = [
+        `cover-${blogId}`, // Old format without timestamp
+        `cover-${blogId}-*`, // New format with timestamp (we'll use ListObjects to find exact files)
+      ];
+
+      // First, try old format files
       for (const ext of extensions) {
         const fileName = `cover-${blogId}.${ext}`;
         const params = {
@@ -181,8 +188,43 @@ router.put("/blog-cover-image", async (req, res) => {
           deleted = true;
           break;
         } catch (error) {
-          if (error.name !== "NoSuchKey") {
+          if (error.name === "NoSuchKey") {
+            // File doesn't exist, continue to next extension
+            continue;
+          } else {
+            // Real S3 error occurred, log it and continue to next extension
+            console.error(`Error deleting cover image ${fileName}:`, error);
+            continue;
           }
+        }
+      }
+
+      // If old format not found, try to find and delete new format files with timestamp
+      if (!deleted) {
+        try {
+          const { ListObjectsV2Command, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+          const listParams = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Prefix: `images/blog/cover-${blogId}-`,
+          };
+
+          const s3 = getS3Client();
+          const listCommand = new ListObjectsV2Command(listParams);
+          const listResponse = await s3.send(listCommand);
+
+          if (listResponse.Contents && listResponse.Contents.length > 0) {
+            for (const object of listResponse.Contents) {
+              const deleteParams = {
+                Bucket: process.env.AWS_S3_BUCKET_NAME,
+                Key: object.Key,
+              };
+              const deleteCommand = new DeleteObjectCommand(deleteParams);
+              await s3.send(deleteCommand);
+              deleted = true;
+            }
+          }
+        } catch (error) {
+          console.error(`Error deleting timestamped cover images for blog ${blogId}:`, error);
         }
       }
 
@@ -191,7 +233,13 @@ router.put("/blog-cover-image", async (req, res) => {
           "../features/blogs/services/blogsService.js"
         );
         await blogsService.updateBlog(blogId, { coverImage: null });
-      } catch (dbError) {}
+      } catch (dbError) {
+        console.error("Error updating database:", dbError);
+        return res.status(500).json({
+          error: "Failed to update database",
+          message: "Cover image deleted from S3 but database update failed",
+        });
+      }
 
       return res.status(200).json({
         message: "Cover image deleted successfully",
@@ -250,7 +298,13 @@ router.put("/blog-cover-image", async (req, res) => {
           alt: "Cover Image",
         },
       });
-    } catch (dbError) {}
+    } catch (dbError) {
+      console.error("Error updating database:", dbError);
+      return res.status(500).json({
+        error: "Failed to update database",
+        message: "Cover image uploaded to S3 but database update failed",
+      });
+    }
 
     if (existingBlog?.coverImage?.src) {
       await queueImageCleanup(existingBlog.coverImage.src, 5000);

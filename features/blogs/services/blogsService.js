@@ -122,7 +122,9 @@ const uploadCoverImageToS3 = async (blogId, fileType, fileData) => {
 const deleteCoverImageFromS3 = async (blogId) => {
   try {
     const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
+    let deleted = false;
     
+    // First, try old format files (without timestamp)
     for (const ext of extensions) {
       const fileName = `cover-${blogId}.${ext}`;
       const params = {
@@ -135,16 +137,52 @@ const deleteCoverImageFromS3 = async (blogId) => {
         const command = new DeleteObjectCommand(params);
         const s3 = getS3Client();
         await s3.send(command);
-        return true;
+        deleted = true;
+        break;
       } catch (error) {
-        if (error.name !== "NoSuchKey") {
+        if (error.name === "NoSuchKey") {
+          // File doesn't exist, continue to next extension
+          continue;
+        } else {
+          // Real S3 error occurred, log it and continue to next extension
+          console.error(`Error deleting cover image ${fileName}:`, error);
           continue;
         }
       }
     }
+
+    // If old format not found, try to find and delete new format files with timestamp
+    if (!deleted) {
+      try {
+        const { ListObjectsV2Command, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+        const listParams = {
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Prefix: `images/blog/cover-${blogId}-`,
+        };
+
+        const s3 = getS3Client();
+        const listCommand = new ListObjectsV2Command(listParams);
+        const listResponse = await s3.send(listCommand);
+
+        if (listResponse.Contents && listResponse.Contents.length > 0) {
+          for (const object of listResponse.Contents) {
+            const deleteParams = {
+              Bucket: process.env.AWS_S3_BUCKET_NAME,
+              Key: object.Key,
+            };
+            const deleteCommand = new DeleteObjectCommand(deleteParams);
+            await s3.send(deleteCommand);
+            deleted = true;
+          }
+        }
+      } catch (error) {
+        console.error(`Error deleting timestamped cover images for blog ${blogId}:`, error);
+      }
+    }
     
-    return true;
+    return true; // Return true even if no files were found to delete
   } catch (error) {
+    console.error(`Error in deleteCoverImageFromS3 for blog ${blogId}:`, error);
     return false;
   }
 };

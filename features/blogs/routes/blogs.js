@@ -219,14 +219,7 @@ router.post("/:id/cover-image/presigned-url", async function (req, res) {
     }
 
     // Check if blog exists
-    const blog = await blogsService.getBlogById(id);
-    if (!blog) {
-      return res.status(404).json({
-        success: false,
-        message: "Blog not found",
-        error: "BLOG_NOT_FOUND",
-      });
-    }
+    await blogsService.getBlogById(id);
 
     const result = await generateBlogCoverImagePresignedUrl(id, fileType);
 
@@ -277,14 +270,7 @@ router.post("/:id/cover-image/upload-complete", async function (req, res) {
     }
 
     // Check if blog exists
-    const existingBlog = await blogsService.getBlogById(id);
-    if (!existingBlog) {
-      return res.status(404).json({
-        success: false,
-        message: "Blog not found",
-        error: "BLOG_NOT_FOUND",
-      });
-    }
+    await blogsService.getBlogById(id);
 
     // Update blog with new cover image URL
     const updatedBlog = await blogsService.updateBlog(id, {
@@ -333,14 +319,7 @@ router.delete("/:id/cover-image", async function (req, res) {
     }
 
     // Check if blog exists
-    const existingBlog = await blogsService.getBlogById(id);
-    if (!existingBlog) {
-      return res.status(404).json({
-        success: false,
-        message: "Blog not found",
-        error: "BLOG_NOT_FOUND",
-      });
-    }
+    await blogsService.getBlogById(id);
 
     // Delete cover image from S3
     const deleteSuccess = await deleteBlogCoverImageFromS3(id);
