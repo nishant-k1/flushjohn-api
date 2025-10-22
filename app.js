@@ -13,12 +13,14 @@ import { createServer } from "http";
 import dbConnect from "./lib/dbConnect/index.js";
 import socketConnect from "./lib/socketConnect/index.js";
 import { schedulePDFCleanup, runCleanupOnStartup } from "./jobs/pdfCleanup.js";
+import { initializeCronJobs } from "./services/cronScheduler.js";
 // Cross-cutting routes
 import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
 import pdfCleanupRouter from "./routes/pdfCleanup.js";
 import s3CorsRouter from "./routes/s3-cors.js";
+import blogAutomationRouter from "./routes/blog-automation.js";
 
 // Feature-based imports
 import leadsFeature from "./features/leads/index.js";
@@ -210,6 +212,7 @@ app.use("/customers", customersRouter);
 app.use("/quotes", quotesRouter);
 app.use("/salesOrders", salesOrdersRouter);
 app.use("/jobOrders", jobOrdersRouter);
+app.use("/blog-automation", blogAutomationRouter);
 
 // ✅ STANDARDIZED: Connect Database with enhanced error handling
 dbConnect().catch((error) => {
@@ -221,6 +224,15 @@ schedulePDFCleanup();
 
 // ✅ Optionally run cleanup on startup
 runCleanupOnStartup();
+
+// ✅ Initialize automated blog generation cron jobs
+let cronJobs;
+try {
+  cronJobs = initializeCronJobs();
+  console.log('✅ Automated blog generation cron jobs initialized');
+} catch (error) {
+  console.error('❌ Failed to initialize cron jobs:', error);
+}
 
 // Handle 404 errors
 app.use((req, res, next) => {
