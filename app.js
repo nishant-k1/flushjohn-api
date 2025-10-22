@@ -13,14 +13,14 @@ import { createServer } from "http";
 import dbConnect from "./lib/dbConnect/index.js";
 import socketConnect from "./lib/socketConnect/index.js";
 import { schedulePDFCleanup, runCleanupOnStartup } from "./jobs/pdfCleanup.js";
-import { initializeCronJobs } from "./services/cronScheduler.js";
+import { initializeCronJobs } from "./features/blogs/services/cronScheduler.js";
 // Cross-cutting routes
 import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
 import pdfCleanupRouter from "./routes/pdfCleanup.js";
 import s3CorsRouter from "./routes/s3-cors.js";
-import blogAutomationRouter from "./routes/blog-automation.js";
+import blogAutomationRouter from "./features/blogs/routes/blog-automation.js";
 
 // Feature-based imports
 import leadsFeature from "./features/leads/index.js";

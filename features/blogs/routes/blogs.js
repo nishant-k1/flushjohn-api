@@ -7,7 +7,7 @@ import * as blogsService from "../services/blogsService.js";
 import {
   generateBlogCoverImagePresignedUrl,
   deleteBlogCoverImageFromS3,
-} from "../../../services/s3Service.js";
+} from "../../common/services/s3Service.js";
 
 const router = Router();
 
