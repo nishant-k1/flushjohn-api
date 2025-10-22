@@ -12,13 +12,11 @@ export const schedulePDFCleanup = () => {
   const cronSchedule = process.env.PDF_CLEANUP_SCHEDULE || "0 2 * * *"; // Daily at 2 AM
 
   if (!cleanupEnabled) {
-
     return;
   }
 
   // Validate cron schedule
   if (!cron.validate(cronSchedule)) {
-
     return;
   }
 
