@@ -9,8 +9,18 @@ import * as customersService from "../../customers/services/customersService.js"
  */
 const getMonthIndex = (month) => {
   const months = {
-    january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
-    july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+    january: 0,
+    february: 1,
+    march: 2,
+    april: 3,
+    may: 4,
+    june: 5,
+    july: 6,
+    august: 7,
+    september: 8,
+    october: 9,
+    november: 10,
+    december: 11,
   };
   return months[month.toLowerCase()] || 0;
 };
@@ -18,9 +28,10 @@ const getMonthIndex = (month) => {
 /**
  * Calculate date filter based on date range, month, and year
  */
-const getDateFilter = (dateRange, month = null, year = null) => {
+export const getDateFilter = (dateRange, month = null, year = null) => {
   const now = new Date();
   let startDate, endDate;
+
 
   // If month and year are provided, override the date range logic
   if (month && year) {
@@ -137,7 +148,11 @@ const getDateFilter = (dateRange, month = null, year = null) => {
 /**
  * Get comprehensive dashboard analytics
  */
-export const getDashboardAnalytics = async (dateRange = "12months", month = null, year = null) => {
+export const getDashboardAnalytics = async (
+  dateRange = "12months",
+  month = null,
+  year = null
+) => {
   try {
     const { startDate, endDate } = getDateFilter(dateRange, month, year);
 
@@ -149,6 +164,7 @@ export const getDashboardAnalytics = async (dateRange = "12months", month = null
     if (endDate) {
       dateFilter.$lte = endDate;
     }
+
 
     // Get all leads with date filter
     const leadsFilter =

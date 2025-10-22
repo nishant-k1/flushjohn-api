@@ -9,7 +9,8 @@ const router = express.Router();
 router.get("/analytics", async (req, res) => {
   try {
     const { dateRange, month, year } = req.query;
-    const analytics = await getDashboardAnalytics(dateRange, month, year);
+    const yearNumber = year ? parseInt(year, 10) : null;
+    const analytics = await getDashboardAnalytics(dateRange, month, yearNumber);
 
     res.status(200).json({
       success: true,
