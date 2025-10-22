@@ -58,6 +58,10 @@ export const generateSlug = (title) => {
     .replace(/^-+|-+$/g, "");
 };
 
+export const getBlogBySlug = async (slug) => {
+  return await blogsRepository.findOne({ slug });
+};
+
 let s3Client = null;
 
 const getS3Client = () => {
