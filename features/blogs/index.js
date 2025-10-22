@@ -34,5 +34,4 @@ export default {
     testOpenAI: "./scripts/testOpenAI.js",
     triggerBlogGeneration: "./scripts/triggerBlogGeneration.js",
   },
-  generatedBlogs: "./generated-blogs/",
 };
