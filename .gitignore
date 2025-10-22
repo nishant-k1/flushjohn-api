@@ -47,3 +47,6 @@ yarn-error.log*
 next-env.d.ts
 
 public/temp/*
+# WhatsApp Web JS session data
+.wwebjs_auth/
+.wwebjs_cache/
