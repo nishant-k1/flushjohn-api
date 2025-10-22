@@ -12,13 +12,13 @@ import { createServer } from "http";
 
 import dbConnect from "./lib/dbConnect/index.js";
 import socketConnect from "./lib/socketConnect/index.js";
-import { schedulePDFCleanup, runCleanupOnStartup } from "./jobs/pdfCleanup.js";
+import { schedulePDFCleanup, runCleanupOnStartup } from "./features/file-management/jobs/pdfCleanup.js";
 import { initializeCronJobs } from "./features/blogs/services/cronScheduler.js";
 // Cross-cutting routes
 import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
-import pdfCleanupRouter from "./routes/pdfCleanup.js";
+import pdfCleanupRouter from "./features/file-management/routes/pdfCleanup.js";
 import s3CorsRouter from "./routes/s3-cors.js";
 import blogAutomationRouter from "./features/blogs/routes/blog-automation.js";
 
@@ -229,9 +229,9 @@ runCleanupOnStartup();
 let cronJobs;
 try {
   cronJobs = initializeCronJobs();
-  console.log('✅ Automated blog generation cron jobs initialized');
+  console.log("✅ Automated blog generation cron jobs initialized");
 } catch (error) {
-  console.error('❌ Failed to initialize cron jobs:', error);
+  console.error("❌ Failed to initialize cron jobs:", error);
 }
 
 // Handle 404 errors
