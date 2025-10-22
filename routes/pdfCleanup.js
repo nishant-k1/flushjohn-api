@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { cleanupOldPDFs } from "../services/pdfService.js";
+import { cleanupOldPDFs } from "../features/file-management/services/pdfService.js";
 import {
   authenticateToken,
   authorizeRoles,

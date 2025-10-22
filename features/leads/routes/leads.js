@@ -7,7 +7,7 @@
 
 import { Router } from "express";
 import * as leadsService from "../services/leadsService.js";
-import alertService from "../../../services/alertService.js";
+import alertService from "../../common/services/alertService.js";
 import validateAndRecalculateProducts from "../../../middleware/validateProducts.js";
 import { authenticateToken } from "../../auth/middleware/auth.js";
 

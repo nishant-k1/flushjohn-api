@@ -1,5 +1,5 @@
 import Leads from "../models/Leads/index.js";
-import alertService from "../../../services/alertService.js";
+import alertService from "../../common/services/alertService.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 const productsData = (leadSource, products) => {

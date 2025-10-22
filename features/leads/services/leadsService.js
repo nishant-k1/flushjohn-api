@@ -6,7 +6,7 @@
  */
 
 import * as leadsRepository from "../repositories/leadsRepository.js";
-import alertService from "../../../services/alertService.js";
+import alertService from "../../common/services/alertService.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
 
 /**
