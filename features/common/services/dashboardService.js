@@ -32,7 +32,6 @@ export const getDateFilter = (dateRange, month = null, year = null) => {
   const now = new Date();
   let startDate, endDate;
 
-
   // If month and year are provided, override the date range logic
   if (month && year) {
     const monthIndex = getMonthIndex(month);
@@ -164,7 +163,6 @@ export const getDashboardAnalytics = async (
     if (endDate) {
       dateFilter.$lte = endDate;
     }
-
 
     // Get all leads with date filter
     const leadsFilter =
