@@ -1,7 +1,7 @@
 import * as blogsRepository from "../repositories/blogsRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { queueImageCleanup } from "../../file-management/services/imageCleanupQueue.js";
+import { queueImageCleanup } from "../../fileManagement/services/imageCleanupQueue.js";
 
 export const generateBlogNumber = async () => {
   const latestBlog = await blogsRepository.findOne({}, "blogNo", {
