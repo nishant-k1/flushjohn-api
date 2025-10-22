@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { cleanupOldPDFs } from "../features/file-management/services/pdfService.js";
+import { cleanupOldPDFs } from "../services/pdfService.js";
 
 /**
  * Schedule automatic PDF cleanup

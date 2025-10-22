@@ -1,10 +1,10 @@
 import { createTransport } from "nodemailer";
-import { flushjohn, quengenesis } from "../constants/index.js";
+import { flushjohn, quengenesis } from "../../../constants/index.js";
 
 // Import email templates
-import quoteEmailTemplate from "../features/quotes/templates/email/index.js";
-import salesOrderEmailTemplate from "../features/salesOrders/templates/email/index.js";
-import jobOrderEmailTemplate from "../features/jobOrders/templates/email/index.js";
+import quoteEmailTemplate from "../../quotes/templates/email/index.js";
+import salesOrderEmailTemplate from "../../salesOrders/templates/email/index.js";
+import jobOrderEmailTemplate from "../../jobOrders/templates/email/index.js";
 
 /**
  * Send email with PDF attachment from S3

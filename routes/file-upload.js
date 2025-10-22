@@ -5,7 +5,7 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { queueImageCleanup } from "../features/fileManagement/services/imageCleanupQueue.js";
+// import { queueImageCleanup } from "../features/fileManagement/services/imageCleanupQueue.js";
 import {
   getBlogById,
   updateBlog,
@@ -311,7 +311,7 @@ router.put("/blog-cover-image", async (req, res) => {
     }
 
     if (existingBlog?.coverImage?.src) {
-      await queueImageCleanup(existingBlog.coverImage.src, 5000);
+      // await queueImageCleanup(existingBlog.coverImage.src, 5000);
     }
 
     res.status(200).json({

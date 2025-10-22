@@ -50,3 +50,6 @@ public/temp/*
 # WhatsApp Web JS session data
 .wwebjs_auth/
 .wwebjs_cache/
+
+# Playwright MCP configuration and cache
+.playwright-mcp/

@@ -3,7 +3,7 @@ import pkg from "whatsapp-web.js";
 const { Client, LocalAuth } = pkg;
 import qrcode from "qrcode-terminal";
 import QRCode from "qrcode";
-import { getCurrentDateTime } from "../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 class AlertService {
   constructor() {
@@ -63,9 +63,7 @@ class AlertService {
       });
 
       this.whatsappClient.on("qr", async (qr) => {
-
         qrcode.generate(qr, { small: true });
-
 
         // Store QR code for web display
         this.whatsappQRCode = qr;
@@ -80,13 +78,10 @@ class AlertService {
           });
 
           // QR code ready for web display
-        } catch (error) {
-
-        }
+        } catch (error) {}
       });
 
       this.whatsappClient.on("ready", async () => {
-
         this.whatsappReady = true;
 
         // Clear QR code since we're now authenticated
