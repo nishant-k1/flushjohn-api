@@ -213,7 +213,8 @@ export async function generateBlogContent(templateType, params) {
         },
       ],
       max_tokens: 4000,
-      temperature: 0.7,
+      temperature: 0.8, // Increased temperature for more creativity and uniqueness
+      seed: Math.floor(Math.random() * 1000000), // Add random seed for uniqueness
     });
 
     let content = response.choices[0].message.content;
@@ -261,11 +262,12 @@ Requirements:
         },
       ],
       max_tokens: 100,
-      temperature: 0.5,
+      temperature: 0.7, // Increased temperature for more variation
+      seed: Math.floor(Math.random() * 1000000), // Add random seed for uniqueness
     });
 
     let description = response.choices[0].message.content.trim();
-    
+
     // Clean up any potential code blocks or quotes
     description = description
       .replace(/^["']|["']$/g, "") // Remove surrounding quotes
@@ -345,12 +347,12 @@ export function extractTags(title, content, city = null) {
 export function generateCoverImageAlt(title, city = null) {
   const baseAlt = `FlushJohn porta potty rental services - ${title}`;
   const altText = city ? `${baseAlt} in ${city}` : baseAlt;
-  
+
   // Ensure alt text doesn't exceed 100 characters
   if (altText.length > 100) {
     return altText.substring(0, 97) + "...";
   }
-  
+
   return altText;
 }
 

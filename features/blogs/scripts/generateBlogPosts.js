@@ -26,6 +26,20 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
   try {
     console.log(`\n🚀 Generating blog post: "${postData.title}"`);
 
+    // Check if blog already exists
+    const checkSlug = blogGeneratorService.generateSlug(postData.title);
+    const existingBlog = await blogsService.getBlogBySlug(checkSlug);
+    
+    if (existingBlog) {
+      console.log(`⚠️ Blog already exists with slug: ${checkSlug}`);
+      return {
+        success: false,
+        title: postData.title,
+        error: "Blog already exists in database",
+        slug: checkSlug
+      };
+    }
+
     // Generate content using AI
     const content = await blogGeneratorService.generateBlogContent(
       templateType,
