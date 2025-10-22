@@ -10,15 +10,11 @@ import { createServer } from "http";
 
 import dbConnect from "./lib/dbConnect/index.js";
 import socketConnect from "./lib/socketConnect/index.js";
-import {
-  schedulePDFCleanup,
-  runCleanupOnStartup,
-} from "./features/fileManagement/jobs/pdfCleanup.js";
 import { initializeCronJobs } from "./features/blogs/services/cronScheduler.js";
 import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
-import pdfCleanupRouter from "./features/fileManagement/routes/pdfCleanup.js";
+// import pdfCleanupRouter from "./features/fileManagement/routes/pdfCleanup.js";
 import s3CorsRouter from "./routes/s3-cors.js";
 import blogAutomationRouter from "./features/blogs/routes/blog-automation.js";
 
@@ -30,11 +26,13 @@ import vendorsFeature from "./features/vendors/index.js";
 import jobOrdersFeature from "./features/jobOrders/index.js";
 import blogsFeature from "./features/blogs/index.js";
 import authFeature from "./features/auth/index.js";
+import commonFeature from "./features/common/index.js";
 const authRouter = authFeature.routes.auth;
 const usersRouter = authFeature.routes.users;
 const leadsRouter = leadsFeature.routes;
-const blogsRouter = blogsFeature.routes;
+const blogsRouter = blogsFeature.routes.blogs;
 const vendorsRouter = vendorsFeature.routes;
+const dashboardRouter = commonFeature.routes.dashboard;
 const customersRouter = customersFeature.routes;
 const quotesRouter = quotesFeature.routes;
 const salesOrdersRouter = salesOrdersFeature.routes;
@@ -193,7 +191,7 @@ app.use(
 app.use("/pdf", pdfAccessRouter);
 
 // PDF cleanup routes (for managing local PDFs)
-app.use("/pdf-cleanup", pdfCleanupRouter);
+// app.use("/pdf-cleanup", pdfCleanupRouter);
 
 // Routes
 app.use("/", indexRouter);
@@ -209,6 +207,7 @@ app.use("/quotes", quotesRouter);
 app.use("/salesOrders", salesOrdersRouter);
 app.use("/jobOrders", jobOrdersRouter);
 app.use("/blog-automation", blogAutomationRouter);
+app.use("/dashboard", dashboardRouter);
 
 // ✅ STANDARDIZED: Connect Database with enhanced error handling
 dbConnect().catch((error) => {
@@ -216,10 +215,10 @@ dbConnect().catch((error) => {
 });
 
 // ✅ Schedule automatic PDF cleanup (runs daily at 2 AM by default)
-schedulePDFCleanup();
+// schedulePDFCleanup();
 
 // ✅ Optionally run cleanup on startup
-runCleanupOnStartup();
+// runCleanupOnStartup();
 
 // ✅ Initialize automated blog generation cron jobs
 let cronJobs;

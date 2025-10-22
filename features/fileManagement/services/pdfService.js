@@ -1,4 +1,4 @@
-import { uploadPDFToS3 } from "./s3Service.js";
+import { uploadPDFToS3 } from "../../common/services/s3Service.js";
 import fs from "fs";
 import path from "path";
 import { promisify } from "util";
@@ -8,9 +8,9 @@ const stat = promisify(fs.stat);
 const unlink = promisify(fs.unlink);
 
 // Import templates from feature folders
-import quoteTemplate from "../features/quotes/templates/pdf/index.js";
-import salesOrderTemplate from "../features/salesOrders/templates/pdf/index.js";
-import jobOrderTemplate from "../features/jobOrders/templates/pdf/index.js";
+import quoteTemplate from "../../quotes/templates/pdf/index.js";
+import salesOrderTemplate from "../../salesOrders/templates/pdf/index.js";
+import jobOrderTemplate from "../../jobOrders/templates/pdf/index.js";
 
 // Try to import Playwright, fallback to Puppeteer if not available
 let browserLib = null;
@@ -218,7 +218,7 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
     try {
       // Fetching vendor details
       const { default: Vendors } = await import(
-        "../features/vendors/models/Vendors/index.js"
+        "../../vendors/models/Vendors/index.js"
       );
 
       // Try to find vendor by ID (MongoDB will handle string to ObjectId conversion)

@@ -1,7 +1,7 @@
 import * as blogsRepository from "../repositories/blogsRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { queueImageCleanup } from "../../fileManagement/services/imageCleanupQueue.js";
+// import { // queueImageCleanup } from "../../fileManagement/services/imageCleanupQueue.js";
 
 export const generateBlogNumber = async () => {
   const latestBlog = await blogsRepository.findOne({}, "blogNo", {
@@ -339,7 +339,7 @@ export const updateBlog = async (id, updateData) => {
 
   if (updateData.coverImage === null || updateData.coverImage === "") {
     if (existingBlog.coverImage?.src) {
-      await queueImageCleanup(existingBlog.coverImage.src, 2000);
+      // await queueImageCleanup(existingBlog.coverImage.src, 2000);
     }
 
     transformedUpdateData.coverImage = null;
@@ -364,7 +364,7 @@ export const updateBlog = async (id, updateData) => {
     existingBlog.coverImage?.src &&
     updateData.coverImage.src !== existingBlog.coverImage.src
   ) {
-    await queueImageCleanup(existingBlog.coverImage.src, 2000);
+    // await queueImageCleanup(existingBlog.coverImage.src, 2000);
   } else if (
     updateData.coverImage &&
     updateData.coverImage.src &&
@@ -375,7 +375,7 @@ export const updateBlog = async (id, updateData) => {
       existingBlog.coverImage?.src &&
       existingBlog.coverImage.src !== updateData.coverImage.src
     ) {
-      await queueImageCleanup(existingBlog.coverImage.src, 2000);
+      // await queueImageCleanup(existingBlog.coverImage.src, 2000);
     }
   }
 
