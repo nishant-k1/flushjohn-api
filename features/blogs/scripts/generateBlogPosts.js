@@ -12,7 +12,11 @@ import blogContentData, {
 } from "../services/blogContentData.js";
 import * as blogsService from "../services/blogsService.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
-import { dbConnect, waitForConnection, getConnectionStatus } from "../../../lib/dbConnect/index.js";
+import {
+  dbConnect,
+  waitForConnection,
+  getConnectionStatus,
+} from "../../../lib/dbConnect/index.js";
 
 // Blog generation configuration
 const config = {
@@ -29,14 +33,14 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
     // Check if blog already exists
     const checkSlug = blogGeneratorService.generateSlug(postData.title);
     const existingBlog = await blogsService.getBlogBySlug(checkSlug);
-    
+
     if (existingBlog) {
       console.log(`⚠️ Blog already exists with slug: ${checkSlug}`);
       return {
         success: false,
         title: postData.title,
         error: "Blog already exists in database",
-        slug: checkSlug
+        slug: checkSlug,
       };
     }
 
@@ -155,13 +159,13 @@ async function generateAllBlogPosts() {
   console.log("🔌 Connecting to database...");
   try {
     await dbConnect();
-    
+
     // Wait for connection to be ready
     const connected = await waitForConnection(15000); // Wait up to 15 seconds
     if (!connected) {
       throw new Error("Database connection timeout");
     }
-    
+
     console.log("✅ Database connected successfully");
     console.log("📊 Connection status:", getConnectionStatus());
   } catch (error) {

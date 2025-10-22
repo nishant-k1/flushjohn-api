@@ -3,8 +3,6 @@ import express, { json, urlencoded } from "express";
 import { config } from "dotenv";
 import debug from "debug";
 
-// Load environment variables
-config();
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import cors from "cors";
@@ -17,7 +15,6 @@ import {
   runCleanupOnStartup,
 } from "./features/fileManagement/jobs/pdfCleanup.js";
 import { initializeCronJobs } from "./features/blogs/services/cronScheduler.js";
-// Cross-cutting routes
 import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
@@ -25,7 +22,6 @@ import pdfCleanupRouter from "./features/fileManagement/routes/pdfCleanup.js";
 import s3CorsRouter from "./routes/s3-cors.js";
 import blogAutomationRouter from "./features/blogs/routes/blog-automation.js";
 
-// Feature-based imports
 import leadsFeature from "./features/leads/index.js";
 import quotesFeature from "./features/quotes/index.js";
 import customersFeature from "./features/customers/index.js";
@@ -34,8 +30,6 @@ import vendorsFeature from "./features/vendors/index.js";
 import jobOrdersFeature from "./features/jobOrders/index.js";
 import blogsFeature from "./features/blogs/index.js";
 import authFeature from "./features/auth/index.js";
-
-// Extract routes from features
 const authRouter = authFeature.routes.auth;
 const usersRouter = authFeature.routes.users;
 const leadsRouter = leadsFeature.routes;
@@ -49,9 +43,8 @@ const jobOrdersRouter = jobOrdersFeature.routes;
 // Load environment variables
 config({ path: "./.env" });
 
-// Verify AWS credentials are loaded
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-  // AWS credentials not found in environment variables
+  console.warn("AWS credentials not configured");
 }
 
 const app = express();
