@@ -220,10 +220,10 @@ export async function generateBlogContent(templateType, params) {
 
     // Additional safeguard: Clean up any markdown code blocks that might still be generated
     content = content
-      .replace(/^```html\s*\n?/gi, '') // Remove opening ```html with optional newline
-      .replace(/\n?\s*```\s*$/gi, '') // Remove closing ``` with optional newline
-      .replace(/^```html\s*/gi, '') // Fallback: Remove opening ```html
-      .replace(/\s*```\s*$/gi, '') // Fallback: Remove closing ```
+      .replace(/^```html\s*\n?/gi, "") // Remove opening ```html with optional newline
+      .replace(/\n?\s*```\s*$/gi, "") // Remove closing ``` with optional newline
+      .replace(/^```html\s*/gi, "") // Fallback: Remove opening ```html
+      .replace(/\s*```\s*$/gi, "") // Fallback: Remove closing ```
       .trim();
 
     return content;
@@ -268,9 +268,14 @@ Requirements:
     
     // Clean up any potential code blocks or quotes
     description = description
-      .replace(/^["']|["']$/g, '') // Remove surrounding quotes
-      .replace(/^```.*$/gm, '') // Remove any code block markers
+      .replace(/^["']|["']$/g, "") // Remove surrounding quotes
+      .replace(/^```.*$/gm, "") // Remove any code block markers
       .trim();
+
+    // Ensure meta description doesn't exceed 160 characters
+    if (description.length > 160) {
+      description = description.substring(0, 157) + "...";
+    }
 
     return description;
   } catch (error) {
@@ -339,7 +344,14 @@ export function extractTags(title, content, city = null) {
 // Generate cover image alt text
 export function generateCoverImageAlt(title, city = null) {
   const baseAlt = `FlushJohn porta potty rental services - ${title}`;
-  return city ? `${baseAlt} in ${city}` : baseAlt;
+  const altText = city ? `${baseAlt} in ${city}` : baseAlt;
+  
+  // Ensure alt text doesn't exceed 100 characters
+  if (altText.length > 100) {
+    return altText.substring(0, 97) + "...";
+  }
+  
+  return altText;
 }
 
 export default {

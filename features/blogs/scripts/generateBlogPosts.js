@@ -12,6 +12,7 @@ import blogContentData, {
 } from "../services/blogContentData.js";
 import * as blogsService from "../services/blogsService.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { dbConnect, waitForConnection, getConnectionStatus } from "../../../lib/dbConnect/index.js";
 
 // Blog generation configuration
 const config = {
@@ -133,6 +134,24 @@ async function generateAllBlogPosts() {
 
   if (!config.apiKey) {
     console.error("❌ OPENAI_API_KEY environment variable is required");
+    process.exit(1);
+  }
+
+  // Connect to database first
+  console.log("🔌 Connecting to database...");
+  try {
+    await dbConnect();
+    
+    // Wait for connection to be ready
+    const connected = await waitForConnection(15000); // Wait up to 15 seconds
+    if (!connected) {
+      throw new Error("Database connection timeout");
+    }
+    
+    console.log("✅ Database connected successfully");
+    console.log("📊 Connection status:", getConnectionStatus());
+  } catch (error) {
+    console.error("❌ Database connection failed:", error.message);
     process.exit(1);
   }
 
