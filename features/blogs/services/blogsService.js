@@ -333,15 +333,17 @@ const transformBlobUrls = async (blogData, blogId = null) => {
 
       return {
         ...cleanBlogData,
-        coverImage: {
+        coverImageS3: {
           src: s3Url,
           alt: blogData.coverImage.alt || "Cover Image",
         },
+        // Clear Unsplash image when manual upload is used
+        coverImageUnsplash: null,
       };
     } catch (error) {
       return {
         ...blogData,
-        coverImage: null,
+        coverImageS3: null,
       };
     }
   }
@@ -353,7 +355,7 @@ const transformBlobUrls = async (blogData, blogId = null) => {
   ) {
     return {
       ...blogData,
-      coverImage: null,
+      coverImageS3: null,
     };
   }
 

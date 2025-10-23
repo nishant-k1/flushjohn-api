@@ -97,7 +97,7 @@ export async function generateAutomatedBlogPost(
       150
     );
 
-    // Generate AI-powered cover image
+    // Generate AI-powered cover image using Unsplash
     const coverImageSrc = await generateAICoverImage(
       topic.title,
       topic.category,
@@ -113,7 +113,7 @@ export async function generateAutomatedBlogPost(
       tags: comprehensiveMetadata.tags,
       status: "published",
       category: topic.category,
-      coverImage: {
+      coverImageUnsplash: {
         src: coverImageSrc,
         alt: comprehensiveMetadata.coverImageAlt,
       },
@@ -196,7 +196,7 @@ export async function runAutomatedBlogGeneration(
 }
 
 /**
- * Generate AI-powered cover image using Unsplash API
+ * Generate AI-powered cover image using Unsplash API (returns direct Unsplash URL)
  */
 async function generateAICoverImage(title, category, content) {
   try {
@@ -243,7 +243,9 @@ Requirements:
 
     if (unsplashResponse.ok) {
       const imageData = await unsplashResponse.json();
-      return imageData.urls.custom || imageData.urls.regular;
+      // Use Unsplash's raw URL with proper transformation parameters
+      const baseUrl = imageData.urls.raw;
+      return `${baseUrl}?w=1200&h=630&fit=crop&crop=center`;
     } else {
       console.warn("Unsplash API failed, falling back to default images");
       return getRandomCoverImage(category);
