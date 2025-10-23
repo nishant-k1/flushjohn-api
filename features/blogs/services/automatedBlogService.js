@@ -63,11 +63,14 @@ export async function generateAutomatedBlogPost(contentType = null) {
 
     const contentWithLinks = generatedContent;
 
+    // Generate AI-powered excerpt
+    const excerpt = await blogGeneratorService.generateAIExcerpt(contentWithLinks, topic.title, 150);
+
     const blogData = {
       title: topic.title,
       slug: blogsService.generateSlug(topic.title),
       content: contentWithLinks,
-      excerpt: contentWithLinks.substring(0, 150) + "...",
+      excerpt: excerpt,
       author: "FlushJohn Team",
       tags: topic.keywords,
       status: "published",

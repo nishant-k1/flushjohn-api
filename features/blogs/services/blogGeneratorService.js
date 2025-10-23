@@ -303,6 +303,68 @@ export function generateExcerpt(content, maxLength = 150) {
   return truncated + "...";
 }
 
+/**
+ * Generate AI-powered excerpt using OpenAI
+ * @param {string} content - Blog content
+ * @param {string} title - Blog title
+ * @returns {Promise<string>} - Generated excerpt
+ */
+export async function generateAIExcerpt(content, title, maxLength = 150) {
+  try {
+    // Remove HTML tags and clean content for AI processing
+    const cleanContent = content.replace(/<[^>]*>/g, "").trim();
+    
+    // Limit content to first 2000 characters to stay within token limits
+    const truncatedContent = cleanContent.substring(0, 2000);
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY the excerpt text without quotes or formatting."
+        },
+        {
+          role: "user",
+          content: `Generate a compelling excerpt for this blog post:
+
+Title: "${title}"
+Content: "${truncatedContent}"
+
+Requirements:
+- 120-150 characters
+- Engaging and informative
+- Include key benefits or value proposition
+- SEO-friendly
+- No quotes or special formatting
+- Return only the excerpt text`
+        }
+      ],
+      max_tokens: 100,
+      temperature: 0.7,
+    });
+
+    let excerpt = response.choices[0].message.content.trim();
+    
+    // Clean up any formatting artifacts
+    excerpt = excerpt
+      .replace(/^["']|["']$/g, "") // Remove surrounding quotes
+      .replace(/^```.*$/gm, "") // Remove code block markers
+      .trim();
+    
+    // Ensure proper length
+    if (excerpt.length > maxLength) {
+      excerpt = excerpt.substring(0, maxLength - 3) + "...";
+    }
+    
+    return excerpt;
+  } catch (error) {
+    console.error("Error generating AI excerpt:", error);
+    // Fallback to basic text processing if AI fails
+    return generateExcerpt(content, maxLength);
+  }
+}
+
 export function extractTags(title, content, city = null) {
   const baseTags = ["porta-potty-rental", "portable-toilets", "flushjohn"];
 
