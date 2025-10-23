@@ -1,6 +1,103 @@
 import * as blogsRepository from "../repositories/blogsRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+/**
+ * Generate AI-powered excerpt using OpenAI
+ * @param {string} content - Blog content
+ * @param {string} title - Blog title
+ * @returns {Promise<string>} - Generated excerpt
+ */
+const generateAIExcerpt = async (content, title) => {
+  try {
+    // Remove HTML tags and clean content for AI processing
+    const cleanContent = content.replace(/<[^>]*>/g, "").trim();
+    
+    // Limit content to first 2000 characters to stay within token limits
+    const truncatedContent = cleanContent.substring(0, 2000);
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY the excerpt text without quotes or formatting."
+        },
+        {
+          role: "user",
+          content: `Generate a compelling excerpt for this blog post:
+
+Title: "${title}"
+Content: "${truncatedContent}"
+
+Requirements:
+- 120-150 characters
+- Engaging and informative
+- Include key benefits or value proposition
+- SEO-friendly
+- No quotes or special formatting
+- Return only the excerpt text`
+        }
+      ],
+      max_tokens: 100,
+      temperature: 0.7,
+    });
+
+    let excerpt = response.choices[0].message.content.trim();
+    
+    // Clean up any formatting artifacts
+    excerpt = excerpt
+      .replace(/^["']|["']$/g, "") // Remove surrounding quotes
+      .replace(/^```.*$/gm, "") // Remove code block markers
+      .trim();
+    
+    // Ensure proper length
+    if (excerpt.length > 150) {
+      excerpt = excerpt.substring(0, 147) + "...";
+    }
+    
+    return excerpt;
+  } catch (error) {
+    console.error("Error generating AI excerpt:", error);
+    // Fallback to basic text processing if AI fails
+    return generateBasicExcerpt(content);
+  }
+};
+
+/**
+ * Fallback basic excerpt generation
+ * @param {string} content - Blog content
+ * @returns {string} - Basic excerpt
+ */
+const generateBasicExcerpt = (content) => {
+  // Remove HTML tags and clean up the content
+  let textContent = content.replace(/<[^>]*>/g, "").trim();
+  
+  // Remove code block markers and other formatting artifacts
+  textContent = textContent.replace(/```html|```/g, "").trim();
+  
+  // Split by paragraphs and find the first meaningful paragraph
+  const paragraphs = textContent.split(/\n\s*\n/).filter(p => p.trim().length > 20);
+  const firstParagraph = paragraphs[0] || textContent.split(".")[0];
+  
+  // Clean up the excerpt
+  let cleanExcerpt = firstParagraph.trim();
+  
+  // If it's still too short or contains HTML artifacts, try to get more content
+  if (cleanExcerpt.length < 50) {
+    const sentences = textContent.split(/[.!?]/).filter(s => s.trim().length > 10);
+    cleanExcerpt = sentences.slice(0, 2).join(". ").trim();
+  }
+  
+  return cleanExcerpt.length > 150 
+    ? cleanExcerpt.substring(0, 150) + "..."
+    : cleanExcerpt;
+};
 
 export const generateBlogNumber = async () => {
   const latestBlog = await blogsRepository.findOne({}, "blogNo", {
@@ -250,14 +347,8 @@ export const createBlog = async (blogData) => {
   }
 
   if (!blogData.excerpt && blogData.content) {
-    const textContent = blogData.content.replace(/<[^>]*>/g, "").trim();
-    // Create a proper excerpt by taking the first paragraph or first 150 characters
-    const firstParagraph =
-      textContent.split("\n\n")[0] || textContent.split(".")[0];
-    blogData.excerpt =
-      firstParagraph.length > 150
-        ? firstParagraph.substring(0, 150) + "..."
-        : firstParagraph;
+    // Use AI to generate excerpt
+    blogData.excerpt = await generateAIExcerpt(blogData.content, blogData.title);
   }
 
   return await createBlogWithRetry(blogData);
@@ -378,16 +469,11 @@ export const updateBlog = async (id, updateData) => {
 
   // Generate excerpt if not provided and content is updated
   if (!transformedUpdateData.excerpt && transformedUpdateData.content) {
-    const textContent = transformedUpdateData.content
-      .replace(/<[^>]*>/g, "")
-      .trim();
-    // Create a proper excerpt by taking the first paragraph or first 150 characters
-    const firstParagraph =
-      textContent.split("\n\n")[0] || textContent.split(".")[0];
-    transformedUpdateData.excerpt =
-      firstParagraph.length > 150
-        ? firstParagraph.substring(0, 150) + "..."
-        : firstParagraph;
+    // Use AI to generate excerpt
+    transformedUpdateData.excerpt = await generateAIExcerpt(
+      transformedUpdateData.content, 
+      transformedUpdateData.title || existingBlog.title
+    );
   }
 
   const blog = await blogsRepository.updateById(id, {
@@ -429,13 +515,8 @@ export const regenerateExcerpt = async (id) => {
     throw error;
   }
 
-  const textContent = existingBlog.content.replace(/<[^>]*>/g, "").trim();
-  const firstParagraph =
-    textContent.split("\n\n")[0] || textContent.split(".")[0];
-  const newExcerpt =
-    firstParagraph.length > 150
-      ? firstParagraph.substring(0, 150) + "..."
-      : firstParagraph;
+  // Use AI to generate new excerpt
+  const newExcerpt = await generateAIExcerpt(existingBlog.content, existingBlog.title);
 
   const updatedBlog = await blogsRepository.updateById(id, {
     excerpt: newExcerpt,
