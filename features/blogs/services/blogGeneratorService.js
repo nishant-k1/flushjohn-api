@@ -24,11 +24,14 @@ Your writing style should be:
 - Include practical tips and actionable advice
 
 CRITICAL OUTPUT FORMAT REQUIREMENTS:
-- Return ONLY the HTML content directly
+- Return ONLY clean HTML content directly
 - DO NOT wrap the content in markdown code blocks (no backticks \`\`\`)
 - DO NOT use \`\`\`html or \`\`\` at the beginning or end
+- DO NOT include any code block markers or formatting artifacts
 - Output should be raw HTML that can be directly inserted into a web page
 - Start directly with HTML tags like <h1>, <p>, etc.
+- Ensure all HTML is properly formatted and valid
+- Use semantic HTML elements for better SEO
 
 Always include:
 - Internal links to relevant pages (use format: <a href="/porta-potty-rental/[city]">link text</a>)
@@ -47,11 +50,14 @@ Your writing style should be:
 - Focus on solving complex industry problems
 
 CRITICAL OUTPUT FORMAT REQUIREMENTS:
-- Return ONLY the HTML content directly
+- Return ONLY clean HTML content directly
 - DO NOT wrap the content in markdown code blocks (no backticks \`\`\`)
 - DO NOT use \`\`\`html or \`\`\` at the beginning or end
+- DO NOT include any code block markers or formatting artifacts
 - Output should be raw HTML that can be directly inserted into a web page
 - Start directly with HTML tags like <h1>, <p>, etc.
+- Ensure all HTML is properly formatted and valid
+- Use semantic HTML elements for better SEO
 
 Always include:
 - Internal links to relevant pages
@@ -70,11 +76,14 @@ Your writing style should be:
 - Focus on seasonal challenges and solutions
 
 CRITICAL OUTPUT FORMAT REQUIREMENTS:
-- Return ONLY the HTML content directly
+- Return ONLY clean HTML content directly
 - DO NOT wrap the content in markdown code blocks (no backticks \`\`\`)
 - DO NOT use \`\`\`html or \`\`\` at the beginning or end
+- DO NOT include any code block markers or formatting artifacts
 - Output should be raw HTML that can be directly inserted into a web page
 - Start directly with HTML tags like <h1>, <p>, etc.
+- Ensure all HTML is properly formatted and valid
+- Use semantic HTML elements for better SEO
 
 Always include:
 - Internal links to relevant pages
@@ -214,12 +223,22 @@ export async function generateBlogContent(templateType, params) {
 
     let content = response.choices[0].message.content;
 
+    // Enhanced content cleaning for both CRM and public web compatibility
     content = content
       .replace(/^```html\s*\n?/gi, "") // Remove opening ```html with optional newline
       .replace(/\n?\s*```\s*$/gi, "") // Remove closing ``` with optional newline
       .replace(/^```html\s*/gi, "") // Fallback: Remove opening ```html
       .replace(/\s*```\s*$/gi, "") // Fallback: Remove closing ```
+      .replace(/^```\s*\n?/gi, "") // Remove any opening ``` with optional newline
+      .replace(/\n?\s*```\s*$/gi, "") // Remove any closing ``` with optional newline
+      .replace(/^`\s*/gm, "") // Remove any leading backticks
+      .replace(/\s*`$/gm, "") // Remove any trailing backticks
       .trim();
+
+    // Ensure content starts with proper HTML
+    if (!content.startsWith('<')) {
+      content = '<p>' + content + '</p>';
+    }
 
     return content;
   } catch (error) {
@@ -285,7 +304,12 @@ Requirements:
  * @param {string} category - Blog category
  * @returns {Promise<object>} - Complete blog metadata
  */
-export async function generateComprehensiveBlogMetadata(title, content, keywords, category) {
+export async function generateComprehensiveBlogMetadata(
+  title,
+  content,
+  keywords,
+  category
+) {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -307,7 +331,7 @@ Requirements:
 - Cover Image Alt: Descriptive, SEO-optimized alt text (max 100 chars)
 - Featured: true for high-value content, false for regular posts
 - Priority: "high" for trending topics, "medium" for standard content, "low" for niche topics
-- Return ONLY the JSON object, no additional text or formatting`
+- Return ONLY the JSON object, no additional text or formatting`,
         },
         {
           role: "user",
@@ -325,15 +349,15 @@ Requirements:
 - Create SEO-optimized cover image alt text
 - Determine if content should be featured
 - Assess content priority level
-- Return ONLY valid JSON object`
-        }
+- Return ONLY valid JSON object`,
+        },
       ],
       max_tokens: 300,
       temperature: 0.6,
     });
 
     let metadata = response.choices[0].message.content.trim();
-    
+
     // Clean up any formatting artifacts
     metadata = metadata
       .replace(/^```json\s*/, "")
@@ -343,14 +367,20 @@ Requirements:
 
     try {
       const parsedMetadata = JSON.parse(metadata);
-      
+
       // Validate and clean the metadata
       return {
-        tags: Array.isArray(parsedMetadata.tags) ? parsedMetadata.tags.slice(0, 8) : [],
+        tags: Array.isArray(parsedMetadata.tags)
+          ? parsedMetadata.tags.slice(0, 8)
+          : [],
         author: parsedMetadata.author || "FlushJohn Team",
-        coverImageAlt: parsedMetadata.coverImageAlt || `Cover image for ${title}`.substring(0, 100),
+        coverImageAlt:
+          parsedMetadata.coverImageAlt ||
+          `Cover image for ${title}`.substring(0, 100),
         featured: Boolean(parsedMetadata.featured),
-        priority: ["high", "medium", "low"].includes(parsedMetadata.priority) ? parsedMetadata.priority : "medium"
+        priority: ["high", "medium", "low"].includes(parsedMetadata.priority)
+          ? parsedMetadata.priority
+          : "medium",
       };
     } catch (parseError) {
       console.error("Error parsing AI metadata:", parseError);
@@ -360,7 +390,7 @@ Requirements:
         author: "FlushJohn Team",
         coverImageAlt: `Cover image for ${title}`.substring(0, 100),
         featured: false,
-        priority: "medium"
+        priority: "medium",
       };
     }
   } catch (error) {
@@ -371,7 +401,7 @@ Requirements:
       author: "FlushJohn Team",
       coverImageAlt: `Cover image for ${title}`.substring(0, 100),
       featured: false,
-      priority: "medium"
+      priority: "medium",
     };
   }
 }
@@ -390,7 +420,8 @@ export async function generateCoverImageDescription(title, category, content) {
       messages: [
         {
           role: "system",
-          content: "You are a professional image description expert. Generate detailed, SEO-optimized descriptions for blog cover images. Focus on visual elements that would appeal to the target audience and include relevant keywords naturally."
+          content:
+            "You are a professional image description expert. Generate detailed, SEO-optimized descriptions for blog cover images. Focus on visual elements that would appeal to the target audience and include relevant keywords naturally.",
         },
         {
           role: "user",
@@ -406,15 +437,15 @@ Requirements:
 - Mention porta potty/portable toilet context
 - SEO-friendly with natural keyword integration
 - Professional and appealing tone
-- Return ONLY the description text`
-        }
+- Return ONLY the description text`,
+        },
       ],
       max_tokens: 150,
       temperature: 0.7,
     });
 
     let description = response.choices[0].message.content.trim();
-    
+
     // Clean up formatting
     description = description
       .replace(/^["']|["']$/g, "")
@@ -429,7 +460,10 @@ Requirements:
     return description;
   } catch (error) {
     console.error("Error generating cover image description:", error);
-    return `Professional ${category} porta potty rental services - ${title}`.substring(0, 100);
+    return `Professional ${category} porta potty rental services - ${title}`.substring(
+      0,
+      100
+    );
   }
 }
 
@@ -479,7 +513,7 @@ export async function generateAIExcerpt(content, title, maxLength = 150) {
         {
           role: "system",
           content:
-            "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY the excerpt text without quotes or formatting.",
+            "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY the excerpt text without quotes or formatting. Ensure the excerpt is optimized for both CRM display and public web SEO.",
         },
         {
           role: "user",
@@ -492,8 +526,9 @@ Requirements:
 - 120-150 characters
 - Engaging and informative
 - Include key benefits or value proposition
-- SEO-friendly
-- No quotes or special formatting
+- SEO-friendly for public web display
+- Clean text suitable for CRM edit interface
+- No quotes, backticks, or special formatting
 - Return only the excerpt text`,
         },
       ],
@@ -503,10 +538,14 @@ Requirements:
 
     let excerpt = response.choices[0].message.content.trim();
 
-    // Clean up any formatting artifacts
+    // Enhanced cleaning for both CRM and public web compatibility
     excerpt = excerpt
       .replace(/^["']|["']$/g, "") // Remove surrounding quotes
       .replace(/^```.*$/gm, "") // Remove code block markers
+      .replace(/^`\s*/gm, "") // Remove any leading backticks
+      .replace(/\s*`$/gm, "") // Remove any trailing backticks
+      .replace(/^```html\s*\n?/gi, "") // Remove HTML code blocks
+      .replace(/\n?\s*```\s*$/gi, "") // Remove closing code blocks
       .trim();
 
     // Ensure proper length
