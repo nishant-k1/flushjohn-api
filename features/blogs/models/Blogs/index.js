@@ -81,6 +81,41 @@ const BlogsSchema = new Schema(
         message: "Invalid category",
       },
     },
+    // S3 uploaded images (manual uploads)
+    coverImageS3: {
+      src: {
+        type: String,
+        validate: {
+          validator: function (v) {
+            return !v || /^https?:\/\/.+/.test(v);
+          },
+          message: "S3 cover image must be a valid URL",
+        },
+      },
+      alt: {
+        type: String,
+        default: "Blog cover image",
+        maxlength: [100, "Alt text cannot exceed 100 characters"],
+      },
+    },
+    // Unsplash images (automated)
+    coverImageUnsplash: {
+      src: {
+        type: String,
+        validate: {
+          validator: function (v) {
+            return !v || /^https?:\/\/.+/.test(v);
+          },
+          message: "Unsplash cover image must be a valid URL",
+        },
+      },
+      alt: {
+        type: String,
+        default: "Blog cover image",
+        maxlength: [100, "Alt text cannot exceed 100 characters"],
+      },
+    },
+    // Legacy field for backward compatibility
     coverImage: {
       src: {
         type: String,
