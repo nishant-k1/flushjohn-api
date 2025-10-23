@@ -84,6 +84,68 @@ const SalesOrdersSchema = new mongoose.Schema({
   note: {
     type: String,
   },
+
+  // Billing Cycle Extension
+  billingCycles: [
+    {
+      cycleStartDate: {
+        type: String,
+      },
+      cycleEndDate: {
+        type: String,
+      },
+      nextBillingCycleDate: {
+        type: String,
+      },
+      nextBillingCycleEndDate: {
+        type: String,
+      },
+      isExtended: {
+        type: Boolean,
+        default: false,
+      },
+      extendedOn: {
+        type: Date,
+      },
+      // Unit-specific tracking for partial returns
+      units: [
+        {
+          productId: {
+            type: String,
+            required: true,
+          },
+          productName: {
+            type: String,
+            required: true,
+          },
+          unitId: {
+            type: String,
+            required: true,
+          },
+          quantity: {
+            type: Number,
+            required: true,
+          },
+          rate: {
+            type: Number,
+            required: true,
+          },
+          status: {
+            type: String,
+            enum: ["active", "returned", "extended"],
+            default: "active",
+          },
+          returnedOn: {
+            type: Date,
+          },
+          returnedQuantity: {
+            type: Number,
+            default: 0,
+          },
+        },
+      ],
+    },
+  ],
 });
 
 export default mongoose.models.SalesOrders ||
