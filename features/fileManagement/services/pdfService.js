@@ -7,12 +7,10 @@ const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 const unlink = promisify(fs.unlink);
 
-// Import templates from feature folders
 import quoteTemplate from "../../quotes/templates/pdf/index.js";
 import salesOrderTemplate from "../../salesOrders/templates/pdf/index.js";
 import jobOrderTemplate from "../../jobOrders/templates/pdf/index.js";
 
-// Try to import Playwright, fallback to Puppeteer if not available
 let browserLib = null;
 let usePuppeteer = false;
 
@@ -37,7 +35,6 @@ try {
  */
 export const generatePDF = async (documentData, documentType, documentId) => {
   try {
-    // Select appropriate template
     let htmlContent;
     switch (documentType) {
       case "quote":
@@ -57,11 +54,9 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       throw new Error(`Failed to generate HTML template for ${documentType}`);
     }
 
-    // Generate PDF using Playwright or Puppeteer
     let browser, page, pdfBuffer;
 
     if (usePuppeteer) {
-      // Puppeteer implementation
       browser = await browserLib.launch({
         headless: true,
         args: [
@@ -90,7 +85,6 @@ export const generatePDF = async (documentData, documentType, documentId) => {
         },
       });
     } else {
-      // Playwright implementation
       browser = await browserLib.launch({
         headless: true,
         args: ["--no-sandbox", "--disable-setuid-sandbox"],
@@ -115,10 +109,8 @@ export const generatePDF = async (documentData, documentType, documentId) => {
 
     await browser.close();
 
-    // Check if S3 is enabled via environment variable
     const useS3 = process.env.USE_S3_STORAGE === "true";
 
-    // Try to upload to S3, fall back to local storage if disabled or if AWS credentials not available
     if (useS3) {
       try {
         const s3Result = await uploadPDFToS3(
@@ -134,54 +126,40 @@ export const generatePDF = async (documentData, documentType, documentId) => {
     } else {
     }
 
-    // Fall back to local storage
-    // Use same naming pattern as S3 (overwrites on regeneration)
     const fileName = `${documentType}-${documentId}.pdf`;
     const finalPath = path.join(process.cwd(), "public", "temp", fileName);
     const timestamp = Date.now();
 
-    // Ensure temp directory exists
     const tempDir = path.dirname(finalPath);
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    // Use atomic file write pattern to prevent corruption
-    // 1. Write to temporary file first
     const tempFileName = `${fileName}.tmp`;
     const tempPath = path.join(tempDir, tempFileName);
 
     try {
-      // Write to temp file
       fs.writeFileSync(tempPath, pdfBuffer);
 
-      // 2. Atomically rename temp file to final file
-      // This ensures users never access a partially written file
       fs.renameSync(tempPath, finalPath);
 
-      // PDF generated and saved locally
     } catch (writeError) {
-      // Clean up temp file if it exists
       if (fs.existsSync(tempPath)) {
         fs.unlinkSync(tempPath);
       }
       throw new Error(`Failed to write PDF file: ${writeError.message}`);
     }
 
-    // Return local URL with cache-busting query parameter
-    // Use environment-specific base URL
     const baseUrl =
       process.env.API_BASE_URL ||
       process.env.BASE_URL ||
       "http://localhost:8080";
     const pdfUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
 
-    // Return single URL
     return {
       pdfUrl, // Single URL for all use cases
     };
   } catch (error) {
-    // PDF generation error
     throw error;
   }
 };
@@ -213,36 +191,28 @@ export const generateSalesOrderPDF = async (salesOrderData, salesOrderId) => {
  * @returns {Promise<string>} - S3 URL of generated PDF
  */
 export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
-  // For job orders, we need to fetch vendor details
   if (jobOrderData.vendor && jobOrderData.vendor._id) {
     try {
-      // Fetching vendor details
       const { default: Vendors } = await import(
         "../../vendors/models/Vendors/index.js"
       );
 
-      // Try to find vendor by ID (MongoDB will handle string to ObjectId conversion)
       let vendor = await Vendors.findById(jobOrderData.vendor._id);
 
-      // If not found, try searching by name as fallback
       if (!vendor && jobOrderData.vendor.name) {
         vendor = await Vendors.findOne({ name: jobOrderData.vendor.name });
       }
 
       if (vendor) {
-        // Vendor found, updating data
         jobOrderData.vendor = {
           ...jobOrderData.vendor,
           ...vendor.toObject(),
         };
       } else {
-        // Vendor not found
       }
     } catch (error) {
-      // Error fetching vendor details
     }
   } else {
-    // No vendor ID provided
   }
 
   return generatePDF(jobOrderData, "jobOrder", jobOrderId);
@@ -257,7 +227,6 @@ export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
   try {
     const tempDir = path.join(process.cwd(), "public", "temp");
 
-    // Check if temp directory exists
     if (!fs.existsSync(tempDir)) {
       return { deleted: 0, message: "Temp directory does not exist" };
     }
@@ -270,14 +239,12 @@ export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
     const deletedFiles = [];
 
     for (const file of files) {
-      // Only process PDF files
       if (!file.endsWith(".pdf")) continue;
 
       const filePath = path.join(tempDir, file);
       const stats = await stat(filePath);
       const fileAge = now - stats.mtimeMs; // Time since last modification
 
-      // Delete if older than maxAge
       if (fileAge > maxAgeMs) {
         await unlink(filePath);
         deletedCount++;
@@ -287,7 +254,6 @@ export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
           size: stats.size,
         });
 
-        // Old PDF file deleted
       }
     }
 
@@ -297,7 +263,6 @@ export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
       message: `Deleted ${deletedCount} PDF(s) older than ${maxAgeInDays} days`,
     };
   } catch (error) {
-    // PDF cleanup error
     throw error;
   }
 };

@@ -91,13 +91,10 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-// ✅ Password validation middleware
 UserSchema.pre("save", async function (next) {
-  // Only hash the password if it has been modified (or is new)
   if (!this.isModified("password")) return next();
 
   try {
-    // Hash the password with argon2
     this.password = await argon2.hash(this.password);
     this.passwordChangedAt = getCurrentDateTime();
     next();
@@ -106,7 +103,6 @@ UserSchema.pre("save", async function (next) {
   }
 });
 
-// ✅ Password comparison method
 UserSchema.methods.comparePassword = async function (candidatePassword) {
   try {
     return await argon2.verify(this.password, candidatePassword);
@@ -115,14 +111,11 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
   }
 };
 
-// ✅ Check if account is locked
 UserSchema.methods.isLocked = function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 };
 
-// ✅ Increment failed login attempts
 UserSchema.methods.incLoginAttempts = function () {
-  // If we have a previous lock that has expired, restart at 1
   if (this.lockUntil && this.lockUntil < Date.now()) {
     return this.updateOne({
       $unset: { lockUntil: 1 },
@@ -132,7 +125,6 @@ UserSchema.methods.incLoginAttempts = function () {
 
   const updates = { $inc: { failedLoginAttempts: 1 } };
 
-  // Lock account after 5 failed attempts for 2 hours
   if (this.failedLoginAttempts + 1 >= 5 && !this.isLocked()) {
     updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // 2 hours
   }
@@ -140,19 +132,16 @@ UserSchema.methods.incLoginAttempts = function () {
   return this.updateOne(updates);
 };
 
-// ✅ Reset failed login attempts
 UserSchema.methods.resetLoginAttempts = function () {
   return this.updateOne({
     $unset: { lockUntil: 1, failedLoginAttempts: 1 },
   });
 };
 
-// ✅ Update last login
 UserSchema.methods.updateLastLogin = function () {
   return this.updateOne({ lastLogin: getCurrentDateTime() });
 };
 
-// ✅ Check if password was changed after JWT was issued
 UserSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
     const changedTimestamp = parseInt(
@@ -164,12 +153,10 @@ UserSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   return false;
 };
 
-// ✅ Virtual for full name
 UserSchema.virtual("fullName").get(function () {
   return `${this.fName} ${this.lName}`;
 });
 
-// ✅ Index for better performance
 UserSchema.index({ userId: 1 });
 UserSchema.index({ email: 1 });
 UserSchema.index({ isActive: 1 });

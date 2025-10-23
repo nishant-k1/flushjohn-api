@@ -7,7 +7,6 @@ import * as vendorsService from "../services/vendorsService.js";
 
 const router = Router();
 
-// POST /vendors - Create a new vendor
 router.post("/", async function (req, res) {
   try {
     const vendor = await vendorsService.createVendor(req.body);
@@ -18,7 +17,6 @@ router.post("/", async function (req, res) {
   }
 });
 
-// GET /vendors - Get all vendors with pagination, sorting, and filtering
 router.get("/", async function (req, res) {
   try {
     const {
@@ -48,7 +46,6 @@ router.get("/", async function (req, res) {
   }
 });
 
-// GET /vendors/:id - Get single vendor
 router.get("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -64,8 +61,6 @@ router.get("/:id", async function (req, res) {
     const vendor = await vendorsService.getVendorById(id);
     res.status(200).json({ success: true, data: vendor });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -78,7 +73,6 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-// PUT /vendors/:id - Update vendor by ID
 router.put("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -102,8 +96,6 @@ router.put("/:id", async function (req, res) {
     const vendor = await vendorsService.updateVendor(id, req.body);
     res.status(200).json({ success: true, data: vendor });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -130,7 +122,6 @@ router.put("/:id", async function (req, res) {
   }
 });
 
-// DELETE /vendors/:id - Delete vendor by ID
 router.delete("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -150,8 +141,6 @@ router.delete("/:id", async function (req, res) {
       data: result,
     });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,

@@ -13,13 +13,11 @@ import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
  * Transform products based on lead source
  */
 export const transformProductsData = (leadSource, products) => {
-  // Normalize all product data to proper types for database storage
   if (!Array.isArray(products)) {
     return [];
   }
 
   const normalizedProducts = products.map((product, index) => {
-    // Handle old web form format: {type, quantity} - from Quick Quote and legacy data
     if (product.type && product.quantity !== undefined) {
       const qty = Number(product.quantity);
       const rate = Number(product.rate) || 0;
@@ -34,7 +32,6 @@ export const transformProductsData = (leadSource, products) => {
         amount: amount,
       };
     }
-    // Handle new application state format: {item, qty, rate, amount} - from Quote Form and CRM
     else {
       const qty = Number(product.qty);
       const rate = Number(product.rate) || 0;
@@ -51,8 +48,6 @@ export const transformProductsData = (leadSource, products) => {
     }
   });
 
-  // Filter out products with no quantity for web forms only
-  // CRM forms should preserve all products (including qty: 0) for editing
   if (leadSource === "Web Lead" || leadSource === "Web Quick Lead") {
     return normalizedProducts.filter((product) => product.qty > 0);
   }
@@ -73,15 +68,10 @@ export const prepareLeadData = (leadData) => {
     ...restArgs
   } = leadData;
 
-  // Determine the actual lead source with proper defaults
   const actualLeadSource = leadSource || "Web Lead";
 
-  // Handle usage type capitalization for web forms and normalize existing data
-  // CRM forms already have proper capitalization
   let processedUsageType = usageType || "";
   if (usageType) {
-    // Normalize to proper capitalization for all forms
-    // This handles both new web forms and existing leads with inconsistent casing
     processedUsageType =
       usageType.charAt(0).toUpperCase() + usageType.slice(1).toLowerCase();
   }
@@ -117,7 +107,6 @@ export const sendLeadAlerts = async (lead, leadNo) => {
  * Create a new lead
  */
 export const createLead = async (leadData) => {
-  // Validate required fields
   if (
     !leadData.usageType ||
     leadData.usageType.trim() === "" ||
@@ -127,20 +116,10 @@ export const createLead = async (leadData) => {
     error.name = "ValidationError";
     throw error;
   }
-
-  // HTTP API - Received lead data
-
   const createdAt = getCurrentDateTime();
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
-
-  // HTTP API - Prepared lead data
-
   const lead = await leadsRepository.create(preparedData);
-
-  // Lead created successfully
-
-  // Send alerts asynchronously (don't block on failure)
   sendLeadAlerts(lead, leadNo);
 
   return lead;
@@ -159,7 +138,6 @@ export const getAllLeads = async ({
   leadSource,
   search,
 }) => {
-  // Build query filters
   const query = {};
 
   if (status) query.leadStatus = status;
@@ -176,7 +154,6 @@ export const getAllLeads = async ({
     ];
   }
 
-  // Build sort object
   const validSortFields = [
     "createdAt",
     "leadNo",
@@ -188,16 +165,13 @@ export const getAllLeads = async ({
   const sortDirection = sortOrder === "asc" ? 1 : -1;
   const sort = { [sortField]: sortDirection };
 
-  // Calculate pagination
   const skip = (page - 1) * limit;
 
-  // Execute queries
   const [leadsList, totalCount] = await Promise.all([
     leadsRepository.findAll({ query, sort, skip, limit }),
     leadsRepository.count(query),
   ]);
 
-  // Calculate pagination metadata
   const totalPages = Math.ceil(totalCount / limit);
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
@@ -244,7 +218,6 @@ export const getLeadById = async (id) => {
  * Update a lead by ID
  */
 export const updateLead = async (id, updateData) => {
-  // Validate required fields
   if (
     updateData.usageType !== undefined &&
     (!updateData.usageType ||

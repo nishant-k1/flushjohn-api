@@ -12,20 +12,15 @@ import blogsRepository from "../../blogs/repositories/blogsRepository.js";
  */
 const cleanupOrphanedImages = async () => {
   try {
-    console.log("🧹 Starting orphaned image cleanup...");
 
-    // Get all blogs to find referenced images
     const blogs = await blogsRepository.findAll();
     const referencedImages = new Set();
 
-    // Collect all referenced image URLs
     blogs.forEach((blog) => {
-      // Cover images
       if (blog.coverImage?.src) {
         referencedImages.add(blog.coverImage.src);
       }
 
-      // Content images (extract from HTML content)
       if (blog.content) {
         const imageRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
         let match;
@@ -35,13 +30,6 @@ const cleanupOrphanedImages = async () => {
       }
     });
 
-    console.log(`📊 Found ${referencedImages.size} referenced images`);
-
-    // TODO: List all images from S3 and compare with referenced images
-    // This would require S3 ListObjects operation
-    // For now, this is a placeholder for the logic
-
-    console.log("✅ Orphaned image cleanup completed");
   } catch (error) {
     console.error("❌ Error in orphaned image cleanup:", error);
   }
@@ -52,13 +40,6 @@ const cleanupOrphanedImages = async () => {
  */
 const cleanupTempImages = async () => {
   try {
-    console.log("🧹 Starting temp image cleanup...");
-
-    // Clean up images older than 24 hours that start with 'temp-'
-    // This would require S3 ListObjects with date filtering
-    // For now, this is a placeholder
-
-    console.log("✅ Temp image cleanup completed");
   } catch (error) {
     console.error("❌ Error in temp image cleanup:", error);
   }
@@ -68,19 +49,14 @@ const cleanupTempImages = async () => {
  * Schedule cleanup jobs
  */
 export const startCleanupJobs = () => {
-  // Run every hour
   cron.schedule("0 * * * *", () => {
-    console.log("⏰ Running hourly cleanup jobs...");
     cleanupOrphanedImages();
   });
 
-  // Run every 6 hours
   cron.schedule("0 */6 * * *", () => {
-    console.log("⏰ Running temp image cleanup...");
     cleanupTempImages();
   });
 
-  console.log("✅ Cleanup cron jobs started");
 };
 
 /**

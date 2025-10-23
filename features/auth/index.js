@@ -1,4 +1,3 @@
-// Auth Feature Module
 import authRouter from './routes/auth.js';
 import usersRouter from './routes/users.js';
 import model from './models/User/index.js';
@@ -12,4 +11,3 @@ export default {
   model,
   middleware: { authenticateToken },
 };
-

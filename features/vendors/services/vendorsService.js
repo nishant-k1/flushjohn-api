@@ -12,7 +12,6 @@ export const generateVendorNumber = async () => {
 };
 
 export const createVendor = async (vendorData) => {
-  // Validate representatives array if provided
   if (vendorData.representatives && Array.isArray(vendorData.representatives)) {
     for (const rep of vendorData.representatives) {
       if (!rep.name || !rep.email) {
@@ -21,7 +20,6 @@ export const createVendor = async (vendorData) => {
         throw error;
       }
       
-      // Validate email format
       const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
       if (!emailRegex.test(rep.email)) {
         const error = new Error("Invalid email format for representative");
@@ -101,7 +99,6 @@ export const getVendorById = async (id) => {
 };
 
 export const updateVendor = async (id, updateData) => {
-  // Validate representatives array if provided
   if (updateData.representatives && Array.isArray(updateData.representatives)) {
     for (const rep of updateData.representatives) {
       if (!rep.name || !rep.email) {
@@ -110,7 +107,6 @@ export const updateVendor = async (id, updateData) => {
         throw error;
       }
       
-      // Validate email format
       const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
       if (!emailRegex.test(rep.email)) {
         const error = new Error("Invalid email format for representative");

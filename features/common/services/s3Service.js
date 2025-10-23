@@ -6,7 +6,6 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// Initialize S3 Client lazily
 let s3 = null;
 let BUCKET_NAME = null;
 
@@ -40,23 +39,17 @@ const getBucketName = () => {
  */
 export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
   try {
-    // Use consistent filename per document (overwrites on regeneration to avoid duplicates)
-    // Pattern: {type}-{id}.pdf (e.g., quote-123.pdf, salesOrder-456.pdf)
     const fileName = `${documentType}-${documentId}.pdf`;
     const key = `pdfs/${fileName}`;
     const bucketName = getBucketName();
     const s3Client = getS3Client();
 
-    // Upload PDF - will overwrite if exists
-    // Note: ACL removed - rely on bucket policy for public access
-    // Many modern S3 buckets have ACLs disabled
     const uploadParams = {
       Bucket: bucketName,
       Key: key,
       Body: pdfBuffer,
       ContentType: "application/pdf",
       ContentDisposition: "inline",
-      // Set cache headers to prevent CloudFront from caching PDFs
       CacheControl: "no-store, no-cache, must-revalidate, max-age=0",
       Expires: new Date(0), // Expire immediately
     };
@@ -66,17 +59,13 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
     try {
       await s3Client.send(command);
     } catch (uploadError) {
-      // S3 upload error
       throw uploadError;
     }
 
-    // Build URLs
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
 
-    // Use timestamp for cache busting
     const timestamp = Date.now();
 
-    // For S3 files, we use CloudFront CDN URL (preferred) or direct S3 URL (fallback)
     const s3DirectUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}?t=${timestamp}`;
     const pdfUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/${key}?t=${timestamp}` // CloudFront CDN (preferred)
@@ -90,7 +79,6 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
 
     return result;
   } catch (error) {
-    // S3 service error
     throw error;
   }
 };
@@ -113,11 +101,8 @@ export const deletePDFFromS3 = async (pdfKey) => {
     const command = new DeleteObjectCommand(deleteParams);
     await s3Client.send(command);
 
-    // PDF deleted successfully
     return true;
   } catch (error) {
-    // Don't throw error if file doesn't exist
-    // PDF deletion failed
     return false;
   }
 };
@@ -169,7 +154,6 @@ export const generateBlogCoverImagePresignedUrl = async (blogId, fileType, expir
     const bucketName = getBucketName();
     const s3Client = getS3Client();
     
-    // Generate consistent filename: cover-{blogId}.{extension}
     const fileExtension = fileType.split("/")[1] || "jpg";
     const fileName = `cover-${blogId}.${fileExtension}`;
     const key = `images/blog/${fileName}`;
@@ -184,7 +168,6 @@ export const generateBlogCoverImagePresignedUrl = async (blogId, fileType, expir
     
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
     
-    // Generate public URL for after upload
     const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
     const timestamp = Date.now();
     const publicUrl = cloudFrontUrl
@@ -213,7 +196,6 @@ export const deleteBlogCoverImageFromS3 = async (blogId) => {
     const bucketName = getBucketName();
     const s3Client = getS3Client();
     
-    // Try common image extensions
     const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
     
     for (const ext of extensions) {
@@ -227,17 +209,14 @@ export const deleteBlogCoverImageFromS3 = async (blogId) => {
         });
         
         await s3Client.send(command);
-        console.log(`Blog cover image deleted from S3: ${fileName}`);
         return true;
       } catch (error) {
-        // Continue to next extension if file not found
         if (error.name !== "NoSuchKey") {
           console.error(`Error deleting blog cover image ${fileName}:`, error);
         }
       }
     }
     
-    console.log(`No blog cover image found for blog ${blogId}`);
     return true; // Consider it successful if no file exists
   } catch (error) {
     console.error("Error deleting blog cover image from S3:", error);

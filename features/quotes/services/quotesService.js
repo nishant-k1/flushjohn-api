@@ -12,7 +12,6 @@ export const generateQuoteNumber = async () => {
 };
 
 export const createQuote = async (quoteData) => {
-  // Validate required fields
   if (
     !quoteData.usageType ||
     quoteData.usageType.trim() === "" ||
@@ -45,7 +44,6 @@ export const getAllQuotes = async ({
 }) => {
   const skip = (page - 1) * limit;
 
-  // Build search query
   let query = {};
   if (search) {
     query = {
@@ -60,7 +58,6 @@ export const getAllQuotes = async ({
     };
   }
 
-  // Build sort object
   const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
 
   const [quotes, total] = await Promise.all([
@@ -96,7 +93,6 @@ export const getQuoteById = async (id) => {
 };
 
 export const updateQuote = async (id, updateData) => {
-  // Validate required fields
   if (
     updateData.usageType !== undefined &&
     (!updateData.usageType ||
@@ -110,7 +106,6 @@ export const updateQuote = async (id, updateData) => {
 
   const quote = await quotesRepository.updateById(id, {
     ...updateData,
-    // Only set emailStatus to "Pending" if it's not already set in updateData
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),
   });

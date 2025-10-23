@@ -7,21 +7,17 @@ import User from "../models/User/index.js";
  */
 export const authenticateToken = async (req, res, next) => {
   try {
-    // Get token from Authorization header or query parameter
     const authHeader = req.headers.authorization;
     const queryToken = req.query.token;
 
     let token = null;
 
-    // Try Authorization header first (Bearer token)
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7);
     }
-    // Try query parameter
     else if (queryToken) {
       token = queryToken;
     }
-    // Try cookie (for web app compatibility)
     else if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
@@ -34,10 +30,8 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Verify the JWT token
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
-    // Get user details from database
     const user = await User.findOne({ userId: decoded.userId });
 
     if (!user) {
@@ -48,7 +42,6 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Check if user is active
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -57,7 +50,6 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Check if account is locked
     if (user.isLocked()) {
       return res.status(423).json({
         success: false,
@@ -67,7 +59,6 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Check if password was changed after JWT was issued
     if (user.changedPasswordAfter(decoded.iat)) {
       return res.status(401).json({
         success: false,
@@ -76,7 +67,6 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Add user information to request object
     req.user = {
       id: user._id,
       userId: user.userId,
@@ -89,8 +79,6 @@ export const authenticateToken = async (req, res, next) => {
 
     next();
   } catch (error) {
-
-
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
         success: false,
@@ -114,9 +102,6 @@ export const authenticateToken = async (req, res, next) => {
         error: "TOKEN_NOT_ACTIVE",
       });
     }
-
-    // Generic error for other JWT errors
-
     return res.status(500).json({
       success: false,
       message: "Authentication failed due to server error.",
@@ -146,11 +131,9 @@ export const optionalAuth = async (req, res, next) => {
     }
 
     if (!token) {
-      // No token provided, continue without authentication
       return next();
     }
 
-    // Verify the token if provided
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
     const user = await User.findOne({ userId: decoded.userId });
 
@@ -168,7 +151,6 @@ export const optionalAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // For optional auth, we ignore token errors and continue
     next();
   }
 };
@@ -269,7 +251,6 @@ export const checkDocumentAccess = (req, res, next) => {
   const { documentType } = req.params;
   const userRole = req.user.role;
 
-  // Define access rules for different document types
   const accessRules = {
     leads: ["admin", "user", "sales"],
     quotes: ["admin", "user", "sales"],
@@ -280,7 +261,6 @@ export const checkDocumentAccess = (req, res, next) => {
     blogs: ["admin", "user"],
   };
 
-  // Check if document type is allowed
   if (!accessRules[documentType]) {
     return res.status(400).json({
       success: false,
@@ -289,7 +269,6 @@ export const checkDocumentAccess = (req, res, next) => {
     });
   }
 
-  // Check if user role has access to this document type
   if (!accessRules[documentType].includes(userRole)) {
     return res.status(403).json({
       success: false,

@@ -70,11 +70,6 @@ export const setupS3LifecyclePolicies = async () => {
 
     await s3.send(command);
 
-    console.log("✅ S3 lifecycle policies configured successfully");
-    console.log("📋 Policies:");
-    console.log("  - Cover images: Delete after 30 days");
-    console.log("  - Content images: Delete after 90 days");
-    console.log("  - Temp images: Delete after 1 day");
   } catch (error) {
     console.error("❌ Error setting up S3 lifecycle policies:", error);
     throw error;
@@ -113,19 +108,15 @@ export const setupSmartLifecyclePolicy = async () => {
 
     await s3.send(command);
 
-    console.log("✅ Smart S3 lifecycle policy configured");
-    console.log("📋 Policy: Delete all blog images after 60 days");
   } catch (error) {
     console.error("❌ Error setting up smart lifecycle policy:", error);
     throw error;
   }
 };
 
-// Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   setupS3LifecyclePolicies()
     .then(() => {
-      console.log("✅ Setup completed");
       process.exit(0);
     })
     .catch((error) => {

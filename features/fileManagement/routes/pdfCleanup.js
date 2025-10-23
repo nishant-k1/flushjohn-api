@@ -20,7 +20,6 @@ router.get(
     try {
       const maxAgeInDays = parseInt(req.query.days) || 1;
 
-      // Validate maxAge
       if (maxAgeInDays < 1 || maxAgeInDays > 365) {
         return res.status(400).json({
           success: false,

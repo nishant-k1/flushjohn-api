@@ -164,14 +164,12 @@ const BlogsSchema = new Schema(
   }
 );
 
-// Indexes for better performance
 BlogsSchema.index({ title: "text", content: "text", excerpt: "text" });
 BlogsSchema.index({ status: 1, publishedAt: -1 });
 BlogsSchema.index({ category: 1, status: 1 });
 BlogsSchema.index({ tags: 1 });
 BlogsSchema.index({ slug: 1 });
 
-// Virtual for reading time calculation
 BlogsSchema.virtual("estimatedReadingTime").get(function () {
   if (this.wordCount > 0) {
     return Math.ceil(this.wordCount / 200); // Average 200 words per minute
@@ -179,21 +177,17 @@ BlogsSchema.virtual("estimatedReadingTime").get(function () {
   return 0;
 });
 
-// Pre-save middleware to update timestamps and calculate word count
 BlogsSchema.pre("save", function (next) {
   this.updatedAt = new Date();
 
   if (this.content) {
-    // Calculate word count by stripping HTML tags
     const textContent = this.content.replace(/<[^>]*>/g, "");
     const trimmedContent = textContent.trim();
 
-    // Handle empty content correctly
     if (!trimmedContent) {
       this.wordCount = 0;
       this.readingTime = 0;
     } else {
-      // Split by whitespace and filter out empty strings
       const words = trimmedContent
         .split(/\s+/)
         .filter((word) => word.length > 0);
@@ -201,12 +195,10 @@ BlogsSchema.pre("save", function (next) {
       this.readingTime = Math.ceil(this.wordCount / 200);
     }
   } else {
-    // No content
     this.wordCount = 0;
     this.readingTime = 0;
   }
 
-  // Set publishedAt when status changes to published
   if (
     this.isModified("status") &&
     this.status === "published" &&

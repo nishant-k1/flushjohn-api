@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const CustomersSchema = new mongoose.Schema({
-  // Tracking
   createdAt: {
     type: Date,
     default: Date.now,
@@ -16,7 +15,6 @@ const CustomersSchema = new mongoose.Schema({
     type: [Number],
   },
 
-  // Personal Details
   fName: {
     type: String,
   },
@@ -36,7 +34,6 @@ const CustomersSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Address Details
   streetAddress: {
     type: String,
   },
@@ -54,7 +51,6 @@ const CustomersSchema = new mongoose.Schema({
     default: "USA",
   },
 
-  // Onsite Details
   deliveryDate: {
     type: String,
   },
@@ -74,7 +70,6 @@ const CustomersSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Official Details
   note: {
     type: String,
   },

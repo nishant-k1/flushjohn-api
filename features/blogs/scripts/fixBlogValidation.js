@@ -10,7 +10,6 @@ import fs from 'fs/promises';
 import path from 'path';
 
 async function fixBlogValidation() {
-  console.log('🔧 Fixing blog validation issues...');
   
   const generatedBlogsDir = path.join(process.cwd(), 'generated-blogs');
   
@@ -18,7 +17,6 @@ async function fixBlogValidation() {
     const files = await fs.readdir(generatedBlogsDir);
     const blogFiles = files.filter(file => file.startsWith('blog-') && file.endsWith('.json'));
     
-    console.log(`📝 Found ${blogFiles.length} blog files to check`);
     
     let fixedCount = 0;
     
@@ -29,21 +27,16 @@ async function fixBlogValidation() {
         const blogData = JSON.parse(await fs.readFile(filePath, 'utf8'));
         let needsFix = false;
         
-        // Fix alt text (max 100 characters)
         if (blogData.coverImage?.alt && blogData.coverImage.alt.length > 100) {
           blogData.coverImage.alt = blogData.coverImage.alt.substring(0, 97) + '...';
           needsFix = true;
-          console.log(`✂️ Fixed alt text for: ${blogData.title}`);
         }
         
-        // Fix meta description (max 160 characters)
         if (blogData.metaDescription && blogData.metaDescription.length > 160) {
           blogData.metaDescription = blogData.metaDescription.substring(0, 157) + '...';
           needsFix = true;
-          console.log(`✂️ Fixed meta description for: ${blogData.title}`);
         }
         
-        // Save if changes were made
         if (needsFix) {
           await fs.writeFile(filePath, JSON.stringify(blogData, null, 2));
           fixedCount++;
@@ -54,8 +47,6 @@ async function fixBlogValidation() {
       }
     }
     
-    console.log(`\n✅ Fixed ${fixedCount} blog files`);
-    console.log('🚀 Ready to republish!');
     
   } catch (error) {
     console.error('💥 Error during validation fix:', error);
@@ -63,11 +54,9 @@ async function fixBlogValidation() {
   }
 }
 
-// Run the script
 if (import.meta.url === `file://${process.argv[1]}`) {
   fixBlogValidation()
     .then(() => {
-      console.log('\n✅ Validation fixes completed successfully!');
       process.exit(0);
     })
     .catch(error => {

@@ -8,14 +8,11 @@ import validateAndRecalculateProducts from "../../../middleware/validateProducts
 
 const router = Router();
 
-// POST /jobOrders - Create a new job order
 router.post("/", validateAndRecalculateProducts, async function (req, res) {
   try {
     const jobOrder = await jobOrdersService.createJobOrder(req.body);
     res.status(201).json({ success: true, data: jobOrder });
   } catch (error) {
-
-
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
@@ -39,7 +36,6 @@ router.post("/", validateAndRecalculateProducts, async function (req, res) {
   }
 });
 
-// GET /jobOrders - Get all job orders with pagination, sorting, and filtering
 router.get("/", async function (req, res) {
   try {
     const {
@@ -64,12 +60,10 @@ router.get("/", async function (req, res) {
       ...result,
     });
   } catch (error) {
-
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET /jobOrders/:id - Get single job order
 router.get("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -85,8 +79,6 @@ router.get("/:id", async function (req, res) {
     const jobOrder = await jobOrdersService.getJobOrderById(id);
     res.status(200).json({ success: true, data: jobOrder });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -99,7 +91,6 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-// PUT /jobOrders/:id - Update job order by ID
 router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const { id } = req.params;
@@ -123,8 +114,6 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
     const jobOrder = await jobOrdersService.updateJobOrder(id, req.body);
     res.status(200).json({ success: true, data: jobOrder });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -151,7 +140,6 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   }
 });
 
-// DELETE /jobOrders/:id - Delete job order by ID
 router.delete("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -171,8 +159,6 @@ router.delete("/:id", async function (req, res) {
       data: result,
     });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -190,7 +176,6 @@ router.delete("/:id", async function (req, res) {
   }
 });
 
-// POST /jobOrders/:id/pdf - Generate PDF for job order
 router.post(
   "/:id/pdf",
   validateAndRecalculateProducts,
@@ -208,7 +193,6 @@ router.post(
 
       const jobOrder = await jobOrdersService.getJobOrderById(id);
 
-      // Use fresh data from request body
       const pdfData = {
         ...req.body,
         _id: id,
@@ -216,9 +200,8 @@ router.post(
         createdAt: req.body.createdAt || jobOrder.createdAt,
       };
 
-      // Generate PDF
       const { generateJobOrderPDF } = await import(
-        "../../../services/pdfService.js"
+        "../../fileManagement/services/pdfService.js"
       );
       const pdfUrls = await generateJobOrderPDF(pdfData, id);
 
@@ -231,8 +214,6 @@ router.post(
         },
       });
     } catch (error) {
-
-
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
@@ -253,7 +234,6 @@ router.post(
   }
 );
 
-// POST /jobOrders/:id/email - Send job order via email
 router.post(
   "/:id/email",
   validateAndRecalculateProducts,
@@ -271,7 +251,6 @@ router.post(
 
       const jobOrder = await jobOrdersService.getJobOrderById(id);
 
-      // Check if vendor is selected
       if (!req.body.vendor || !req.body.vendor._id) {
         return res.status(400).json({
           success: false,
@@ -280,7 +259,6 @@ router.post(
         });
       }
 
-      // Fetch vendor details from database
       const { getVendorById } = await import(
         "../../vendors/services/vendorsService.js"
       );
@@ -294,7 +272,6 @@ router.post(
         });
       }
 
-      // Check if vendor has email
       if (!vendor.email) {
         return res.status(400).json({
           success: false,
@@ -303,31 +280,26 @@ router.post(
         });
       }
 
-      // Determine email recipients based on selected representative
       let primaryEmail, ccEmail, recipientName;
 
       if (req.body.vendor.selectedRepresentative) {
         const selectedRep = req.body.vendor.selectedRepresentative;
-        
+
         if (selectedRep.type === "representative") {
-          // Send to representative with vendor as CC
           primaryEmail = selectedRep.email;
           ccEmail = vendor.email;
           recipientName = selectedRep.name;
         } else {
-          // Send directly to vendor
           primaryEmail = vendor.email;
           ccEmail = null;
           recipientName = vendor.name;
         }
       } else {
-        // No representative selected, send directly to vendor
         primaryEmail = vendor.email;
         ccEmail = null;
         recipientName = vendor.name;
       }
 
-      // Use fresh data from request body but replace email with determined primary email
       const emailData = {
         ...req.body,
         _id: id,
@@ -338,18 +310,26 @@ router.post(
         ccEmail: ccEmail, // Add CC email if different
       };
 
-      // Generate PDF and send email
       const { generateJobOrderPDF } = await import(
-        "../../../services/pdfService.js"
+        "../../fileManagement/services/pdfService.js"
       );
       const { sendJobOrderEmail } = await import(
-        "../../../services/emailService.js"
+        "../../common/services/emailService.js"
       );
 
-      const pdfUrls = await generateJobOrderPDF(emailData, id);
-      await sendJobOrderEmail(emailData, id, pdfUrls.pdfUrl);
+      let pdfUrls;
+      try {
+        pdfUrls = await generateJobOrderPDF(emailData, id);
+        await sendJobOrderEmail(emailData, id, pdfUrls.pdfUrl);
+      } catch (pdfError) {
+        console.error(
+          "PDF/Email generation error:",
+          pdfError.message,
+          pdfError.stack
+        );
+        throw pdfError;
+      }
 
-      // Update email status and vendor acceptance status to Accepted
       const updatedJobOrder = await jobOrdersService.updateJobOrder(id, {
         ...emailData,
         emailStatus: "Sent",
@@ -360,13 +340,14 @@ router.post(
         success: true,
         message: "Job Order email sent successfully",
         data: {
-          ...updatedJobOrder.toObject(),
+          _id: updatedJobOrder._id,
+          jobOrderNo: updatedJobOrder.jobOrderNo,
+          emailStatus: updatedJobOrder.emailStatus,
+          vendorAcceptanceStatus: updatedJobOrder.vendorAcceptanceStatus,
           pdfUrl: pdfUrls.pdfUrl,
         },
       });
     } catch (error) {
-
-
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,

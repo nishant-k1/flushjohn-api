@@ -1,7 +1,6 @@
 import * as blogsRepository from "../repositories/blogsRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-// import { // queueImageCleanup } from "../../fileManagement/services/imageCleanupQueue.js";
 
 export const generateBlogNumber = async () => {
   const latestBlog = await blogsRepository.findOne({}, "blogNo", {
@@ -128,7 +127,6 @@ const deleteCoverImageFromS3 = async (blogId) => {
     const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
     let deleted = false;
 
-    // First, try old format files (without timestamp)
     for (const ext of extensions) {
       const fileName = `cover-${blogId}.${ext}`;
       const params = {
@@ -145,17 +143,14 @@ const deleteCoverImageFromS3 = async (blogId) => {
         break;
       } catch (error) {
         if (error.name === "NoSuchKey") {
-          // File doesn't exist, continue to next extension
           continue;
         } else {
-          // Real S3 error occurred, log it and continue to next extension
           console.error(`Error deleting cover image ${fileName}:`, error);
           continue;
         }
       }
     }
 
-    // If old format not found, try to find and delete new format files with timestamp
     if (!deleted) {
       try {
         const { ListObjectsV2Command, DeleteObjectCommand } = await import(
@@ -288,7 +283,6 @@ export const getAllBlogs = async ({
     };
   }
 
-  // ✅ NEW: Add status filtering
   if (status) {
     query.status = status;
   }
@@ -339,7 +333,6 @@ export const updateBlog = async (id, updateData) => {
 
   if (updateData.coverImage === null || updateData.coverImage === "") {
     if (existingBlog.coverImage?.src) {
-      // await queueImageCleanup(existingBlog.coverImage.src, 2000);
     }
 
     transformedUpdateData.coverImage = null;
@@ -364,7 +357,6 @@ export const updateBlog = async (id, updateData) => {
     existingBlog.coverImage?.src &&
     updateData.coverImage.src !== existingBlog.coverImage.src
   ) {
-    // await queueImageCleanup(existingBlog.coverImage.src, 2000);
   } else if (
     updateData.coverImage &&
     updateData.coverImage.src &&
@@ -375,7 +367,6 @@ export const updateBlog = async (id, updateData) => {
       existingBlog.coverImage?.src &&
       existingBlog.coverImage.src !== updateData.coverImage.src
     ) {
-      // await queueImageCleanup(existingBlog.coverImage.src, 2000);
     }
   }
 

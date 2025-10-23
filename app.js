@@ -14,7 +14,6 @@ import { initializeCronJobs } from "./features/blogs/services/cronScheduler.js";
 import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
-// import pdfCleanupRouter from "./features/fileManagement/routes/pdfCleanup.js";
 import s3CorsRouter from "./routes/s3-cors.js";
 import blogAutomationRouter from "./features/blogs/routes/blog-automation.js";
 
@@ -38,7 +37,6 @@ const quotesRouter = quotesFeature.routes;
 const salesOrdersRouter = salesOrdersFeature.routes;
 const jobOrdersRouter = jobOrdersFeature.routes;
 
-// Load environment variables
 config({ path: "./.env" });
 
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
@@ -51,7 +49,6 @@ const log = debug("flushjohn-api:server");
 const port = normalizePort(process.env.PORT || "8080");
 app.set("port", port);
 
-// CORS configuration
 const getAllowedOrigins = () => {
   return process.env.ORIGINS
     ? process.env.ORIGINS.split(",")
@@ -60,30 +57,21 @@ const getAllowedOrigins = () => {
     : [];
 };
 
-// Create HTTP server
 const server = createServer(app);
 socketConnect(server);
 
-// CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = getAllowedOrigins();
 
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) {
-      console.log("🔍 CORS check - No origin (non-browser request)");
       return callback(null, true);
     }
 
-    // Check if origin is allowed
     if (allowedOrigins.includes(origin)) {
-      console.log(`✅ CORS check - Origin allowed: ${origin}`);
       return callback(null, true);
     }
 
-    // Log blocked origins for debugging
-    console.log(`❌ CORS check - Origin blocked: ${origin}`);
-    console.log("🌐 Allowed origins:", allowedOrigins);
     return callback(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
@@ -106,10 +94,8 @@ const corsOptions = {
   maxAge: 600, // 10 minutes (in seconds)
 };
 
-// Apply CORS middleware
 app.use(cors(corsOptions));
 
-// Handle preflight requests
 app.options("*", cors(corsOptions));
 
 app.use(logger("dev"));
@@ -117,28 +103,21 @@ app.use(json({ limit: "50mb" }));
 app.use(urlencoded({ extended: false, limit: "50mb" }));
 app.use(cookieParser());
 
-// Method override middleware to handle X-HTTP-Method-Override
 app.use((req, res, next) => {
   if (req.headers["x-http-method-override"]) {
     req.method = req.headers["x-http-method-override"].toUpperCase();
-    console.log(`🔄 Method overridden to: ${req.method}`);
   }
   next();
 });
 
-// Debug middleware to log all requests
 app.use((req, res, next) => {
-  console.log(
     `📥 ${req.method} ${req.url} - Origin: ${req.headers.origin || "none"}`
   );
   next();
 });
 
-// Add cache control headers for API responses to prevent aggressive caching
 app.use((req, res, next) => {
-  // Don't apply no-cache headers to OPTIONS requests (CORS preflight)
   if (req.method !== "OPTIONS") {
-    // Set cache control headers for API responses (but not CORS preflight)
     res.setHeader(
       "Cache-Control",
       "no-store, no-cache, must-revalidate, proxy-revalidate"
@@ -148,7 +127,6 @@ app.use((req, res, next) => {
     res.setHeader("Surrogate-Control", "no-store");
   }
 
-  // Additional headers to prevent CDN/proxy caching issues
   res.setHeader(
     "Vary",
     "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
@@ -156,21 +134,17 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
 
-  // Add unique headers to force fresh CORS responses
   res.setHeader("X-Timestamp", Date.now().toString());
   res.setHeader("X-Request-ID", Math.random().toString(36).substring(7));
 
   next();
 });
 
-// Serve static files from public directory
 app.use("/logos", express.static("public/logos"));
 
-// Serve temp PDFs with no-cache headers to prevent stale PDFs
 app.use(
   "/temp",
   (req, res, next) => {
-    // Set no-cache headers to prevent browser caching
     res.setHeader(
       "Cache-Control",
       "no-store, no-cache, must-revalidate, proxy-revalidate"
@@ -187,13 +161,7 @@ app.use(
   })
 );
 
-// Secure PDF access routes (replaces public static serving)
 app.use("/pdf", pdfAccessRouter);
-
-// PDF cleanup routes (for managing local PDFs)
-// app.use("/pdf-cleanup", pdfCleanupRouter);
-
-// Routes
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/file-upload", fileUploadRouter);
@@ -209,32 +177,21 @@ app.use("/jobOrders", jobOrdersRouter);
 app.use("/blog-automation", blogAutomationRouter);
 app.use("/dashboard", dashboardRouter);
 
-// ✅ STANDARDIZED: Connect Database with enhanced error handling
 dbConnect().catch((error) => {
   process.exit(1);
 });
 
-// ✅ Schedule automatic PDF cleanup (runs daily at 2 AM by default)
-// schedulePDFCleanup();
-
-// ✅ Optionally run cleanup on startup
-// runCleanupOnStartup();
-
-// ✅ Initialize automated blog generation cron jobs
 let cronJobs;
 try {
   cronJobs = initializeCronJobs();
-  console.log("✅ Automated blog generation cron jobs initialized");
 } catch (error) {
   console.error("❌ Failed to initialize cron jobs:", error);
 }
 
-// Handle 404 errors
 app.use((req, res, next) => {
   next(createError(404));
 });
 
-// Error handler
 app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
@@ -247,18 +204,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
 server.listen(port);
 server.on("error", onError);
 server.on("listening", onListening);
 
-// Normalize port function
 function normalizePort(val) {
   const port = parseInt(val, 10);
   return isNaN(port) ? val : port >= 0 ? port : false;
 }
 
-// Handle server errors
 function onError(error) {
   if (error.syscall !== "listen") throw error;
   const bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
@@ -273,7 +227,6 @@ function onError(error) {
   }
 }
 
-// Log when server is listening
 function onListening() {
   const addr = server.address();
   const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;

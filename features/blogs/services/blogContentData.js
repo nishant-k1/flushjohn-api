@@ -237,7 +237,6 @@ export const blogContentData = {
   ]
 };
 
-// Default cover image URLs for different categories
 export const defaultCoverImages = {
   events: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&h=630&fit=crop&crop=center",
   construction: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&h=630&fit=crop&crop=center",

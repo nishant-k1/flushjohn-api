@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const QuotesSchema = new mongoose.Schema({
-  // Tracking
   createdAt: {
     type: Date,
     default: Date.now,
@@ -22,7 +21,6 @@ const QuotesSchema = new mongoose.Schema({
   leadId: {
     type: String,
   },
-  // Personal Details
   fName: {
     type: String,
   },
@@ -42,7 +40,6 @@ const QuotesSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Address Details
   streetAddress: {
     type: String,
   },
@@ -60,7 +57,6 @@ const QuotesSchema = new mongoose.Schema({
     default: "USA",
   },
 
-  // Onsite Details
   usageType: {
     type: String,
   },
@@ -83,7 +79,6 @@ const QuotesSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Official Details
   note: {
     type: String,
   },

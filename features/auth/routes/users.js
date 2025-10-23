@@ -4,7 +4,6 @@ import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Get all users
 router.get("/", async (req, res) => {
   try {
     const users = await User.find({}, { password: 0 }); // Exclude password field
@@ -22,7 +21,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get user by userId
 router.get("/:userId", async (req, res) => {
   try {
     const user = await User.findOne(
@@ -50,7 +48,6 @@ router.get("/:userId", async (req, res) => {
   }
 });
 
-// Update user
 router.put("/:userId", async (req, res) => {
   try {
     const { fName, lName, email, role, isActive } = req.body;
@@ -82,10 +79,8 @@ router.put("/:userId", async (req, res) => {
   }
 });
 
-// Update profile avatar - New endpoint to avoid CORS cache
 router.post("/update-avatar", authenticateToken, async (req, res) => {
   try {
-    // Get user from authenticated session
     const userId = req.user?.userId;
 
     if (!userId) {
@@ -98,7 +93,6 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
 
     const { avatarUrl, fName, lName, phone } = req.body;
 
-    // Build update object with only allowed fields
     const updateData = {};
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
     if (fName !== undefined) updateData.fName = fName;
@@ -118,16 +112,12 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
       });
     }
 
-
-
     res.status(200).json({
       success: true,
       data: user,
       message: "Profile updated successfully",
     });
   } catch (error) {
-
-
     res.status(500).json({
       success: false,
       message: "Failed to update profile",
@@ -136,7 +126,6 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
   }
 });
 
-// Delete user
 router.delete("/:userId", async (req, res) => {
   try {
     const user = await User.findOneAndDelete({ userId: req.params.userId });

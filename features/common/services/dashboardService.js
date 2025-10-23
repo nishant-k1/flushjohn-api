@@ -32,7 +32,6 @@ export const getDateFilter = (dateRange, month = null, year = null) => {
   const now = new Date();
   let startDate, endDate;
 
-  // If month and year are provided, override the date range logic
   if (month && year) {
     const monthIndex = getMonthIndex(month);
     startDate = new Date(year, monthIndex, 1);
@@ -40,14 +39,12 @@ export const getDateFilter = (dateRange, month = null, year = null) => {
     return { startDate, endDate };
   }
 
-  // If only year is provided, use the entire year
   if (year && !month) {
     startDate = new Date(year, 0, 1);
     endDate = new Date(year, 11, 31, 23, 59, 59);
     return { startDate, endDate };
   }
 
-  // If only month is provided, use current year
   if (month && !year) {
     const monthIndex = getMonthIndex(month);
     const currentYear = now.getFullYear();
@@ -155,7 +152,6 @@ export const getDashboardAnalytics = async (
   try {
     const { startDate, endDate } = getDateFilter(dateRange, month, year);
 
-    // Build date filter object
     let dateFilter = {};
     if (startDate) {
       dateFilter.$gte = startDate;
@@ -164,7 +160,6 @@ export const getDashboardAnalytics = async (
       dateFilter.$lte = endDate;
     }
 
-    // Get all leads with date filter
     const leadsFilter =
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allLeads = await leadsService.getAllLeads({
@@ -173,7 +168,6 @@ export const getDashboardAnalytics = async (
       filter: leadsFilter,
     });
 
-    // Get all quotes with date filter
     const quotesFilter =
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allQuotes = await quotesService.getAllQuotes({
@@ -182,7 +176,6 @@ export const getDashboardAnalytics = async (
       filter: quotesFilter,
     });
 
-    // Get all sales orders with date filter
     const salesOrdersFilter =
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allSalesOrders = await salesOrdersService.getAllSalesOrders({
@@ -191,7 +184,6 @@ export const getDashboardAnalytics = async (
       filter: salesOrdersFilter,
     });
 
-    // Get all job orders with date filter
     const jobOrdersFilter =
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allJobOrders = await jobOrdersService.getAllJobOrders({
@@ -200,7 +192,6 @@ export const getDashboardAnalytics = async (
       filter: jobOrdersFilter,
     });
 
-    // Get all customers with date filter
     const customersFilter =
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allCustomers = await customersService.getAllCustomers({
@@ -209,11 +200,9 @@ export const getDashboardAnalytics = async (
       filter: customersFilter,
     });
 
-    // Calculate leads conversion
     const totalLeads = allLeads.data?.length || 0;
     const convertedLeads =
       allLeads.data?.filter((lead) => {
-        // Check if lead has both sales order and job order with email status sent successfully
         const hasSalesOrder = allSalesOrders.data?.some(
           (order) =>
             order.leadId === lead._id &&
@@ -227,24 +216,19 @@ export const getDashboardAnalytics = async (
         return hasSalesOrder && hasJobOrder;
       }).length || 0;
 
-    // Calculate conversion rate
     const conversionRate =
       totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : 0;
 
-    // Lead sources analysis - only official sources from CRM form
     const officialLeadSources = ["Call Lead", "Web Quick Lead", "Web Lead"];
     const leadSources = {};
 
-    // Initialize all official sources with 0
     officialLeadSources.forEach((source) => {
       leadSources[source] = 0;
     });
 
-    // Count only official sources, map similar ones to official sources
     allLeads.data?.forEach((lead) => {
       const source = lead.leadSource || "Unknown";
 
-      // Map similar sources to official ones
       let mappedSource = source;
       if (source.toLowerCase().includes("call")) {
         mappedSource = "Call Lead";
@@ -260,38 +244,31 @@ export const getDashboardAnalytics = async (
         mappedSource = "Web Lead";
       }
 
-      // Only count if it's an official source
       if (officialLeadSources.includes(mappedSource)) {
         leadSources[mappedSource] = (leadSources[mappedSource] || 0) + 1;
       }
     });
 
-    // Usage type analysis - only official usage types from CRM form
     const officialUsageTypes = ["Event", "Construction"];
     const usageTypes = {};
 
-    // Initialize all official usage types with 0
     officialUsageTypes.forEach((type) => {
       usageTypes[type] = 0;
     });
 
-    // Count only official usage types
     allLeads.data?.forEach((lead) => {
       const usageType = lead.usageType || "Unknown";
 
-      // Only count if it's an official usage type
       if (officialUsageTypes.includes(usageType)) {
         usageTypes[usageType] = (usageTypes[usageType] || 0) + 1;
       }
     });
 
-    // Revenue calculation
     const totalRevenue =
       allSalesOrders.data?.reduce((sum, order) => {
         return sum + (order.totalAmount || 0);
       }, 0) || 0;
 
-    // Net Profit calculation (Job Order total - Sales Order total)
     const totalJobOrderAmount =
       allJobOrders.data?.reduce((sum, order) => {
         return sum + (order.totalAmount || 0);
@@ -299,11 +276,9 @@ export const getDashboardAnalytics = async (
 
     const netProfit = totalJobOrderAmount - totalRevenue;
 
-    // Calculate average revenue per customer
     const avgRevenuePerCustomer =
       convertedLeads > 0 ? (totalRevenue / convertedLeads).toFixed(2) : 0;
 
-    // Monthly trends (based on date range)
     const monthlyTrends = calculateMonthlyTrends(
       allLeads.data,
       allSalesOrders.data,
@@ -311,14 +286,12 @@ export const getDashboardAnalytics = async (
       dateRange
     );
 
-    // Top cities analysis
     const topCities = {};
     allLeads.data?.forEach((lead) => {
       const city = lead.city || "Unknown";
       topCities[city] = (topCities[city] || 0) + 1;
     });
 
-    // Equipment utilization (mock data - you can replace with actual equipment data)
     const equipmentUtilization = {
       inUse: 65,
       available: 25,
@@ -326,7 +299,6 @@ export const getDashboardAnalytics = async (
       outOfService: 3,
     };
 
-    // Customer satisfaction (mock data - you can replace with actual survey data)
     const customerSatisfaction = {
       score: 4.7,
     };
@@ -392,7 +364,6 @@ const calculateMonthlyTrends = (
   const revenueData = [];
   const netProfitData = [];
 
-  // Determine number of months based on date range
   let monthsCount = 12; // default
   switch (dateRange) {
     case "7days":
@@ -416,14 +387,12 @@ const calculateMonthlyTrends = (
       break;
   }
 
-  // Generate months based on date range
   for (let i = monthsCount - 1; i >= 0; i--) {
     const date = new Date();
     date.setMonth(date.getMonth() - i);
     const monthName = date.toLocaleDateString("en-US", { month: "short" });
     months.push(monthName);
 
-    // Count leads for this month
     const leadsCount =
       leads?.filter((lead) => {
         const leadDate = new Date(lead.createdAt);
@@ -435,11 +404,9 @@ const calculateMonthlyTrends = (
 
     leadsData.push(leadsCount);
 
-    // Count conversions for this month (mock data - you can calculate actual conversions)
     const conversionsCount = Math.floor(leadsCount * 0.4); // Assuming 40% conversion rate
     conversionsData.push(conversionsCount);
 
-    // Calculate revenue for this month
     const revenue =
       salesOrders
         ?.filter((order) => {
@@ -451,7 +418,6 @@ const calculateMonthlyTrends = (
         })
         .reduce((sum, order) => sum + (order.totalAmount || 0), 0) || 0;
 
-    // Calculate job order amount for this month
     const jobOrderAmount =
       jobOrders
         ?.filter((order) => {
@@ -463,7 +429,6 @@ const calculateMonthlyTrends = (
         })
         .reduce((sum, order) => sum + (order.totalAmount || 0), 0) || 0;
 
-    // Calculate net profit (Job Order amount - Revenue)
     const netProfit = jobOrderAmount - revenue;
 
     revenueData.push(Math.floor(revenue / 1000)); // Convert to thousands
