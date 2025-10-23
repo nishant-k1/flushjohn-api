@@ -376,8 +376,10 @@ export const createBlog = async (blogData) => {
       if (!blogData.coverImage?.alt && blogData.coverImage) {
         blogData.coverImage.alt = comprehensiveMetadata.coverImageAlt;
       }
-      if (!blogData.featured) blogData.featured = comprehensiveMetadata.featured;
-      if (!blogData.priority) blogData.priority = comprehensiveMetadata.priority;
+      if (!blogData.featured)
+        blogData.featured = comprehensiveMetadata.featured;
+      if (!blogData.priority)
+        blogData.priority = comprehensiveMetadata.priority;
     } catch (error) {
       console.error("Error generating comprehensive metadata:", error);
       // Continue with basic data

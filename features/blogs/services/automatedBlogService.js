@@ -56,24 +56,25 @@ export async function generateAutomatedBlogPost(contentType = null) {
     );
 
     // Generate comprehensive AI metadata
-    const [metaDescription, comprehensiveMetadata, coverImageDescription] = await Promise.all([
-      blogGeneratorService.generateMetaDescription(
-        topic.title,
-        generatedContent,
-        topic.keywords
-      ),
-      blogGeneratorService.generateComprehensiveBlogMetadata(
-        topic.title,
-        generatedContent,
-        topic.keywords,
-        topic.category
-      ),
-      blogGeneratorService.generateCoverImageDescription(
-        topic.title,
-        topic.category,
-        generatedContent
-      )
-    ]);
+    const [metaDescription, comprehensiveMetadata, coverImageDescription] =
+      await Promise.all([
+        blogGeneratorService.generateMetaDescription(
+          topic.title,
+          generatedContent,
+          topic.keywords
+        ),
+        blogGeneratorService.generateComprehensiveBlogMetadata(
+          topic.title,
+          generatedContent,
+          topic.keywords,
+          topic.category
+        ),
+        blogGeneratorService.generateCoverImageDescription(
+          topic.title,
+          topic.category,
+          generatedContent
+        ),
+      ]);
 
     const contentWithLinks = generatedContent;
 
