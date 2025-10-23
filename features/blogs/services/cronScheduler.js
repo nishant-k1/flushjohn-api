@@ -82,6 +82,7 @@ async function weeklyBlogGenerationJob() {
   const jobName = "weeklyBlogGeneration";
   const startTime = new Date();
 
+  console.log(
     `\n🏗️ Starting Monday construction blog generation job at ${startTime.toISOString()}`
   );
 
@@ -95,6 +96,7 @@ async function weeklyBlogGenerationJob() {
     if (result.success) {
       jobStatus[jobName].lastSuccess = new Date();
       jobStatus[jobName].successfulRuns++;
+      console.log(
         `✅ Monday construction blog generation completed successfully`
       );
     } else {
@@ -114,6 +116,7 @@ async function weeklyBlogGenerationJob() {
   } finally {
     jobStatus[jobName].isRunning = false;
     const duration = new Date() - startTime;
+    console.log(
       `⏱️  Monday construction blog generation job completed in ${duration}ms`
     );
   }
@@ -126,6 +129,7 @@ async function midWeekBlogGenerationJob() {
   const jobName = "midWeekBlogGeneration";
   const startTime = new Date();
 
+  console.log(
     `\n🏙️ Starting Wednesday city-specific blog generation job at ${startTime.toISOString()}`
   );
 
@@ -139,6 +143,7 @@ async function midWeekBlogGenerationJob() {
     if (result.success) {
       jobStatus[jobName].lastSuccess = new Date();
       jobStatus[jobName].successfulRuns++;
+      console.log(
         `✅ Wednesday city-specific blog generation completed successfully`
       );
     } else {
@@ -158,6 +163,7 @@ async function midWeekBlogGenerationJob() {
   } finally {
     jobStatus[jobName].isRunning = false;
     const duration = new Date() - startTime;
+    console.log(
       `⏱️  Wednesday city-specific blog generation job completed in ${duration}ms`
     );
   }
@@ -170,6 +176,7 @@ async function weeklyProblemSolvingJob() {
   const jobName = "weeklyProblemSolving";
   const startTime = new Date();
 
+  console.log(
     `\n💡 Starting Friday problem-solving blog generation job at ${startTime.toISOString()}`
   );
 
@@ -183,6 +190,7 @@ async function weeklyProblemSolvingJob() {
     if (result.success) {
       jobStatus[jobName].lastSuccess = new Date();
       jobStatus[jobName].successfulRuns++;
+      console.log(
         `✅ Friday problem-solving blog generation completed successfully`
       );
     } else {
@@ -202,6 +210,7 @@ async function weeklyProblemSolvingJob() {
   } finally {
     jobStatus[jobName].isRunning = false;
     const duration = new Date() - startTime;
+    console.log(
       `⏱️  Friday problem-solving blog generation job completed in ${duration}ms`
     );
   }
@@ -220,10 +229,12 @@ async function dailyStatusCheckJob() {
   try {
     const stats = await getAutomationStats();
 
+    console.log(
       `   - Total automated posts (30 days): ${stats.totalAutomatedPosts}`
     );
 
     if (stats.lastAutomatedPost) {
+      console.log(
         `   - Last automated date: ${stats.lastAutomatedPost.automationDate}`
       );
     }
@@ -267,6 +278,7 @@ async function healthCheckJob() {
       })),
     };
 
+    console.log(
       `   - Memory usage: ${Math.round(
         healthStatus.memoryUsage.heapUsed / 1024 / 1024
       )}MB`
@@ -292,7 +304,6 @@ async function healthCheckJob() {
  * Initialize and start all cron jobs
  */
 export function initializeCronJobs() {
-
   const weeklyJob = cron.schedule(
     CRON_CONFIG.weeklyBlogGeneration,
     weeklyBlogGenerationJob,
@@ -340,10 +351,13 @@ export function initializeCronJobs() {
   dailyJob.start();
   healthJob.start();
 
+  console.log(
     `📅 Monday construction blog: ${CRON_CONFIG.weeklyBlogGeneration} (EST)`
   );
+  console.log(
     `📅 Wednesday city-specific blog: ${CRON_CONFIG.midWeekBlogGeneration} (EST)`
   );
+  console.log(
     `📅 Friday problem-solving blog: ${CRON_CONFIG.weeklyProblemSolving} (EST)`
   );
 
@@ -360,7 +374,6 @@ export function initializeCronJobs() {
  * Stop all cron jobs
  */
 export function stopCronJobs(jobs) {
-
   if (jobs) {
     jobs.weeklyJob.stop();
     jobs.midWeekJob.stop();
@@ -368,7 +381,6 @@ export function stopCronJobs(jobs) {
     jobs.dailyJob.stop();
     jobs.healthJob.stop();
   }
-
 }
 
 /**
@@ -391,7 +403,6 @@ export function getCronJobStatus() {
  * Manually trigger a job (for testing)
  */
 export async function triggerJob(jobName) {
-
   switch (jobName) {
     case "weeklyBlogGeneration":
       await weeklyBlogGenerationJob();
@@ -417,7 +428,6 @@ export async function triggerJob(jobName) {
  * Test cron job system
  */
 export async function testCronSystem() {
-
   try {
     await healthCheckJob();
 

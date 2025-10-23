@@ -26,7 +26,6 @@ const config = {
 
 async function generateSingleBlogPost(postData, templateType = "citySpecific") {
   try {
-
     const checkSlug = blogGeneratorService.generateSlug(postData.title);
     const existingBlog = await blogsService.getBlogBySlug(checkSlug);
 
@@ -100,6 +99,7 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
 
     const createdBlog = await blogsService.createBlog(blogPostData);
 
+    console.log(
       `📊 Word Count: ${content.replace(/<[^>]*>/g, "").split(" ").length}`
     );
 
@@ -124,6 +124,7 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
 }
 
 async function generateAllBlogPosts() {
+  console.log(
     `🔑 Using OpenAI API Key: ${config.apiKey ? "✅ Set" : "❌ Missing"}`
   );
 
@@ -139,7 +140,6 @@ async function generateAllBlogPosts() {
     if (!connected) {
       throw new Error("Database connection timeout");
     }
-
   } catch (error) {
     console.error("❌ Database connection failed:", error.message);
     process.exit(1);
@@ -157,6 +157,7 @@ async function generateAllBlogPosts() {
     ...blogContentData.seasonal.map((post) => ({ ...post, type: "seasonal" })),
   ];
 
+  console.log(
     `📊 Distribution: ${blogContentData.citySpecific.length} city-specific, ${blogContentData.industryGuide.length} industry guides, ${blogContentData.seasonal.length} seasonal`
   );
 
@@ -167,6 +168,7 @@ async function generateAllBlogPosts() {
     const batch = allPosts.slice(i, i + config.batchSize);
     const batchNumber = Math.floor(i / config.batchSize) + 1;
 
+    console.log(
       `\n🔄 Processing Batch ${batchNumber} (Posts ${i + 1}-${Math.min(
         i + config.batchSize,
         allPosts.length
@@ -187,6 +189,7 @@ async function generateAllBlogPosts() {
     });
 
     if (i + config.batchSize < allPosts.length) {
+      console.log(
         `⏳ Waiting ${
           config.delayBetweenBatches / 1000
         } seconds before next batch...`
@@ -197,31 +200,36 @@ async function generateAllBlogPosts() {
     }
   }
   if (results.length > 0) {
-    results.forEach((result, index) => {
-    });
+    results.forEach((result, index) => {});
   }
 
   if (errors.length > 0) {
-    errors.forEach((error, index) => {
-    });
+    errors.forEach((error, index) => {});
   }
 
   const totalWords = results.reduce((sum, result) => sum + result.wordCount, 0);
+  console.log(
     `\n📊 Total Content Generated: ${totalWords.toLocaleString()} words`
   );
+  console.log(
     `📈 Average Post Length: ${Math.round(totalWords / results.length)} words`
   );
 
+  console.log(
     `🔍 Target Keywords: ${
       allPosts.length * 3
     } (primary, secondary, long-tail per post)`
   );
+  console.log(
     `🌍 City Coverage: ${blogContentData.citySpecific.length} major cities`
   );
+  console.log(
     `📚 Industry Topics: ${blogContentData.industryGuide.length} comprehensive guides`
   );
+  console.log(
     `📅 Seasonal Content: ${blogContentData.seasonal.length} timely posts`
   );
+  console.log(
     `🔗 Internal Links: ~${
       results.length * 4
     } links to city pages, products, quote page`

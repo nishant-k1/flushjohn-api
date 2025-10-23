@@ -310,6 +310,20 @@ router.post(
         ccEmail: ccEmail, // Add CC email if different
       };
 
+      console.log("Job Order Email Debug:", {
+        emailData: {
+          _id: emailData._id,
+          jobOrderNo: emailData.jobOrderNo,
+          vendorName: emailData.vendorName,
+          email: emailData.email,
+          ccEmail: emailData.ccEmail,
+          vendor: emailData.vendor,
+        },
+        primaryEmail,
+        ccEmail,
+        recipientName,
+      });
+
       const { generateJobOrderPDF } = await import(
         "../../fileManagement/services/pdfService.js"
       );
