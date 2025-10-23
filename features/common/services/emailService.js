@@ -206,17 +206,5 @@ export const sendSalesOrderEmail = async (
  * @returns {Promise<boolean>} - Success status
  */
 export const sendJobOrderEmail = async (jobOrderData, jobOrderId, s3PdfUrl) => {
-  console.log("sendJobOrderEmail called with:", {
-    jobOrderData: {
-      _id: jobOrderData._id,
-      jobOrderNo: jobOrderData.jobOrderNo,
-      vendorName: jobOrderData.vendorName,
-      email: jobOrderData.email,
-      ccEmail: jobOrderData.ccEmail,
-      vendor: jobOrderData.vendor,
-    },
-    jobOrderId,
-    s3PdfUrl,
-  });
   return sendEmailWithS3PDF(jobOrderData, "jobOrder", jobOrderId, s3PdfUrl);
 };
