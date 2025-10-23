@@ -251,7 +251,11 @@ export const createBlog = async (blogData) => {
 
   if (!blogData.excerpt && blogData.content) {
     const textContent = blogData.content.replace(/<[^>]*>/g, "").trim();
-    blogData.excerpt = textContent.substring(0, 500);
+    // Create a proper excerpt by taking the first paragraph or first 150 characters
+    const firstParagraph = textContent.split('\n\n')[0] || textContent.split('.')[0];
+    blogData.excerpt = firstParagraph.length > 150 
+      ? firstParagraph.substring(0, 150) + "..."
+      : firstParagraph;
   }
 
   return await createBlogWithRetry(blogData);
@@ -368,6 +372,16 @@ export const updateBlog = async (id, updateData) => {
       existingBlog.coverImage.src !== updateData.coverImage.src
     ) {
     }
+  }
+
+  // Generate excerpt if not provided and content is updated
+  if (!transformedUpdateData.excerpt && transformedUpdateData.content) {
+    const textContent = transformedUpdateData.content.replace(/<[^>]*>/g, "").trim();
+    // Create a proper excerpt by taking the first paragraph or first 150 characters
+    const firstParagraph = textContent.split('\n\n')[0] || textContent.split('.')[0];
+    transformedUpdateData.excerpt = firstParagraph.length > 150 
+      ? firstParagraph.substring(0, 150) + "..."
+      : firstParagraph;
   }
 
   const blog = await blogsRepository.updateById(id, {
