@@ -90,7 +90,7 @@ export async function generateAutomatedBlogPost(contentType = null) {
       slug: blogsService.generateSlug(topic.title),
       content: contentWithLinks,
       excerpt: excerpt,
-      author: comprehensiveMetadata.author,
+      author: "FlushJohn Team", // Always hardcoded
       tags: comprehensiveMetadata.tags,
       status: "published",
       category: topic.category,

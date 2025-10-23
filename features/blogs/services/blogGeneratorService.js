@@ -236,8 +236,8 @@ export async function generateBlogContent(templateType, params) {
       .trim();
 
     // Ensure content starts with proper HTML
-    if (!content.startsWith('<')) {
-      content = '<p>' + content + '</p>';
+    if (!content.startsWith("<")) {
+      content = "<p>" + content + "</p>";
     }
 
     return content;
@@ -316,10 +316,9 @@ export async function generateComprehensiveBlogMetadata(
       messages: [
         {
           role: "system",
-          content: `You are an expert content strategist and SEO specialist. Generate comprehensive blog metadata including tags, author suggestions, and cover image descriptions. Return a JSON object with the following structure:
+          content: `You are an expert content strategist and SEO specialist. Generate comprehensive blog metadata including tags and cover image descriptions. Return a JSON object with the following structure:
 {
   "tags": ["tag1", "tag2", "tag3"],
-  "author": "Author Name",
   "coverImageAlt": "Descriptive alt text for cover image",
   "featured": true/false,
   "priority": "high/medium/low"
@@ -327,10 +326,10 @@ export async function generateComprehensiveBlogMetadata(
 
 Requirements:
 - Tags: 5-8 relevant, SEO-friendly tags
-- Author: Professional author name based on content type
 - Cover Image Alt: Descriptive, SEO-optimized alt text (max 100 chars)
 - Featured: true for high-value content, false for regular posts
 - Priority: "high" for trending topics, "medium" for standard content, "low" for niche topics
+- Author is always "FlushJohn Team" (do not include in JSON)
 - Return ONLY the JSON object, no additional text or formatting`,
         },
         {
@@ -345,10 +344,10 @@ Secondary Keywords: ${keywords.secondary}
 
 Requirements:
 - Generate 5-8 relevant tags based on content and keywords
-- Suggest appropriate author name for ${category} content
 - Create SEO-optimized cover image alt text
 - Determine if content should be featured
 - Assess content priority level
+- Author is always "FlushJohn Team" (hardcoded)
 - Return ONLY valid JSON object`,
         },
       ],
@@ -373,7 +372,7 @@ Requirements:
         tags: Array.isArray(parsedMetadata.tags)
           ? parsedMetadata.tags.slice(0, 8)
           : [],
-        author: parsedMetadata.author || "FlushJohn Team",
+        author: "FlushJohn Team", // Always hardcoded
         coverImageAlt:
           parsedMetadata.coverImageAlt ||
           `Cover image for ${title}`.substring(0, 100),
@@ -387,7 +386,7 @@ Requirements:
       // Fallback to basic metadata
       return {
         tags: [keywords.primary, "porta-potty-rental", "flushjohn"],
-        author: "FlushJohn Team",
+        author: "FlushJohn Team", // Always hardcoded
         coverImageAlt: `Cover image for ${title}`.substring(0, 100),
         featured: false,
         priority: "medium",
@@ -398,7 +397,7 @@ Requirements:
     // Fallback to basic metadata
     return {
       tags: [keywords.primary, "porta-potty-rental", "flushjohn"],
-      author: "FlushJohn Team",
+      author: "FlushJohn Team", // Always hardcoded
       coverImageAlt: `Cover image for ${title}`.substring(0, 100),
       featured: false,
       priority: "medium",
