@@ -83,7 +83,7 @@ router.post("/trigger", async (req, res) => {
 
     const validJobs = [
       "weeklyBlogGeneration",
-      "midWeekBlogGeneration", 
+      "midWeekBlogGeneration",
       "weeklyProblemSolving",
       "dailyStatusCheck",
       "healthCheck",
