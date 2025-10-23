@@ -55,34 +55,53 @@ export async function generateAutomatedBlogPost(contentType = null) {
         : [topic.title, topic.keywords, topic.season, topic.focus]
     );
 
-    const metaDescription = await blogGeneratorService.generateMetaDescription(
-      topic.title,
-      generatedContent,
-      topic.keywords
-    );
+    // Generate comprehensive AI metadata
+    const [metaDescription, comprehensiveMetadata, coverImageDescription] = await Promise.all([
+      blogGeneratorService.generateMetaDescription(
+        topic.title,
+        generatedContent,
+        topic.keywords
+      ),
+      blogGeneratorService.generateComprehensiveBlogMetadata(
+        topic.title,
+        generatedContent,
+        topic.keywords,
+        topic.category
+      ),
+      blogGeneratorService.generateCoverImageDescription(
+        topic.title,
+        topic.category,
+        generatedContent
+      )
+    ]);
 
     const contentWithLinks = generatedContent;
 
     // Generate AI-powered excerpt
-    const excerpt = await blogGeneratorService.generateAIExcerpt(contentWithLinks, topic.title, 150);
+    const excerpt = await blogGeneratorService.generateAIExcerpt(
+      contentWithLinks,
+      topic.title,
+      150
+    );
 
     const blogData = {
       title: topic.title,
       slug: blogsService.generateSlug(topic.title),
       content: contentWithLinks,
       excerpt: excerpt,
-      author: "FlushJohn Team",
-      tags: topic.keywords,
+      author: comprehensiveMetadata.author,
+      tags: comprehensiveMetadata.tags,
       status: "published",
       category: topic.category,
       coverImage: {
         src: getRandomCoverImage(topic.category),
-        alt: `Cover image for ${topic.title}`.substring(0, 100),
+        alt: comprehensiveMetadata.coverImageAlt,
       },
       publishedAt: new Date(),
       metaDescription: metaDescription.substring(0, 160),
       metaKeywords: topic.keywords.slice(0, 15),
-      featured: false,
+      featured: comprehensiveMetadata.featured,
+      priority: comprehensiveMetadata.priority,
       views: 0,
       likes: 0,
       comments: [],
