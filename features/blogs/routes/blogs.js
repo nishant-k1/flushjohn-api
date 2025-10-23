@@ -347,4 +347,37 @@ router.delete("/:id/cover-image", async function (req, res) {
   }
 });
 
+// Regenerate excerpt for a blog
+router.post("/:id/regenerate-excerpt", async function (req, res) {
+  try {
+    const { id } = req.params;
+    const blog = await blogsService.regenerateExcerpt(id);
+    res.status(200).json({ success: true, data: blog });
+  } catch (error) {
+    if (error.name === "NotFoundError") {
+      return res.status(404).json({
+        success: false,
+        message: "Blog not found",
+        error: "NOT_FOUND",
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        error: "VALIDATION_ERROR",
+        details: error.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to regenerate excerpt",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+});
+
 export default router;

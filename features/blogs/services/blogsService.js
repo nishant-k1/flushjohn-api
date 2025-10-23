@@ -252,10 +252,12 @@ export const createBlog = async (blogData) => {
   if (!blogData.excerpt && blogData.content) {
     const textContent = blogData.content.replace(/<[^>]*>/g, "").trim();
     // Create a proper excerpt by taking the first paragraph or first 150 characters
-    const firstParagraph = textContent.split('\n\n')[0] || textContent.split('.')[0];
-    blogData.excerpt = firstParagraph.length > 150 
-      ? firstParagraph.substring(0, 150) + "..."
-      : firstParagraph;
+    const firstParagraph =
+      textContent.split("\n\n")[0] || textContent.split(".")[0];
+    blogData.excerpt =
+      firstParagraph.length > 150
+        ? firstParagraph.substring(0, 150) + "..."
+        : firstParagraph;
   }
 
   return await createBlogWithRetry(blogData);
@@ -376,12 +378,16 @@ export const updateBlog = async (id, updateData) => {
 
   // Generate excerpt if not provided and content is updated
   if (!transformedUpdateData.excerpt && transformedUpdateData.content) {
-    const textContent = transformedUpdateData.content.replace(/<[^>]*>/g, "").trim();
+    const textContent = transformedUpdateData.content
+      .replace(/<[^>]*>/g, "")
+      .trim();
     // Create a proper excerpt by taking the first paragraph or first 150 characters
-    const firstParagraph = textContent.split('\n\n')[0] || textContent.split('.')[0];
-    transformedUpdateData.excerpt = firstParagraph.length > 150 
-      ? firstParagraph.substring(0, 150) + "..."
-      : firstParagraph;
+    const firstParagraph =
+      textContent.split("\n\n")[0] || textContent.split(".")[0];
+    transformedUpdateData.excerpt =
+      firstParagraph.length > 150
+        ? firstParagraph.substring(0, 150) + "..."
+        : firstParagraph;
   }
 
   const blog = await blogsRepository.updateById(id, {
@@ -407,6 +413,36 @@ export const deleteBlog = async (id) => {
 
   await blogsRepository.deleteById(id);
   return { _id: id };
+};
+
+export const regenerateExcerpt = async (id) => {
+  const existingBlog = await blogsRepository.findById(id);
+  if (!existingBlog) {
+    const error = new Error("Blog not found");
+    error.name = "NotFoundError";
+    throw error;
+  }
+
+  if (!existingBlog.content) {
+    const error = new Error("Blog content not found");
+    error.name = "ValidationError";
+    throw error;
+  }
+
+  const textContent = existingBlog.content.replace(/<[^>]*>/g, "").trim();
+  const firstParagraph =
+    textContent.split("\n\n")[0] || textContent.split(".")[0];
+  const newExcerpt =
+    firstParagraph.length > 150
+      ? firstParagraph.substring(0, 150) + "..."
+      : firstParagraph;
+
+  const updatedBlog = await blogsRepository.updateById(id, {
+    excerpt: newExcerpt,
+    updatedAt: getCurrentDateTime(),
+  });
+
+  return updatedBlog;
 };
 
 export const isValidObjectId = (id) => {
