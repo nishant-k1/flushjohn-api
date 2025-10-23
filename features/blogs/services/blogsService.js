@@ -2,6 +2,7 @@ import * as blogsRepository from "../repositories/blogsRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import OpenAI from "openai";
+import { generateComprehensiveBlogMetadata } from "./blogGeneratorService.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -357,6 +358,30 @@ export const createBlog = async (blogData) => {
       blogData.content,
       blogData.title
     );
+  }
+
+  // Generate comprehensive metadata if not provided
+  if (!blogData.tags || !blogData.author || !blogData.coverImage?.alt) {
+    try {
+      const comprehensiveMetadata = await generateComprehensiveBlogMetadata(
+        blogData.title,
+        blogData.content,
+        { primary: blogData.title, secondary: "" },
+        blogData.category || "tips"
+      );
+
+      // Only set if not already provided
+      if (!blogData.tags) blogData.tags = comprehensiveMetadata.tags;
+      if (!blogData.author) blogData.author = comprehensiveMetadata.author;
+      if (!blogData.coverImage?.alt && blogData.coverImage) {
+        blogData.coverImage.alt = comprehensiveMetadata.coverImageAlt;
+      }
+      if (!blogData.featured) blogData.featured = comprehensiveMetadata.featured;
+      if (!blogData.priority) blogData.priority = comprehensiveMetadata.priority;
+    } catch (error) {
+      console.error("Error generating comprehensive metadata:", error);
+      // Continue with basic data
+    }
   }
 
   return await createBlogWithRetry(blogData);

@@ -255,15 +255,15 @@ Requirements:
         },
       ],
       max_tokens: 100,
-      temperature: 0.7, // Increased temperature for more variation
-      seed: Math.floor(Math.random() * 1000000), // Add random seed for uniqueness
+      temperature: 0.7,
+      seed: Math.floor(Math.random() * 1000000),
     });
 
     let description = response.choices[0].message.content.trim();
 
     description = description
-      .replace(/^["']|["']$/g, "") // Remove surrounding quotes
-      .replace(/^```.*$/gm, "") // Remove any code block markers
+      .replace(/^["']|["']$/g, "")
+      .replace(/^```.*$/gm, "")
       .trim();
 
     if (description.length > 160) {
@@ -274,6 +274,162 @@ Requirements:
   } catch (error) {
     console.error("Error generating meta description:", error);
     return `Professional porta potty rental services. Get your free quote today! Call ${phone.phone_number}.`;
+  }
+}
+
+/**
+ * Generate comprehensive blog metadata using AI
+ * @param {string} title - Blog title
+ * @param {string} content - Blog content
+ * @param {object} keywords - Keywords object
+ * @param {string} category - Blog category
+ * @returns {Promise<object>} - Complete blog metadata
+ */
+export async function generateComprehensiveBlogMetadata(title, content, keywords, category) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert content strategist and SEO specialist. Generate comprehensive blog metadata including tags, author suggestions, and cover image descriptions. Return a JSON object with the following structure:
+{
+  "tags": ["tag1", "tag2", "tag3"],
+  "author": "Author Name",
+  "coverImageAlt": "Descriptive alt text for cover image",
+  "featured": true/false,
+  "priority": "high/medium/low"
+}
+
+Requirements:
+- Tags: 5-8 relevant, SEO-friendly tags
+- Author: Professional author name based on content type
+- Cover Image Alt: Descriptive, SEO-optimized alt text (max 100 chars)
+- Featured: true for high-value content, false for regular posts
+- Priority: "high" for trending topics, "medium" for standard content, "low" for niche topics
+- Return ONLY the JSON object, no additional text or formatting`
+        },
+        {
+          role: "user",
+          content: `Generate comprehensive metadata for this blog:
+
+Title: "${title}"
+Category: "${category}"
+Content Summary: "${content.substring(0, 1000)}..."
+Primary Keywords: ${keywords.primary}
+Secondary Keywords: ${keywords.secondary}
+
+Requirements:
+- Generate 5-8 relevant tags based on content and keywords
+- Suggest appropriate author name for ${category} content
+- Create SEO-optimized cover image alt text
+- Determine if content should be featured
+- Assess content priority level
+- Return ONLY valid JSON object`
+        }
+      ],
+      max_tokens: 300,
+      temperature: 0.6,
+    });
+
+    let metadata = response.choices[0].message.content.trim();
+    
+    // Clean up any formatting artifacts
+    metadata = metadata
+      .replace(/^```json\s*/, "")
+      .replace(/\s*```$/, "")
+      .replace(/^```\s*/, "")
+      .trim();
+
+    try {
+      const parsedMetadata = JSON.parse(metadata);
+      
+      // Validate and clean the metadata
+      return {
+        tags: Array.isArray(parsedMetadata.tags) ? parsedMetadata.tags.slice(0, 8) : [],
+        author: parsedMetadata.author || "FlushJohn Team",
+        coverImageAlt: parsedMetadata.coverImageAlt || `Cover image for ${title}`.substring(0, 100),
+        featured: Boolean(parsedMetadata.featured),
+        priority: ["high", "medium", "low"].includes(parsedMetadata.priority) ? parsedMetadata.priority : "medium"
+      };
+    } catch (parseError) {
+      console.error("Error parsing AI metadata:", parseError);
+      // Fallback to basic metadata
+      return {
+        tags: [keywords.primary, "porta-potty-rental", "flushjohn"],
+        author: "FlushJohn Team",
+        coverImageAlt: `Cover image for ${title}`.substring(0, 100),
+        featured: false,
+        priority: "medium"
+      };
+    }
+  } catch (error) {
+    console.error("Error generating comprehensive metadata:", error);
+    // Fallback to basic metadata
+    return {
+      tags: [keywords.primary, "porta-potty-rental", "flushjohn"],
+      author: "FlushJohn Team",
+      coverImageAlt: `Cover image for ${title}`.substring(0, 100),
+      featured: false,
+      priority: "medium"
+    };
+  }
+}
+
+/**
+ * Generate AI-powered cover image description
+ * @param {string} title - Blog title
+ * @param {string} category - Blog category
+ * @param {string} content - Blog content
+ * @returns {Promise<string>} - Cover image description
+ */
+export async function generateCoverImageDescription(title, category, content) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a professional image description expert. Generate detailed, SEO-optimized descriptions for blog cover images. Focus on visual elements that would appeal to the target audience and include relevant keywords naturally."
+        },
+        {
+          role: "user",
+          content: `Generate a cover image description for:
+
+Title: "${title}"
+Category: "${category}"
+Content Theme: "${content.substring(0, 500)}..."
+
+Requirements:
+- 80-120 characters
+- Include visual elements relevant to ${category}
+- Mention porta potty/portable toilet context
+- SEO-friendly with natural keyword integration
+- Professional and appealing tone
+- Return ONLY the description text`
+        }
+      ],
+      max_tokens: 150,
+      temperature: 0.7,
+    });
+
+    let description = response.choices[0].message.content.trim();
+    
+    // Clean up formatting
+    description = description
+      .replace(/^["']|["']$/g, "")
+      .replace(/^```.*$/gm, "")
+      .trim();
+
+    // Ensure proper length
+    if (description.length > 120) {
+      description = description.substring(0, 117) + "...";
+    }
+
+    return description;
+  } catch (error) {
+    console.error("Error generating cover image description:", error);
+    return `Professional ${category} porta potty rental services - ${title}`.substring(0, 100);
   }
 }
 
@@ -313,16 +469,17 @@ export async function generateAIExcerpt(content, title, maxLength = 150) {
   try {
     // Remove HTML tags and clean content for AI processing
     const cleanContent = content.replace(/<[^>]*>/g, "").trim();
-    
+
     // Limit content to first 2000 characters to stay within token limits
     const truncatedContent = cleanContent.substring(0, 2000);
-    
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY the excerpt text without quotes or formatting."
+          content:
+            "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY the excerpt text without quotes or formatting.",
         },
         {
           role: "user",
@@ -337,26 +494,26 @@ Requirements:
 - Include key benefits or value proposition
 - SEO-friendly
 - No quotes or special formatting
-- Return only the excerpt text`
-        }
+- Return only the excerpt text`,
+        },
       ],
       max_tokens: 100,
       temperature: 0.7,
     });
 
     let excerpt = response.choices[0].message.content.trim();
-    
+
     // Clean up any formatting artifacts
     excerpt = excerpt
       .replace(/^["']|["']$/g, "") // Remove surrounding quotes
       .replace(/^```.*$/gm, "") // Remove code block markers
       .trim();
-    
+
     // Ensure proper length
     if (excerpt.length > maxLength) {
       excerpt = excerpt.substring(0, maxLength - 3) + "...";
     }
-    
+
     return excerpt;
   } catch (error) {
     console.error("Error generating AI excerpt:", error);
