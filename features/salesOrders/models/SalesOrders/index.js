@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const SalesOrdersSchema = new mongoose.Schema({
-  // Tracking
   createdAt: {
     type: Date,
     default: Date.now,
@@ -19,7 +18,6 @@ const SalesOrdersSchema = new mongoose.Schema({
   leadNo: {
     type: String,
   },
-  // Personal Details
   fName: {
     type: String,
   },
@@ -39,7 +37,6 @@ const SalesOrdersSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Address Details
   streetAddress: {
     type: String,
   },
@@ -57,7 +54,6 @@ const SalesOrdersSchema = new mongoose.Schema({
     default: "USA",
   },
 
-  // Onsite Details
   usageType: {
     type: String,
   },
@@ -80,12 +76,10 @@ const SalesOrdersSchema = new mongoose.Schema({
     type: String,
   },
 
-  //  Official Details
   note: {
     type: String,
   },
 
-  // Billing Cycle Extension
   billingCycles: [
     {
       cycleStartDate: {
@@ -107,7 +101,6 @@ const SalesOrdersSchema = new mongoose.Schema({
       extendedOn: {
         type: Date,
       },
-      // Unit-specific tracking for partial returns
       units: [
         {
           productId: {

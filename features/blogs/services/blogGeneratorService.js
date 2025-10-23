@@ -7,16 +7,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import OpenAI from "openai";
-// Constants - using hardcoded values for now
 const websiteURL = "https://www.flushjohn.com";
 const phone = { phone_number: "(877) 790-7062" };
 
-// Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Prompt templates as separate variables to avoid linting issues
 const citySpecificSystemPrompt = `You are a professional content writer specializing in SEO-optimized blog posts for the porta potty rental industry. Write comprehensive, engaging content that helps customers make informed decisions about porta potty rentals.
 
 Your writing style should be:
@@ -86,7 +83,6 @@ Always include:
 - Phone number: ${phone.phone_number}
 - Quote link: <a href="/quote">Get Free Quote</a>`;
 
-// Content templates for different post types
 const contentTemplates = {
   citySpecific: {
     systemPrompt: citySpecificSystemPrompt,
@@ -192,7 +188,6 @@ Write engaging content that helps customers plan for the ${season} season.`,
   },
 };
 
-// Generate blog post content using AI
 export async function generateBlogContent(templateType, params) {
   try {
     const template = contentTemplates[templateType];
@@ -219,7 +214,6 @@ export async function generateBlogContent(templateType, params) {
 
     let content = response.choices[0].message.content;
 
-    // Additional safeguard: Clean up any markdown code blocks that might still be generated
     content = content
       .replace(/^```html\s*\n?/gi, "") // Remove opening ```html with optional newline
       .replace(/\n?\s*```\s*$/gi, "") // Remove closing ``` with optional newline
@@ -234,7 +228,6 @@ export async function generateBlogContent(templateType, params) {
   }
 }
 
-// Generate SEO-optimized meta description
 export async function generateMetaDescription(title, content, keywords) {
   try {
     const response = await openai.chat.completions.create({
@@ -268,13 +261,11 @@ Requirements:
 
     let description = response.choices[0].message.content.trim();
 
-    // Clean up any potential code blocks or quotes
     description = description
       .replace(/^["']|["']$/g, "") // Remove surrounding quotes
       .replace(/^```.*$/gm, "") // Remove any code block markers
       .trim();
 
-    // Ensure meta description doesn't exceed 160 characters
     if (description.length > 160) {
       description = description.substring(0, 157) + "...";
     }
@@ -286,7 +277,6 @@ Requirements:
   }
 }
 
-// Generate SEO-friendly slug from title
 export function generateSlug(title) {
   return title
     .toLowerCase()
@@ -296,16 +286,13 @@ export function generateSlug(title) {
     .trim();
 }
 
-// Generate excerpt from content
 export function generateExcerpt(content, maxLength = 150) {
-  // Strip HTML tags
   const plainText = content.replace(/<[^>]*>/g, "");
 
   if (plainText.length <= maxLength) {
     return plainText;
   }
 
-  // Find the last complete sentence within the limit
   const truncated = plainText.substring(0, maxLength);
   const lastSentence = truncated.lastIndexOf(".");
 
@@ -316,7 +303,6 @@ export function generateExcerpt(content, maxLength = 150) {
   return truncated + "...";
 }
 
-// Extract tags from content and title
 export function extractTags(title, content, city = null) {
   const baseTags = ["porta-potty-rental", "portable-toilets", "flushjohn"];
 
@@ -324,7 +310,6 @@ export function extractTags(title, content, city = null) {
     baseTags.push(city.toLowerCase().replace(/\s+/g, "-"));
   }
 
-  // Extract additional tags from title and content
   const text = (title + " " + content).toLowerCase();
   const keywordTags = [];
 
@@ -343,12 +328,10 @@ export function extractTags(title, content, city = null) {
   return [...baseTags, ...keywordTags].slice(0, 10); // Limit to 10 tags
 }
 
-// Generate cover image alt text
 export function generateCoverImageAlt(title, city = null) {
   const baseAlt = `FlushJohn porta potty rental services - ${title}`;
   const altText = city ? `${baseAlt} in ${city}` : baseAlt;
 
-  // Ensure alt text doesn't exceed 100 characters
   if (altText.length > 100) {
     return altText.substring(0, 97) + "...";
   }

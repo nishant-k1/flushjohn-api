@@ -13,7 +13,6 @@ export const queueImageCleanup = async (imageUrl, delay = 0) => {
   };
 
   if (delay > 0) {
-    // Delayed cleanup - add to queue after delay
     setTimeout(() => {
       cleanupQueue.push(cleanupTask);
       if (!processingQueue.has("cleanup")) {
@@ -21,7 +20,6 @@ export const queueImageCleanup = async (imageUrl, delay = 0) => {
       }
     }, delay);
   } else {
-    // Immediate cleanup
     cleanupQueue.push(cleanupTask);
     if (!processingQueue.has("cleanup")) {
       processCleanupQueue();
@@ -83,7 +81,6 @@ export const getQueueStatus = () => {
   };
 };
 
-// Process queue every 30 seconds
 setInterval(() => {
   if (cleanupQueue.length > 0) {
     processCleanupQueue();

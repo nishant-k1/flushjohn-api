@@ -1,4 +1,3 @@
-// Blogs Feature Module
 import routes from "./routes/blogs.js";
 import blogAutomationRoutes from "./routes/blog-automation.js";
 import model from "./models/Blogs/index.js";

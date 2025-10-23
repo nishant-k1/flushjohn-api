@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 
 const JobOrdersSchema = new mongoose.Schema({
-  // Tracking
   createdAt: {
     type: Date,
     default: Date.now,
@@ -37,7 +36,6 @@ const JobOrdersSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
-  // Personal Details
   fName: {
     type: String,
   },
@@ -57,7 +55,6 @@ const JobOrdersSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Address Details
   streetAddress: {
     type: String,
   },
@@ -75,7 +72,6 @@ const JobOrdersSchema = new mongoose.Schema({
     default: "USA",
   },
 
-  // Onsite Details
   usageType: {
     type: String,
   },
@@ -98,12 +94,10 @@ const JobOrdersSchema = new mongoose.Schema({
     type: String,
   },
 
-  // Official Details
   note: {
     type: String,
   },
 
-  // Billing Cycle Extension
   billingCycles: [
     {
       cycleStartDate: {
@@ -125,7 +119,6 @@ const JobOrdersSchema = new mongoose.Schema({
       extendedOn: {
         type: Date,
       },
-      // Unit-specific tracking for partial returns
       units: [
         {
           productId: {

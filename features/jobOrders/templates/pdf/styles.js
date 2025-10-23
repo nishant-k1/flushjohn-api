@@ -44,8 +44,6 @@ const styles = `html,
     height: 40px !important;
     object-fit: contain !important;
   }
-
-
   .section-1{
     border-top: 1px solid black
     padding-bottom: 24px;
@@ -181,8 +179,6 @@ const styles = `html,
     border: solid 1px white;
     height: 100%;
   }
-
-
   .section-4 ul {
     padding-left: 2rem;
   }

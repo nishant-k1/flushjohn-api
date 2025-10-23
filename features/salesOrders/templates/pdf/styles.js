@@ -37,8 +37,6 @@ const styles = `html,
     object-fit: contain !important;
     display: block !important;
   }
-
-
   .section-1{
     padding-bottom: 2.5rem;
     display: grid;

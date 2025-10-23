@@ -3,7 +3,6 @@ import { S3Client, PutBucketCorsCommand, GetBucketCorsCommand } from "@aws-sdk/c
 
 const router = express.Router();
 
-// Lazy initialization of S3 Client
 let s3Instance = null;
 
 const getS3Client = () => {
@@ -19,7 +18,6 @@ const getS3Client = () => {
   return s3Instance;
 };
 
-// GET: Get current S3 CORS configuration
 router.get("/", async (req, res) => {
   try {
     const s3Client = getS3Client();
@@ -39,7 +37,6 @@ router.get("/", async (req, res) => {
   } catch (error) {
     console.error("Error getting S3 CORS configuration:", error);
     
-    // If CORS configuration doesn't exist, return empty array
     if (error.name === "NoSuchCORSConfiguration") {
       return res.status(200).json({
         success: true,
@@ -56,12 +53,10 @@ router.get("/", async (req, res) => {
   }
 });
 
-// POST: Set S3 CORS configuration
 router.post("/", async (req, res) => {
   try {
     const { allowedOrigins } = req.body;
     
-    // Default origins if none provided
     const defaultOrigins = [
       "http://localhost:3001",
       "http://localhost:3000",
@@ -93,8 +88,6 @@ router.post("/", async (req, res) => {
     const command = new PutBucketCorsCommand(corsConfig);
     await s3Client.send(command);
     
-    console.log("✅ S3 CORS configuration updated successfully");
-    console.log("🌐 Allowed origins:", origins);
     
     res.status(200).json({
       success: true,
@@ -113,7 +106,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// POST: Setup default CORS configuration for development
 router.post("/setup-dev", async (req, res) => {
   try {
     const s3Client = getS3Client();
@@ -131,7 +123,6 @@ router.post("/setup-dev", async (req, res) => {
               "http://localhost:3000",
               "http://127.0.0.1:3001",
               "http://127.0.0.1:3000",
-              // Add common development domains
               ...(process.env.PRODUCTION_DOMAIN ? [process.env.PRODUCTION_DOMAIN] : [])
             ],
             ExposeHeaders: ["ETag", "x-amz-version-id"],
@@ -144,7 +135,6 @@ router.post("/setup-dev", async (req, res) => {
     const command = new PutBucketCorsCommand(corsConfig);
     await s3Client.send(command);
     
-    console.log("✅ S3 CORS configuration set up for development");
     
     res.status(200).json({
       success: true,

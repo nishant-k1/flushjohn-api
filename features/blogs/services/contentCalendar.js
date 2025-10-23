@@ -3,9 +3,7 @@
  * Manages rotating blog topics and seasonal scheduling for automated content generation
  */
 
-// Comprehensive content topics organized by category and season
 export const contentCalendar = {
-  // City-specific content (rotates through major cities)
   citySpecific: [
     {
       title: "Porta Potty Rental Guide for Phoenix Weddings 2025",
@@ -114,7 +112,6 @@ export const contentCalendar = {
     },
   ],
 
-  // Industry and problem-solving content
   industryGuides: [
     {
       title:
@@ -252,7 +249,6 @@ export const contentCalendar = {
     },
   ],
 
-  // Seasonal content that rotates based on time of year
   seasonal: [
     {
       title:
@@ -332,7 +328,6 @@ export const contentCalendar = {
   ],
 };
 
-// Get current season based on month
 export function getCurrentSeason() {
   const month = new Date().getMonth() + 1; // 1-12
   if (month >= 3 && month <= 5) return "spring";
@@ -341,7 +336,6 @@ export function getCurrentSeason() {
   return "winter";
 }
 
-// Get next topic for weekly generation
 export function getNextTopic(contentType = null) {
   const season = getCurrentSeason();
   const currentDate = new Date();
@@ -349,9 +343,7 @@ export function getNextTopic(contentType = null) {
 
   let availableTopics = [];
 
-  // If specific content type is requested, filter for that type
   if (contentType === "construction") {
-    // Prioritize construction-focused topics
     availableTopics = [
       ...contentCalendar.citySpecific.filter(
         (topic) =>
@@ -370,12 +362,10 @@ export function getNextTopic(contentType = null) {
       ),
     ];
   } else if (contentType === "city") {
-    // Prioritize city-specific content
     availableTopics = contentCalendar.citySpecific.filter(
       (topic) => topic.season === "year-round" || topic.season === season
     );
   } else if (contentType === "problemSolving") {
-    // Prioritize problem-solving and industry guides
     availableTopics = [
       ...contentCalendar.industryGuides.filter(
         (topic) => topic.season === "year-round" || topic.season === season
@@ -385,7 +375,6 @@ export function getNextTopic(contentType = null) {
       ),
     ];
   } else {
-    // Default rotation logic
     const categoryRotation = weekNumber % 4;
 
     switch (categoryRotation) {
@@ -416,12 +405,10 @@ export function getNextTopic(contentType = null) {
     }
   }
 
-  // Simple rotation based on week number
   const topicIndex = weekNumber % availableTopics.length;
   return availableTopics[topicIndex];
 }
 
-// Get all topics for a specific season
 export function getTopicsForSeason(season) {
   return [
     ...contentCalendar.citySpecific.filter(
@@ -436,7 +423,6 @@ export function getTopicsForSeason(season) {
   ];
 }
 
-// Get content calendar statistics
 export function getCalendarStats() {
   const season = getCurrentSeason();
   const allTopics = getTopicsForSeason(season);

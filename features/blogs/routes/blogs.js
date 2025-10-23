@@ -11,7 +11,6 @@ import {
 
 const router = Router();
 
-// POST /blogs - Create a new blog
 router.post("/", async function (req, res) {
   try {
     const blog = await blogsService.createBlog(req.body);
@@ -34,7 +33,6 @@ router.post("/", async function (req, res) {
   }
 });
 
-// GET /blogs - Get all blogs with optional slug/search filter
 router.get("/", async function (req, res) {
   try {
     const {
@@ -67,7 +65,6 @@ router.get("/", async function (req, res) {
   }
 });
 
-// GET /blogs/:id - Get single blog
 router.get("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -95,7 +92,6 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-// PUT /blogs/:id - Update blog by ID
 router.put("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -145,7 +141,6 @@ router.put("/:id", async function (req, res) {
   }
 });
 
-// DELETE /blogs/:id - Delete blog by ID
 router.delete("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -182,7 +177,6 @@ router.delete("/:id", async function (req, res) {
   }
 });
 
-// POST /blogs/:id/cover-image/presigned-url - Generate presigned URL for cover image upload
 router.post("/:id/cover-image/presigned-url", async function (req, res) {
   try {
     const { id } = req.params;
@@ -204,7 +198,6 @@ router.post("/:id/cover-image/presigned-url", async function (req, res) {
       });
     }
 
-    // Validate file type
     const allowedTypes = [
       "image/jpeg",
       "image/jpg",
@@ -220,7 +213,6 @@ router.post("/:id/cover-image/presigned-url", async function (req, res) {
       });
     }
 
-    // Check if blog exists
     await blogsService.getBlogById(id);
 
     const result = await generateBlogCoverImagePresignedUrl(id, fileType);
@@ -249,7 +241,6 @@ router.post("/:id/cover-image/presigned-url", async function (req, res) {
   }
 });
 
-// POST /blogs/:id/cover-image/upload-complete - Handle upload completion and update database
 router.post("/:id/cover-image/upload-complete", async function (req, res) {
   try {
     const { id } = req.params;
@@ -271,10 +262,8 @@ router.post("/:id/cover-image/upload-complete", async function (req, res) {
       });
     }
 
-    // Check if blog exists
     await blogsService.getBlogById(id);
 
-    // Update blog with new cover image URL
     const updatedBlog = await blogsService.updateBlog(id, {
       coverImage: {
         src: publicUrl,
@@ -307,7 +296,6 @@ router.post("/:id/cover-image/upload-complete", async function (req, res) {
   }
 });
 
-// DELETE /blogs/:id/cover-image - Delete cover image
 router.delete("/:id/cover-image", async function (req, res) {
   try {
     const { id } = req.params;
@@ -320,10 +308,8 @@ router.delete("/:id/cover-image", async function (req, res) {
       });
     }
 
-    // Check if blog exists
     await blogsService.getBlogById(id);
 
-    // Delete cover image from S3
     const deleteSuccess = await deleteBlogCoverImageFromS3(id);
 
     if (!deleteSuccess) {
@@ -332,7 +318,6 @@ router.delete("/:id/cover-image", async function (req, res) {
       );
     }
 
-    // Update blog to remove cover image
     const updatedBlog = await blogsService.updateBlog(id, {
       coverImage: null,
     });

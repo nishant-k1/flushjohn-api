@@ -5,7 +5,6 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-// import { queueImageCleanup } from "../features/fileManagement/services/imageCleanupQueue.js";
 import {
   getBlogById,
   updateBlog,
@@ -148,7 +147,6 @@ router.post("/blog-content-image", async (req, res) => {
   }
 });
 
-// **PUT: Replace Blog Cover Image (uses new file approach with automatic cleanup)**
 router.put("/blog-cover-image", async (req, res) => {
   try {
     const { blogId, type, fileData } = req.body;
@@ -159,19 +157,15 @@ router.put("/blog-cover-image", async (req, res) => {
       });
     }
 
-    // Handle deletion case (fileData is null)
     if (fileData === null) {
-      // Try common image extensions
       const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
       let deleted = false;
 
-      // Try to delete both old format (without timestamp) and new format (with timestamp)
       const fileNamePatterns = [
         `cover-${blogId}`, // Old format without timestamp
         `cover-${blogId}-*`, // New format with timestamp (we'll use ListObjects to find exact files)
       ];
 
-      // First, try old format files
       for (const ext of extensions) {
         const fileName = `cover-${blogId}.${ext}`;
         const params = {
@@ -188,17 +182,14 @@ router.put("/blog-cover-image", async (req, res) => {
           break;
         } catch (error) {
           if (error.name === "NoSuchKey") {
-            // File doesn't exist, continue to next extension
             continue;
           } else {
-            // Real S3 error occurred, log it and continue to next extension
             console.error(`Error deleting cover image ${fileName}:`, error);
             continue;
           }
         }
       }
 
-      // If old format not found, try to find and delete new format files with timestamp
       if (!deleted) {
         try {
           const { ListObjectsV2Command, DeleteObjectCommand } = await import(
@@ -311,7 +302,6 @@ router.put("/blog-cover-image", async (req, res) => {
     }
 
     if (existingBlog?.coverImage?.src) {
-      // await queueImageCleanup(existingBlog.coverImage.src, 5000);
     }
 
     res.status(200).json({
@@ -329,7 +319,6 @@ router.put("/blog-cover-image", async (req, res) => {
   }
 });
 
-// **DELETE: Remove an Image from S3 - Exact copy from original CRM**
 router.delete("/", async (req, res) => {
   try {
     const { name } = req.body; // Read JSON body

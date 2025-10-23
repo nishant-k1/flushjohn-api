@@ -5,7 +5,6 @@ import User from "../models/User/index.js";
 
 const router = express.Router();
 
-// Login endpoint - Exact copy from original CRM with Express conversion
 router.post("/", async (req, res) => {
   try {
     const { userId, password } = req.body;
@@ -22,7 +21,6 @@ router.post("/", async (req, res) => {
     }).select("+password"); // Include password field for authentication
 
     if (user) {
-      // ✅ SECURITY FIX: Check if account is locked
       if (user.isLocked()) {
         return res.status(423).json({
           success: false,
@@ -31,7 +29,6 @@ router.post("/", async (req, res) => {
         });
       }
 
-      // ✅ SECURITY FIX: Check if account is active
       if (!user.isActive) {
         return res.status(403).json({
           success: false,
@@ -39,13 +36,11 @@ router.post("/", async (req, res) => {
         });
       }
 
-      // ✅ SECURITY FIX: Use the secure password comparison method
       let validPassword;
       try {
         validPassword = await user.comparePassword(password);
       } catch (error) {
 
-        // Increment failed login attempts
         await user.incLoginAttempts();
         return res.status(401).json({
           success: false,
@@ -54,10 +49,8 @@ router.post("/", async (req, res) => {
       }
 
       if (validPassword) {
-        // ✅ SECURITY FIX: Reset failed login attempts on successful login
         await user.resetLoginAttempts();
 
-        // ✅ SECURITY FIX: Update last login
         await user.updateLastLogin();
 
         const token = jwt.sign(
@@ -68,7 +61,6 @@ router.post("/", async (req, res) => {
           }
         );
 
-        // Set httpOnly cookie with environment-specific settings
         const isProduction = process.env.NODE_ENV === "production";
         const cookieOptions = {
           httpOnly: true, // ✅ Prevent XSS attacks
@@ -76,20 +68,16 @@ router.post("/", async (req, res) => {
           path: "/",
         };
 
-        // For development, use SameSite=Lax which works with same-site requests
-        // For production, use SameSite=None with Secure for cross-origin support
         if (isProduction) {
           cookieOptions.sameSite = "none"; // Cross-origin support
           cookieOptions.secure = true; // HTTPS only
         } else {
-          // Development: Use SameSite=Lax for localhost (same-site requests)
           cookieOptions.sameSite = "lax"; // Works with same-site requests
           cookieOptions.secure = false; // Works with HTTP
         }
 
         res.cookie("token", token, cookieOptions);
 
-        // ✅ DESKTOP APP FIX: Send token in response body for desktop app compatibility
         res.status(200).json({
           success: true,
           message: "Authentication successful",
@@ -103,7 +91,6 @@ router.post("/", async (req, res) => {
           },
         });
       } else {
-        // ✅ SECURITY FIX: Increment failed login attempts for invalid password
         await user.incLoginAttempts();
         return res.status(401).json({
           success: false,
@@ -126,7 +113,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Register endpoint
 router.post("/register", async (req, res) => {
   try {
     const { userId, email, password, fName, lName, role = "user" } = req.body;
@@ -139,7 +125,6 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Check if user already exists by userId or email
     const existingUser = await User.findOne({
       $or: [{ userId }, { email }],
     });
@@ -150,7 +135,6 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Create user (password will be hashed by pre-save middleware)
     const user = new User({
       userId,
       email,
@@ -183,13 +167,10 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Verify token endpoint - Exact copy from original CRM with Express conversion
 router.get("/verify", async (req, res) => {
   try {
-    // ✅ DESKTOP APP FIX: Support both cookie and Bearer token authentication
     let token = req.cookies.token; // Try cookie first
 
-    // If no cookie, try Authorization header (for desktop apps)
     if (!token) {
       const authHeader = req.headers.authorization;
       if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -204,10 +185,8 @@ router.get("/verify", async (req, res) => {
       });
     }
 
-    // Verify the token
     const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
-    // Get user details
     const user = await User.findOne({ userId: decoded.userId });
 
     if (!user) {
@@ -239,10 +218,8 @@ router.get("/verify", async (req, res) => {
   }
 });
 
-// Logout endpoint
 router.post("/logout", (req, res) => {
   try {
-    // Clear the token cookie - must match the options used when setting it
     const isProduction = process.env.NODE_ENV === "production";
     const cookieOptions = {
       httpOnly: true,
@@ -253,12 +230,10 @@ router.post("/logout", (req, res) => {
       cookieOptions.sameSite = "none";
       cookieOptions.secure = true;
     } else {
-      // Development: Match the same options used in login
       cookieOptions.sameSite = "lax";
       cookieOptions.secure = false;
     }
 
-    // Clear the cookie
     res.clearCookie("token", cookieOptions);
 
     res.status(200).json({

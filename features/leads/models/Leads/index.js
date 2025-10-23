@@ -1,7 +1,6 @@
 import { Schema, model } from "mongoose";
 
 const LeadsSchema = new Schema({
-  // Official Details
   createdAt: {
     type: Date,
     default: Date.now,
@@ -20,7 +19,6 @@ const LeadsSchema = new Schema({
     type: String,
   },
 
-  // Requirement Details
   usageType: {
     type: String,
   },
@@ -28,7 +26,6 @@ const LeadsSchema = new Schema({
     type: Array,
   },
 
-  // Personal Details
   fName: {
     type: String,
   },
@@ -54,7 +51,6 @@ const LeadsSchema = new Schema({
     type: String,
   },
 
-  // Delivery Details
   deliveryDate: {
     type: String,
   },
@@ -82,7 +78,6 @@ const LeadsSchema = new Schema({
   },
 });
 
-// ✅ PERFORMANCE FIX: Add database indexes for efficient queries
 LeadsSchema.index({ createdAt: -1 }); // For sorting by creation date
 LeadsSchema.index({ leadNo: 1 }); // For lead number lookups
 LeadsSchema.index({ leadStatus: 1 }); // For filtering by status

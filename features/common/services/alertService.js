@@ -7,12 +7,10 @@ import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 class AlertService {
   constructor() {
-    // Telegram configuration
     this.telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
     this.telegramChatId = process.env.TELEGRAM_CHAT_ID;
     this.telegramEnabled = !!(this.telegramBotToken && this.telegramChatId);
 
-    // WhatsApp configuration
     this.whatsappEnabled = process.env.WHATSAPP_ENABLED === "true";
     this.whatsappClient = null;
     this.whatsappReady = false;
@@ -20,14 +18,11 @@ class AlertService {
     this.whatsappQRCodeImage = null;
 
     if (!this.telegramEnabled) {
-      // Telegram alerts disabled - missing credentials
     }
 
     if (!this.whatsappEnabled) {
-      // WhatsApp alerts disabled
     }
 
-    // Initialize WhatsApp client if enabled
     if (this.whatsappEnabled) {
       this.initializeWhatsApp();
     }
@@ -65,7 +60,6 @@ class AlertService {
       this.whatsappClient.on("qr", async (qr) => {
         qrcode.generate(qr, { small: true });
 
-        // Store QR code for web display
         this.whatsappQRCode = qr;
         try {
           this.whatsappQRCodeImage = await QRCode.toDataURL(qr, {
@@ -77,48 +71,38 @@ class AlertService {
             },
           });
 
-          // QR code ready for web display
         } catch (error) {}
       });
 
       this.whatsappClient.on("ready", async () => {
         this.whatsappReady = true;
 
-        // Clear QR code since we're now authenticated
         this.whatsappQRCode = null;
         this.whatsappQRCodeImage = null;
 
-        // List available chats to help identify chat IDs
         try {
           const chats = await this.whatsappClient.getChats();
 
           chats.slice(0, 10).forEach((chat, index) => {
-            // Log chat information
           });
           if (chats.length > 10) {
-            // More chats available
           }
         } catch (error) {
-          // Error getting chats
         }
       });
 
       this.whatsappClient.on("authenticated", () => {
-        // WhatsApp authenticated
       });
 
       this.whatsappClient.on("auth_failure", (msg) => {
-        // WhatsApp authentication failed
       });
 
       this.whatsappClient.on("disconnected", (reason) => {
-        // WhatsApp disconnected
         this.whatsappReady = false;
       });
 
       await this.whatsappClient.initialize();
     } catch (error) {
-      // Error initializing WhatsApp client
     }
   }
 
@@ -132,7 +116,6 @@ class AlertService {
       timestamp: getCurrentDateTime().toISOString(),
     };
 
-    // Send Telegram alert
     if (this.telegramEnabled) {
       try {
         const telegramMessage = this.formatTelegramMessage(lead);
@@ -151,7 +134,6 @@ class AlertService {
       };
     }
 
-    // Send WhatsApp alert
     if (this.whatsappEnabled) {
       try {
         const whatsappMessage = this.formatWhatsAppMessage(lead);
@@ -191,14 +173,11 @@ class AlertService {
       createdAt,
     } = lead;
 
-    // Escape special characters for Telegram Markdown
     const escapeMarkdown = (text) => {
       if (!text) return "";
-      // Only escape characters that are actually used in Markdown formatting
       return String(text).replace(/[_*[\]()~`>#+=|{}]/g, "\\$&");
     };
 
-    // Format customer info
     const customerInfo = [];
     if (fName || lName) {
       const fullName = `${fName || ""} ${lName || ""}`.trim();
@@ -214,7 +193,6 @@ class AlertService {
       customerInfo.push(`📞 ${escapeMarkdown(phone)}`);
     }
 
-    // Format products
     let productsText = "";
     if (products && products.length > 0) {
       productsText = "\n\n🛍️ *Products:*\n";
@@ -225,7 +203,6 @@ class AlertService {
       });
     }
 
-    // Format timestamp
     const timestamp = new Date(createdAt).toLocaleString("en-US", {
       month: "short",
       day: "numeric",
@@ -270,7 +247,6 @@ ${this.getStatusEmoji(leadStatus)} Status: ${escapeMarkdown(leadStatus)}
       createdAt,
     } = lead;
 
-    // Format customer info
     const customerInfo = [];
     if (fName || lName) {
       const fullName = `${fName || ""} ${lName || ""}`.trim();
@@ -286,7 +262,6 @@ ${this.getStatusEmoji(leadStatus)} Status: ${escapeMarkdown(leadStatus)}
       customerInfo.push(`📞 ${phone}`);
     }
 
-    // Format products
     let productsText = "";
     if (products && products.length > 0) {
       productsText = "\n\n🛍️ Products:\n";
@@ -297,7 +272,6 @@ ${this.getStatusEmoji(leadStatus)} Status: ${escapeMarkdown(leadStatus)}
       });
     }
 
-    // Format timestamp
     const timestamp = new Date(createdAt).toLocaleString("en-US", {
       month: "short",
       day: "numeric",
@@ -339,13 +313,11 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       );
 
       if (response.data.ok) {
-        // Telegram alert sent successfully
         return { success: true, error: undefined };
       } else {
         throw new Error(response.data.description || "Unknown error");
       }
     } catch (error) {
-      // Telegram send error
       throw error;
     }
   }
@@ -359,7 +331,6 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
     }
 
     try {
-      // Use WHATSAPP_RECIPIENT_NUMBER if available, otherwise use WHATSAPP_PHONE_NUMBER
       const phoneNumber =
         process.env.WHATSAPP_RECIPIENT_NUMBER ||
         process.env.WHATSAPP_PHONE_NUMBER;
@@ -370,10 +341,8 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       const chatId = `${phoneNumber.replace("+", "")}@c.us`;
       await this.whatsappClient.sendMessage(chatId, message);
 
-      // WhatsApp alert sent successfully
       return { success: true, error: undefined };
     } catch (error) {
-      // WhatsApp send error
       throw error;
     }
   }
@@ -426,7 +395,6 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       timestamp: getCurrentDateTime().toISOString(),
     };
 
-    // Test Telegram
     if (this.telegramEnabled) {
       try {
         const testMessage =
@@ -443,7 +411,6 @@ ${this.getStatusEmoji(leadStatus)} Status: ${leadStatus}
       };
     }
 
-    // Test WhatsApp
     if (this.whatsappEnabled) {
       try {
         const testMessage =

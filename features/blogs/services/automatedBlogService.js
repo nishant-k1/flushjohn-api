@@ -7,11 +7,9 @@ import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-// Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables from the project root
 dotenv.config({ path: join(__dirname, "..", "..", ".env") });
 
 import { dbConnect, waitForConnection } from "../../../lib/dbConnect/index.js";
@@ -20,7 +18,6 @@ import * as blogGeneratorService from "./blogGeneratorService.js";
 import { getNextTopic, getCurrentSeason } from "./contentCalendar.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
-// Default cover images for different categories
 const defaultCoverImages = {
   events: [
     "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&h=630&fit=crop&crop=center", // Wedding
@@ -44,17 +41,12 @@ const defaultCoverImages = {
  * @param {string} contentType - 'construction', 'city', 'problemSolving', or null for default
  */
 export async function generateAutomatedBlogPost(contentType = null) {
-  console.log("🤖 Starting automated blog post generation...");
 
   try {
-    // Get next topic from content calendar based on content type
     const topic = getNextTopic(contentType);
-    console.log(`📝 Selected topic: ${topic.title}`);
     if (contentType) {
-      console.log(`🎯 Content type: ${contentType}`);
     }
 
-    // Generate blog content using AI
     const generatedContent = await blogGeneratorService.generateBlogContent(
       topic.templateType || "citySpecific",
       topic.templateType === "citySpecific"
@@ -64,17 +56,14 @@ export async function generateAutomatedBlogPost(contentType = null) {
         : [topic.title, topic.keywords, topic.season, topic.focus]
     );
 
-    // Generate meta description
     const metaDescription = await blogGeneratorService.generateMetaDescription(
       topic.title,
       generatedContent,
       topic.keywords
     );
 
-    // Use generated content directly (internal links are already included)
     const contentWithLinks = generatedContent;
 
-    // Prepare blog post data
     const blogData = {
       title: topic.title,
       slug: blogsService.generateSlug(topic.title),
@@ -95,12 +84,10 @@ export async function generateAutomatedBlogPost(contentType = null) {
       views: 0,
       likes: 0,
       comments: [],
-      // Mark as automated
       automated: true,
       automationDate: new Date(),
     };
 
-    console.log("✅ Blog post data prepared");
     return blogData;
   } catch (error) {
     console.error("❌ Error generating automated blog post:", error);
@@ -112,24 +99,15 @@ export async function generateAutomatedBlogPost(contentType = null) {
  * Publish an automated blog post to the database
  */
 export async function publishAutomatedBlogPost(blogData) {
-  console.log("📤 Publishing automated blog post...");
 
   try {
-    // Connect to database
     await dbConnect();
     const connected = await waitForConnection(10000);
     if (!connected) {
       throw new Error("Database connection timeout");
     }
 
-    // Create blog post
     const createdBlog = await blogsService.createBlog(blogData);
-
-    console.log(`✅ Blog post published successfully!`);
-    console.log(`🆔 Blog ID: ${createdBlog._id}`);
-    console.log(`🔗 Slug: ${createdBlog.slug}`);
-    console.log(`📝 Title: ${createdBlog.title}`);
-
     return createdBlog;
   } catch (error) {
     console.error("❌ Error publishing automated blog post:", error);
@@ -143,29 +121,16 @@ export async function publishAutomatedBlogPost(blogData) {
  */
 export async function runAutomatedBlogGeneration(contentType = null) {
   const startTime = new Date();
-  console.log(
     `\n🚀 Starting automated blog generation at ${startTime.toISOString()}`
   );
 
   try {
-    // Generate blog post based on content type
     const blogData = await generateAutomatedBlogPost(contentType);
 
-    // Publish blog post
     const publishedBlog = await publishAutomatedBlogPost(blogData);
 
     const endTime = new Date();
     const duration = endTime - startTime;
-
-    console.log(`\n🎉 Automated blog generation completed successfully!`);
-    console.log(`⏱️  Total time: ${duration}ms`);
-    console.log(`📊 Blog post details:`);
-    console.log(`   - Title: ${publishedBlog.title}`);
-    console.log(`   - Slug: ${publishedBlog.slug}`);
-    console.log(`   - Category: ${publishedBlog.category}`);
-    console.log(`   - Status: ${publishedBlog.status}`);
-    console.log(`   - Published: ${publishedBlog.publishedAt}`);
-
     return {
       success: true,
       blogPost: publishedBlog,
@@ -208,7 +173,6 @@ export async function getAutomationStats() {
       throw new Error("Database connection timeout");
     }
 
-    // Get automated blog posts from last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -220,7 +184,6 @@ export async function getAutomationStats() {
       status: "published",
     });
 
-    // Filter for automated posts (posts with automation metadata)
     const recentAutomatedPosts =
       automatedPosts.blogs?.filter(
         (post) =>

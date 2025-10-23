@@ -1,7 +1,6 @@
 import { createTransport } from "nodemailer";
 import { flushjohn, quengenesis } from "../../../constants/index.js";
 
-// Import email templates
 import quoteEmailTemplate from "../../quotes/templates/email/index.js";
 import salesOrderEmailTemplate from "../../salesOrders/templates/email/index.js";
 import jobOrderEmailTemplate from "../../jobOrders/templates/email/index.js";
@@ -21,7 +20,6 @@ export const sendEmailWithS3PDF = async (
   s3PdfUrl
 ) => {
   try {
-    // Select appropriate email configuration and template
     let emailConfig, emailTemplate, subject, companyName;
 
     switch (documentType) {
@@ -59,7 +57,6 @@ export const sendEmailWithS3PDF = async (
         throw new Error(`Unknown document type: ${documentType}`);
     }
 
-    // Try multiple SMTP configurations optimized for low-resource servers
     const smtpConfigs = [
       {
         host: "smtp.zoho.in",
@@ -105,7 +102,6 @@ export const sendEmailWithS3PDF = async (
     let transporter;
     let lastError;
 
-    // Try each SMTP configuration
     for (let i = 0; i < smtpConfigs.length; i++) {
       const config = smtpConfigs[i];
 
@@ -123,11 +119,9 @@ export const sendEmailWithS3PDF = async (
       }
     }
 
-    // Generate email content
     const emailContent = emailTemplate(documentData);
     const fileName = `${documentType}.pdf`; // Fixed filename - always replaces previous
 
-    // Email options with S3 PDF attachment
     const emailOptions = {
       from: `${companyName}<${emailConfig.user}>`,
       to: documentData.email,
@@ -141,12 +135,10 @@ export const sendEmailWithS3PDF = async (
       ],
     };
 
-    // Add CC email if present
     if (documentData.ccEmail) {
       emailOptions.cc = documentData.ccEmail;
     }
 
-    // Send email
     const info = await transporter.sendMail(emailOptions);
     return true;
   } catch (error) {
@@ -158,7 +150,6 @@ export const sendEmailWithS3PDF = async (
       responseCode: error.responseCode,
     });
 
-    // Provide more specific error messages
     if (error.code === "ENOTFOUND") {
       throw new Error(`Email server not found. Check SMTP configuration.`);
     } else if (error.responseCode === 535 || error.code === "EAUTH") {

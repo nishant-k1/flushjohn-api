@@ -13,14 +13,12 @@ import { authenticateToken } from "../../auth/middleware/auth.js";
 
 const router = Router();
 
-// POST /leads - Create a new lead
 router.post(
   "/",
   authenticateToken,
   validateAndRecalculateProducts,
   async function (req, res, next) {
     try {
-      // Validate request body
       if (!req.body || Object.keys(req.body).length === 0) {
         return res.status(400).json({
           success: false,
@@ -31,17 +29,13 @@ router.post(
 
       const lead = await leadsService.createLead(req.body);
 
-      // Emit Socket.IO event for real-time notifications
       if (global.leadsNamespace) {
         try {
-          // Get updated leads list and emit to all connected clients
           const { default: Leads } = await import("../models/lead.js");
           const leadsList = await Leads.find().sort({ _id: -1 });
           global.leadsNamespace.emit("leadCreated", leadsList);
 
-          // HTTP API - Emitted leadCreated event to Socket.IO clients
         } catch (emitError) {
-          // Error emitting leadCreated event
         }
       }
 
@@ -51,7 +45,6 @@ router.post(
         data: lead,
       });
     } catch (error) {
-      // Handle specific error types
       if (error.name === "ValidationError") {
         return res.status(400).json({
           success: false,
@@ -81,7 +74,6 @@ router.post(
   }
 );
 
-// GET /leads - Get all leads with pagination, sorting, and filtering
 router.get("/", authenticateToken, async function (req, res, next) {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -90,7 +82,6 @@ router.get("/", authenticateToken, async function (req, res, next) {
     const sortOrder = req.query.sortOrder || "desc";
     const { status, assignedTo, leadSource, search } = req.query;
 
-    // Validate pagination parameters
     const validationErrors = leadsService.validatePaginationParams(page, limit);
     if (validationErrors.length > 0) {
       return res.status(400).json({
@@ -134,12 +125,10 @@ router.get("/", authenticateToken, async function (req, res, next) {
   }
 });
 
-// GET /leads/:id - Get a single lead by ID
 router.get("/:id", authenticateToken, async function (req, res, next) {
   try {
     const { id } = req.params;
 
-    // Validate ObjectId format
     if (!leadsService.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
@@ -181,7 +170,6 @@ router.get("/:id", authenticateToken, async function (req, res, next) {
   }
 });
 
-// PUT /leads/:id - Update a lead by ID
 router.put(
   "/:id",
   authenticateToken,
@@ -190,7 +178,6 @@ router.put(
     try {
       const { id } = req.params;
 
-      // Validate ObjectId format
       if (!leadsService.isValidObjectId(id)) {
         return res.status(400).json({
           success: false,
@@ -199,7 +186,6 @@ router.put(
         });
       }
 
-      // Validate request body
       if (!req.body || Object.keys(req.body).length === 0) {
         return res.status(400).json({
           success: false,
@@ -253,7 +239,6 @@ router.put(
   }
 );
 
-// PUT /leads/update/:id - Update a lead by ID (alternative route to bypass CORS cache)
 router.put(
   "/update/:id",
   authenticateToken,
@@ -262,7 +247,6 @@ router.put(
     try {
       const { id } = req.params;
 
-      // Validate ObjectId format
       if (!leadsService.isValidObjectId(id)) {
         return res.status(400).json({
           success: false,
@@ -271,7 +255,6 @@ router.put(
         });
       }
 
-      // Validate request body
       if (!req.body || Object.keys(req.body).length === 0) {
         return res.status(400).json({
           success: false,
@@ -325,12 +308,10 @@ router.put(
   }
 );
 
-// DELETE /leads/:id - Delete a lead by ID
 router.delete("/:id", authenticateToken, async function (req, res, next) {
   try {
     const { id } = req.params;
 
-    // Validate ObjectId format
     if (!leadsService.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
@@ -372,7 +353,6 @@ router.delete("/:id", authenticateToken, async function (req, res, next) {
   }
 });
 
-// POST /leads/test-alerts - Test Telegram alerts endpoint
 router.post("/test-alerts", async function (req, res, next) {
   try {
     const result = await alertService.testConnection();
@@ -392,7 +372,6 @@ router.post("/test-alerts", async function (req, res, next) {
   }
 });
 
-// GET /leads/whatsapp-qr - WhatsApp QR Code web endpoint
 router.get("/whatsapp-qr", async function (req, res, next) {
   try {
     const qrData = alertService.getWhatsAppQRCode();
@@ -435,7 +414,6 @@ router.get("/whatsapp-qr", async function (req, res, next) {
       `);
     }
 
-    // Display QR code
     res.status(200).send(`
       <html>
         <head>

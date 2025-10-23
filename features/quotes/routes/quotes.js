@@ -8,18 +8,15 @@ import validateAndRecalculateProducts from "../../../middleware/validateProducts
 
 const router = Router();
 
-// POST /quotes - Create a new quote
 router.post("/", validateAndRecalculateProducts, async function (req, res) {
   try {
     const quote = await quotesService.createQuote(req.body);
     res.status(201).json({ success: true, data: quote });
   } catch (error) {
-
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET /quotes - Get all quotes with pagination, sorting, and filtering
 router.get("/", async function (req, res) {
   try {
     const {
@@ -44,12 +41,10 @@ router.get("/", async function (req, res) {
       ...result,
     });
   } catch (error) {
-
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// GET /quotes/:id - Get single quote
 router.get("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -65,8 +60,6 @@ router.get("/:id", async function (req, res) {
     const quote = await quotesService.getQuoteById(id);
     res.status(200).json({ success: true, data: quote });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -79,7 +72,6 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-// PUT /quotes/:id - Update quote by ID
 router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const { id } = req.params;
@@ -103,8 +95,6 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
     const quote = await quotesService.updateQuote(id, req.body);
     res.status(200).json({ success: true, data: quote });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -131,7 +121,6 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   }
 });
 
-// DELETE /quotes/:id - Delete quote by ID
 router.delete("/:id", async function (req, res) {
   try {
     const { id } = req.params;
@@ -151,8 +140,6 @@ router.delete("/:id", async function (req, res) {
       data: result,
     });
   } catch (error) {
-
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -170,7 +157,6 @@ router.delete("/:id", async function (req, res) {
   }
 });
 
-// POST /quotes/:id/pdf - Generate PDF for quote
 router.post(
   "/:id/pdf",
   validateAndRecalculateProducts,
@@ -196,7 +182,6 @@ router.post(
 
       const quote = await quotesService.getQuoteById(id);
 
-      // Use fresh data from request body for PDF generation
       const pdfData = {
         ...req.body,
         _id: id,
@@ -204,8 +189,9 @@ router.post(
         createdAt: req.body.createdAt || quote.createdAt,
       };
 
-      // Generate PDF (delegated to pdfService cross-cutting concern)
-      const { generateQuotePDF } = await import("../../../services/pdfService.js");
+      const { generateQuotePDF } = await import(
+        "../../fileManagement/services/pdfService.js"
+      );
       const pdfUrls = await generateQuotePDF(pdfData, id);
 
       res.status(201).json({
@@ -217,8 +203,6 @@ router.post(
         },
       });
     } catch (error) {
-
-
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
@@ -231,13 +215,14 @@ router.post(
         success: false,
         message: "Failed to generate PDF",
         error: "INTERNAL_SERVER_ERROR",
-        ...(process.env.NODE_ENV === "development" && { details: error.message }),
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
   }
 );
 
-// POST /quotes/:id/email - Send quote via email
 router.post(
   "/:id/email",
   validateAndRecalculateProducts,
@@ -263,7 +248,6 @@ router.post(
 
       const quote = await quotesService.getQuoteById(id);
 
-      // Use fresh data from request body
       const emailData = {
         ...req.body,
         _id: id,
@@ -271,14 +255,26 @@ router.post(
         createdAt: req.body.createdAt || quote.createdAt,
       };
 
-      // Generate PDF and send email
-      const { generateQuotePDF } = await import("../../../services/pdfService.js");
-      const { sendQuoteEmail } = await import("../../../services/emailService.js");
+      const { generateQuotePDF } = await import(
+        "../../fileManagement/services/pdfService.js"
+      );
+      const { sendQuoteEmail } = await import(
+        "../../common/services/emailService.js"
+      );
 
-      const pdfUrls = await generateQuotePDF(emailData, id);
-      await sendQuoteEmail(emailData, id, pdfUrls.pdfUrl);
+      let pdfUrls;
+      try {
+        pdfUrls = await generateQuotePDF(emailData, id);
+        await sendQuoteEmail(emailData, id, pdfUrls.pdfUrl);
+      } catch (pdfError) {
+        console.error(
+          "PDF/Email generation error:",
+          pdfError.message,
+          pdfError.stack
+        );
+        throw pdfError;
+      }
 
-      // Update email status
       const updatedQuote = await quotesService.updateQuote(id, {
         ...emailData,
         emailStatus: "Sent",
@@ -288,13 +284,13 @@ router.post(
         success: true,
         message: "Quote email sent successfully",
         data: {
-          ...updatedQuote.toObject(),
+          _id: updatedQuote._id,
+          quoteNo: updatedQuote.quoteNo,
+          emailStatus: updatedQuote.emailStatus,
           pdfUrl: pdfUrls.pdfUrl,
         },
       });
     } catch (error) {
-
-
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
@@ -316,7 +312,9 @@ router.post(
         success: false,
         message: "Failed to send email",
         error: "INTERNAL_SERVER_ERROR",
-        ...(process.env.NODE_ENV === "development" && { details: error.message }),
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
   }

@@ -12,7 +12,6 @@ export const generateJobOrderNumber = async () => {
 };
 
 export const createJobOrder = async (jobOrderData) => {
-  // Validate required fields
   if (!jobOrderData.salesOrderNo) {
     const error = new Error("Sales Order Number is required");
     error.name = "ValidationError";
@@ -90,9 +89,6 @@ export const createJobOrder = async (jobOrderData) => {
     error.name = "ValidationError";
     throw error;
   }
-
-  // Validate usage type
-
   if (
     !jobOrderData.usageType ||
     jobOrderData.usageType.trim() === "" ||
@@ -103,7 +99,6 @@ export const createJobOrder = async (jobOrderData) => {
     throw error;
   }
 
-  // Check if job order already exists for this sales order
   const existingJobOrder = await jobOrdersRepository.findOne({
     salesOrderNo: jobOrderData.salesOrderNo,
   });
@@ -187,7 +182,6 @@ export const getJobOrderById = async (id) => {
 export const updateJobOrder = async (id, updateData) => {
   const jobOrder = await jobOrdersRepository.updateById(id, {
     ...updateData,
-    // Only set emailStatus to "Pending" if it's not already set in updateData
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),
   });

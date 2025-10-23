@@ -18,7 +18,6 @@ export const generateSalesOrderNumber = async () => {
 };
 
 export const createSalesOrder = async (salesOrderData) => {
-  // Validate required fields
   if (!salesOrderData.email || !salesOrderData.quoteNo) {
     const error = new Error("Email and Quote Number are required");
     error.name = "ValidationError";
@@ -28,13 +27,11 @@ export const createSalesOrder = async (salesOrderData) => {
   const createdAt = getCurrentDateTime();
   const salesOrderNo = await generateSalesOrderNumber();
 
-  // Handle customer creation/update logic
   let customer = await customersRepository.findOne({
     email: salesOrderData.email,
   });
 
   if (!customer) {
-    // Create new customer
     const latestCustomer = await customersRepository.findOne({}, "customerNo");
     const customerNo = latestCustomer ? latestCustomer.customerNo + 1 : 1000;
 
@@ -46,7 +43,6 @@ export const createSalesOrder = async (salesOrderData) => {
       quoteNo: [salesOrderData.quoteNo] || [],
     });
   } else {
-    // Update existing customer
     const { quoteNo, salesOrderNo: _, ...customerData } = salesOrderData;
 
     customer = await customersRepository.findOneAndUpdate(
@@ -61,7 +57,6 @@ export const createSalesOrder = async (salesOrderData) => {
     );
   }
 
-  // Create sales order
   const newSalesOrderData = {
     ...salesOrderData,
     createdAt,
@@ -131,8 +126,6 @@ export const getSalesOrderById = async (id) => {
 export const updateSalesOrder = async (id, updateData) => {
   const salesOrder = await salesOrdersRepository.updateById(id, {
     ...updateData,
-    // Set emailStatus to "Pending" only if not explicitly provided in updateData
-    // This allows email operations to set "Sent" and regular saves to reset to "Pending"
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),
   });
