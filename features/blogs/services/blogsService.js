@@ -118,7 +118,7 @@ export const createBlogWithRetry = async (blogData, maxRetries = 3) => {
     try {
       const createdAt = getCurrentDateTime();
       const blogNo = await generateBlogNumber();
-      const slug = generateSlug(blogData.title);
+      const slug = await generateUniqueSlug(blogData.title);
 
       const newBlogData = {
         ...blogData,
@@ -158,6 +158,21 @@ export const generateSlug = (title) => {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+};
+
+export const generateUniqueSlug = async (title) => {
+  const baseSlug = generateSlug(title);
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    const existingBlog = await blogsRepository.findOne({ slug });
+    if (!existingBlog) {
+      return slug;
+    }
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
 };
 
 export const getBlogBySlug = async (slug) => {
