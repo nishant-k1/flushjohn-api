@@ -512,7 +512,7 @@ export async function generateAIExcerpt(content, title, maxLength = 150) {
         {
           role: "system",
           content:
-            "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY the excerpt text without quotes or formatting. Ensure the excerpt is optimized for both CRM display and public web SEO.",
+            "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY plain text without any HTML tags, quotes, backticks, or special formatting. Ensure the excerpt is optimized for both CRM display and public web SEO.",
         },
         {
           role: "user",
@@ -527,8 +527,9 @@ Requirements:
 - Include key benefits or value proposition
 - SEO-friendly for public web display
 - Clean text suitable for CRM edit interface
-- No quotes, backticks, or special formatting
-- Return only the excerpt text`,
+- NO HTML tags, quotes, backticks, or special formatting
+- Return ONLY plain text excerpt
+- Do not include any markup or formatting`,
         },
       ],
       max_tokens: 100,
@@ -539,12 +540,14 @@ Requirements:
 
     // Enhanced cleaning for both CRM and public web compatibility
     excerpt = excerpt
+      .replace(/<[^>]*>/g, "") // Remove HTML tags first
       .replace(/^["']|["']$/g, "") // Remove surrounding quotes
       .replace(/^```.*$/gm, "") // Remove code block markers
       .replace(/^`\s*/gm, "") // Remove any leading backticks
       .replace(/\s*`$/gm, "") // Remove any trailing backticks
       .replace(/^```html\s*\n?/gi, "") // Remove HTML code blocks
       .replace(/\n?\s*```\s*$/gi, "") // Remove closing code blocks
+      .replace(/\s+/g, " ") // Replace multiple spaces with single space
       .trim();
 
     // Ensure proper length

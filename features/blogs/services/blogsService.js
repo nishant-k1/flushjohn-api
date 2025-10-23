@@ -28,7 +28,7 @@ const generateAIExcerpt = async (content, title) => {
         {
           role: "system",
           content:
-            "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY the excerpt text without quotes or formatting.",
+            "You are an expert content writer. Generate a compelling, SEO-friendly excerpt (summary) for blog posts. The excerpt should be 120-150 characters, engaging, and capture the main value proposition. Return ONLY plain text without any HTML tags, quotes, backticks, or special formatting.",
         },
         {
           role: "user",
@@ -42,8 +42,9 @@ Requirements:
 - Engaging and informative
 - Include key benefits or value proposition
 - SEO-friendly
-- No quotes or special formatting
-- Return only the excerpt text`,
+- NO HTML tags, quotes, backticks, or special formatting
+- Return ONLY plain text excerpt
+- Do not include any markup or formatting`,
         },
       ],
       max_tokens: 100,
@@ -54,8 +55,12 @@ Requirements:
 
     // Clean up any formatting artifacts
     excerpt = excerpt
+      .replace(/<[^>]*>/g, "") // Remove HTML tags first
       .replace(/^["']|["']$/g, "") // Remove surrounding quotes
       .replace(/^```.*$/gm, "") // Remove code block markers
+      .replace(/^`\s*/gm, "") // Remove any leading backticks
+      .replace(/\s*`$/gm, "") // Remove any trailing backticks
+      .replace(/\s+/g, " ") // Replace multiple spaces with single space
       .trim();
 
     // Ensure proper length
