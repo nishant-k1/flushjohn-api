@@ -336,7 +336,7 @@ export function getCurrentSeason() {
   return "winter";
 }
 
-export function getNextTopic(contentType = null) {
+export function getNextTopic(contentType = null, randomize = false) {
   const season = getCurrentSeason();
   const currentDate = new Date();
   const weekNumber = Math.ceil(currentDate.getDate() / 7);
@@ -405,7 +405,14 @@ export function getNextTopic(contentType = null) {
     }
   }
 
-  const topicIndex = weekNumber % availableTopics.length;
+  let topicIndex;
+  if (randomize) {
+    // For manual generation, use random selection to avoid duplicates
+    topicIndex = Math.floor(Math.random() * availableTopics.length);
+  } else {
+    // For scheduled generation, use deterministic rotation
+    topicIndex = weekNumber % availableTopics.length;
+  }
   return availableTopics[topicIndex];
 }
 

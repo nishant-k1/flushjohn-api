@@ -39,10 +39,11 @@ const defaultCoverImages = {
 /**
  * Generate a single automated blog post
  * @param {string} contentType - 'construction', 'city', 'problemSolving', or null for default
+ * @param {boolean} randomize - Whether to randomize topic selection (for manual generation)
  */
-export async function generateAutomatedBlogPost(contentType = null) {
+export async function generateAutomatedBlogPost(contentType = null, randomize = false) {
   try {
-    const topic = getNextTopic(contentType);
+    const topic = getNextTopic(contentType, randomize);
     if (contentType) {
     }
 
@@ -139,12 +140,13 @@ export async function publishAutomatedBlogPost(blogData) {
 /**
  * Complete automated blog generation and publishing workflow
  * @param {string} contentType - 'construction', 'city', 'problemSolving', or null for default
+ * @param {boolean} randomize - Whether to randomize topic selection (for manual generation)
  */
-export async function runAutomatedBlogGeneration(contentType = null) {
+export async function runAutomatedBlogGeneration(contentType = null, randomize = false) {
   const startTime = new Date();
 
   try {
-    const blogData = await generateAutomatedBlogPost(contentType);
+    const blogData = await generateAutomatedBlogPost(contentType, randomize);
 
     const publishedBlog = await publishAutomatedBlogPost(blogData);
 

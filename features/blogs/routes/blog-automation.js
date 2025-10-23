@@ -118,7 +118,8 @@ router.post("/trigger", async (req, res) => {
 router.post("/generate-blog", async (req, res) => {
   try {
     const { contentType } = req.body; // 'construction', 'city', 'problemSolving', or null
-    const result = await runAutomatedBlogGeneration(contentType);
+    // Use randomization for manual generation to avoid duplicates
+    const result = await runAutomatedBlogGeneration(contentType, true);
 
     if (result.success) {
       res.json({
