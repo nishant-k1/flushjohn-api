@@ -99,9 +99,6 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
 
     const createdBlog = await blogsService.createBlog(blogPostData);
 
-    console.log(
-      `📊 Word Count: ${content.replace(/<[^>]*>/g, "").split(" ").length}`
-    );
 
     return {
       success: true,
@@ -124,9 +121,6 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
 }
 
 async function generateAllBlogPosts() {
-  console.log(
-    `🔑 Using OpenAI API Key: ${config.apiKey ? "✅ Set" : "❌ Missing"}`
-  );
 
   if (!config.apiKey) {
     console.error("❌ OPENAI_API_KEY environment variable is required");
@@ -157,9 +151,6 @@ async function generateAllBlogPosts() {
     ...blogContentData.seasonal.map((post) => ({ ...post, type: "seasonal" })),
   ];
 
-  console.log(
-    `📊 Distribution: ${blogContentData.citySpecific.length} city-specific, ${blogContentData.industryGuide.length} industry guides, ${blogContentData.seasonal.length} seasonal`
-  );
 
   const results = [];
   const errors = [];
@@ -168,12 +159,6 @@ async function generateAllBlogPosts() {
     const batch = allPosts.slice(i, i + config.batchSize);
     const batchNumber = Math.floor(i / config.batchSize) + 1;
 
-    console.log(
-      `\n🔄 Processing Batch ${batchNumber} (Posts ${i + 1}-${Math.min(
-        i + config.batchSize,
-        allPosts.length
-      )})`
-    );
 
     const batchPromises = batch.map((post) =>
       generateSingleBlogPost(post, post.type)
@@ -189,11 +174,6 @@ async function generateAllBlogPosts() {
     });
 
     if (i + config.batchSize < allPosts.length) {
-      console.log(
-        `⏳ Waiting ${
-          config.delayBetweenBatches / 1000
-        } seconds before next batch...`
-      );
       await new Promise((resolve) =>
         setTimeout(resolve, config.delayBetweenBatches)
       );
@@ -208,32 +188,7 @@ async function generateAllBlogPosts() {
   }
 
   const totalWords = results.reduce((sum, result) => sum + result.wordCount, 0);
-  console.log(
-    `\n📊 Total Content Generated: ${totalWords.toLocaleString()} words`
-  );
-  console.log(
-    `📈 Average Post Length: ${Math.round(totalWords / results.length)} words`
-  );
 
-  console.log(
-    `🔍 Target Keywords: ${
-      allPosts.length * 3
-    } (primary, secondary, long-tail per post)`
-  );
-  console.log(
-    `🌍 City Coverage: ${blogContentData.citySpecific.length} major cities`
-  );
-  console.log(
-    `📚 Industry Topics: ${blogContentData.industryGuide.length} comprehensive guides`
-  );
-  console.log(
-    `📅 Seasonal Content: ${blogContentData.seasonal.length} timely posts`
-  );
-  console.log(
-    `🔗 Internal Links: ~${
-      results.length * 4
-    } links to city pages, products, quote page`
-  );
   return {
     success: results.length,
     failed: errors.length,

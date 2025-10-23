@@ -30,9 +30,6 @@ async function cleanBlogContent() {
       ],
     });
 
-    console.log(
-      `📝 Found ${blogsWithCodeBlocks.length} blogs with code block wrappers`
-    );
 
     let cleanedCount = 0;
 

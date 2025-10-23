@@ -13,9 +13,6 @@ async function triggerBlogGeneration() {
     const result = await runAutomatedBlogGeneration();
 
     if (result.success) {
-      console.log(
-        `🔗 View at: https://www.flushjohn.com/blog/${result.blogPost.slug}`
-      );
     } else {
     }
   } catch (error) {

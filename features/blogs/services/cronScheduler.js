@@ -82,9 +82,6 @@ async function weeklyBlogGenerationJob() {
   const jobName = "weeklyBlogGeneration";
   const startTime = new Date();
 
-  console.log(
-    `\n🏗️ Starting Monday construction blog generation job at ${startTime.toISOString()}`
-  );
 
   jobStatus[jobName].isRunning = true;
   jobStatus[jobName].lastRun = startTime;
@@ -96,9 +93,6 @@ async function weeklyBlogGenerationJob() {
     if (result.success) {
       jobStatus[jobName].lastSuccess = new Date();
       jobStatus[jobName].successfulRuns++;
-      console.log(
-        `✅ Monday construction blog generation completed successfully`
-      );
     } else {
       throw new Error(result.error || "Unknown error");
     }
@@ -116,9 +110,6 @@ async function weeklyBlogGenerationJob() {
   } finally {
     jobStatus[jobName].isRunning = false;
     const duration = new Date() - startTime;
-    console.log(
-      `⏱️  Monday construction blog generation job completed in ${duration}ms`
-    );
   }
 }
 
@@ -129,9 +120,6 @@ async function midWeekBlogGenerationJob() {
   const jobName = "midWeekBlogGeneration";
   const startTime = new Date();
 
-  console.log(
-    `\n🏙️ Starting Wednesday city-specific blog generation job at ${startTime.toISOString()}`
-  );
 
   jobStatus[jobName].isRunning = true;
   jobStatus[jobName].lastRun = startTime;
@@ -143,9 +131,6 @@ async function midWeekBlogGenerationJob() {
     if (result.success) {
       jobStatus[jobName].lastSuccess = new Date();
       jobStatus[jobName].successfulRuns++;
-      console.log(
-        `✅ Wednesday city-specific blog generation completed successfully`
-      );
     } else {
       throw new Error(result.error || "Unknown error");
     }
@@ -163,9 +148,6 @@ async function midWeekBlogGenerationJob() {
   } finally {
     jobStatus[jobName].isRunning = false;
     const duration = new Date() - startTime;
-    console.log(
-      `⏱️  Wednesday city-specific blog generation job completed in ${duration}ms`
-    );
   }
 }
 
@@ -176,9 +158,6 @@ async function weeklyProblemSolvingJob() {
   const jobName = "weeklyProblemSolving";
   const startTime = new Date();
 
-  console.log(
-    `\n💡 Starting Friday problem-solving blog generation job at ${startTime.toISOString()}`
-  );
 
   jobStatus[jobName].isRunning = true;
   jobStatus[jobName].lastRun = startTime;
@@ -190,9 +169,6 @@ async function weeklyProblemSolvingJob() {
     if (result.success) {
       jobStatus[jobName].lastSuccess = new Date();
       jobStatus[jobName].successfulRuns++;
-      console.log(
-        `✅ Friday problem-solving blog generation completed successfully`
-      );
     } else {
       throw new Error(result.error || "Unknown error");
     }
@@ -210,9 +186,6 @@ async function weeklyProblemSolvingJob() {
   } finally {
     jobStatus[jobName].isRunning = false;
     const duration = new Date() - startTime;
-    console.log(
-      `⏱️  Friday problem-solving blog generation job completed in ${duration}ms`
-    );
   }
 }
 
@@ -229,14 +202,8 @@ async function dailyStatusCheckJob() {
   try {
     const stats = await getAutomationStats();
 
-    console.log(
-      `   - Total automated posts (30 days): ${stats.totalAutomatedPosts}`
-    );
 
     if (stats.lastAutomatedPost) {
-      console.log(
-        `   - Last automated date: ${stats.lastAutomatedPost.automationDate}`
-      );
     }
 
     jobStatus[jobName].lastSuccess = new Date();
@@ -278,11 +245,6 @@ async function healthCheckJob() {
       })),
     };
 
-    console.log(
-      `   - Memory usage: ${Math.round(
-        healthStatus.memoryUsage.heapUsed / 1024 / 1024
-      )}MB`
-    );
 
     jobStatus[jobName].lastSuccess = new Date();
     jobStatus[jobName].successfulRuns++;
@@ -351,15 +313,6 @@ export function initializeCronJobs() {
   dailyJob.start();
   healthJob.start();
 
-  console.log(
-    `📅 Monday construction blog: ${CRON_CONFIG.weeklyBlogGeneration} (EST)`
-  );
-  console.log(
-    `📅 Wednesday city-specific blog: ${CRON_CONFIG.midWeekBlogGeneration} (EST)`
-  );
-  console.log(
-    `📅 Friday problem-solving blog: ${CRON_CONFIG.weeklyProblemSolving} (EST)`
-  );
 
   return {
     weeklyJob,

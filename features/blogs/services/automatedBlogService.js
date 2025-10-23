@@ -119,9 +119,6 @@ export async function publishAutomatedBlogPost(blogData) {
  */
 export async function runAutomatedBlogGeneration(contentType = null) {
   const startTime = new Date();
-  console.log(
-    `\n🚀 Starting automated blog generation at ${startTime.toISOString()}`
-  );
 
   try {
     const blogData = await generateAutomatedBlogPost(contentType);
