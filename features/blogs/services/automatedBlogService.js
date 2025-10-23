@@ -25,19 +25,19 @@ const openai = new OpenAI({
 
 const defaultCoverImages = {
   events: [
-    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&h=630&fit=crop&crop=center", // Wedding
-    "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1200&h=630&fit=crop&crop=center", // Festival
-    "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&h=630&fit=crop&crop=center", // Party
+    "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Wedding
+    "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Festival
+    "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Party
   ],
   construction: [
-    "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1200&h=630&fit=crop&crop=center", // Construction
-    "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1200&h=630&fit=crop&crop=center", // Building
-    "https://images.unsplash.com/photo-1590736969955-71cc94901144?w=1200&h=630&fit=crop&crop=center", // Site
+    "https://images.unsplash.com/photo-1504307651254-35680f356dfd?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Construction
+    "https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Building
+    "https://images.unsplash.com/photo-1590736969955-71cc94901144?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Site
   ],
   tips: [
-    "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=1200&h=630&fit=crop&crop=center", // Guide
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200&h=630&fit=crop&crop=center", // Tips
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&h=630&fit=crop&crop=center", // Planning
+    "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Guide
+    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Tips
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=630&q=80", // Planning
   ],
 };
 
@@ -206,7 +206,8 @@ async function generateAICoverImage(title, category, content) {
       messages: [
         {
           role: "system",
-          content: "You are an expert at generating Unsplash search queries for blog cover images. Generate a single, specific search query that would find relevant, professional images for porta potty rental blog posts. The query should be 2-4 words maximum and focus on the main visual elements.",
+          content:
+            "You are an expert at generating Unsplash search queries for blog cover images. Generate a single, specific search query that would find relevant, professional images for porta potty rental blog posts. The query should be 2-4 words maximum and focus on the main visual elements.",
         },
         {
           role: "user",
@@ -228,13 +229,15 @@ Requirements:
     });
 
     const searchQuery = response.choices[0].message.content.trim();
-    
+
     // Use Unsplash API to get a random image
-    const unsplashUrl = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(searchQuery)}&orientation=landscape&w=1200&h=630&fit=crop`;
-    
+    const unsplashUrl = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(
+      searchQuery
+    )}&orientation=landscape&w=1200&h=630&fit=crop`;
+
     const unsplashResponse = await fetch(unsplashUrl, {
       headers: {
-        'Authorization': `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
+        Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
       },
     });
 
@@ -242,11 +245,11 @@ Requirements:
       const imageData = await unsplashResponse.json();
       return imageData.urls.custom || imageData.urls.regular;
     } else {
-      console.warn('Unsplash API failed, falling back to default images');
+      console.warn("Unsplash API failed, falling back to default images");
       return getRandomCoverImage(category);
     }
   } catch (error) {
-    console.error('Error generating AI cover image:', error);
+    console.error("Error generating AI cover image:", error);
     return getRandomCoverImage(category);
   }
 }
@@ -256,23 +259,23 @@ Requirements:
  */
 function getRandomCoverImage(category) {
   const images = defaultCoverImages[category] || defaultCoverImages.tips;
-  
+
   // Filter out already used images
-  const availableImages = images.filter(img => !usedImages.has(img));
-  
+  const availableImages = images.filter((img) => !usedImages.has(img));
+
   // If all images have been used, reset the used images set
   if (availableImages.length === 0) {
     usedImages.clear();
     availableImages.push(...images);
   }
-  
+
   // Select a random image from available ones
   const randomIndex = Math.floor(Math.random() * availableImages.length);
   const selectedImage = availableImages[randomIndex];
-  
+
   // Mark this image as used
   usedImages.add(selectedImage);
-  
+
   return selectedImage;
 }
 
