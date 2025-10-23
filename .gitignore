@@ -53,3 +53,6 @@ public/temp/*
 
 # Playwright MCP configuration and cache
 .playwright-mcp/
+
+# playwright-mcp
+.playwright-mcp/
