@@ -41,7 +41,6 @@ const defaultCoverImages = {
  * @param {string} contentType - 'construction', 'city', 'problemSolving', or null for default
  */
 export async function generateAutomatedBlogPost(contentType = null) {
-
   try {
     const topic = getNextTopic(contentType);
     if (contentType) {
@@ -99,7 +98,6 @@ export async function generateAutomatedBlogPost(contentType = null) {
  * Publish an automated blog post to the database
  */
 export async function publishAutomatedBlogPost(blogData) {
-
   try {
     await dbConnect();
     const connected = await waitForConnection(10000);
@@ -121,6 +119,7 @@ export async function publishAutomatedBlogPost(blogData) {
  */
 export async function runAutomatedBlogGeneration(contentType = null) {
   const startTime = new Date();
+  console.log(
     `\n🚀 Starting automated blog generation at ${startTime.toISOString()}`
   );
 
