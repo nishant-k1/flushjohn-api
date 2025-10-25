@@ -242,7 +242,6 @@ export async function generateBlogContent(templateType, params) {
 
     return content;
   } catch (error) {
-    console.error("Error generating blog content:", error);
     throw error;
   }
 }

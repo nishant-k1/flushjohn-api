@@ -40,7 +40,7 @@ const jobOrdersRouter = jobOrdersFeature.routes;
 config({ path: "./.env" });
 
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-  console.warn("AWS credentials not configured");
+  // AWS credentials not configured
 }
 
 const app = express();
@@ -183,7 +183,7 @@ let cronJobs;
 try {
   cronJobs = initializeCronJobs();
 } catch (error) {
-  console.error("❌ Failed to initialize cron jobs:", error);
+  // Failed to initialize cron jobs
 }
 
 app.use((req, res, next) => {
