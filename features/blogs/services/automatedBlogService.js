@@ -131,7 +131,6 @@ export async function generateAutomatedBlogPost(
 
     return blogData;
   } catch (error) {
-    console.error("❌ Error generating automated blog post:", error);
     throw error;
   }
 }
@@ -150,7 +149,6 @@ export async function publishAutomatedBlogPost(blogData) {
     const createdBlog = await blogsService.createBlog(blogData);
     return createdBlog;
   } catch (error) {
-    console.error("❌ Error publishing automated blog post:", error);
     throw error;
   }
 }
@@ -182,9 +180,6 @@ export async function runAutomatedBlogGeneration(
   } catch (error) {
     const endTime = new Date();
     const duration = endTime - startTime;
-
-    console.error(`\n💥 Automated blog generation failed after ${duration}ms`);
-    console.error("Error details:", error);
 
     return {
       success: false,

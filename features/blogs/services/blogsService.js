@@ -70,7 +70,6 @@ Requirements:
 
     return excerpt;
   } catch (error) {
-    console.error("Error generating AI excerpt:", error);
     // Fallback to basic text processing if AI fails
     return generateBasicExcerpt(content);
   }
