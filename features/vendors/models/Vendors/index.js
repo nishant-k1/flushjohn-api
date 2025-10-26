@@ -43,23 +43,25 @@ const VendorsSchema = new mongoose.Schema({
     default: "USA",
   },
 
-  representatives: [{
-    name: {
-      type: String,
-      required: true,
+  representatives: [
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+      email: {
+        type: String,
+        required: true,
+      },
+      phone: {
+        type: String,
+      },
+      isActive: {
+        type: Boolean,
+        default: true,
+      },
     },
-    email: {
-      type: String,
-      required: true,
-    },
-    phone: {
-      type: String,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-  }],
+  ],
   serviceCities: {
     type: String,
   },

@@ -31,8 +31,7 @@ export const transformProductsData = (leadSource, products) => {
         rate: rate,
         amount: amount,
       };
-    }
-    else {
+    } else {
       const qty = Number(product.qty);
       const rate = Number(product.rate) || 0;
       const amount = Number(product.amount) || rate * qty;
@@ -252,6 +251,44 @@ export const deleteLead = async (id) => {
   if (!existingLead) {
     const error = new Error("Lead not found");
     error.name = "NotFoundError";
+    throw error;
+  }
+
+  // Check for related records
+  const Quote = (await import("../../quotes/models/Quotes/index.js")).default;
+  const SalesOrder = (
+    await import("../../salesOrders/models/SalesOrders/index.js")
+  ).default;
+  const JobOrder = (await import("../../jobOrders/models/JobOrders/index.js"))
+    .default;
+
+  const [quotesCount, salesOrdersCount, jobOrdersCount] = await Promise.all([
+    Quote.countDocuments({
+      $or: [{ lead: id }, { leadId: id }, { leadNo: existingLead.leadNo }],
+    }),
+    SalesOrder.countDocuments({
+      $or: [{ lead: id }, { leadId: id }, { leadNo: existingLead.leadNo }],
+    }),
+    JobOrder.countDocuments({
+      $or: [{ lead: id }, { leadId: id }, { leadNo: existingLead.leadNo }],
+    }),
+  ]);
+
+  if (quotesCount > 0 || salesOrdersCount > 0 || jobOrdersCount > 0) {
+    const relatedRecords = [];
+    if (quotesCount > 0) relatedRecords.push(`${quotesCount} quote(s)`);
+    if (salesOrdersCount > 0)
+      relatedRecords.push(`${salesOrdersCount} sales order(s)`);
+    if (jobOrdersCount > 0)
+      relatedRecords.push(`${jobOrdersCount} job order(s)`);
+
+    const error = new Error(
+      `Cannot delete lead. Related records exist: ${relatedRecords.join(
+        ", "
+      )}. ` + `Please delete these records first or contact an administrator.`
+    );
+    error.name = "DeletionBlockedError";
+    error.details = { quotesCount, salesOrdersCount, jobOrdersCount };
     throw error;
   }
 

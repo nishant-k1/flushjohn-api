@@ -7,7 +7,31 @@ const CustomersSchema = new mongoose.Schema({
   },
   customerNo: {
     type: Number,
+    unique: true,
   },
+
+  // ✅ MongoDB References (ObjectId) - Relationships to related records
+  // Note: Leads are not stored here since Lead -> Customer is one-way
+  quotes: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Quote",
+    },
+  ],
+  salesOrders: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SalesOrder",
+    },
+  ],
+  jobOrders: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "JobOrder",
+    },
+  ],
+
+  // 🔄 Legacy fields (kept for backward compatibility)
   salesOrderNo: {
     type: [Number],
   },
@@ -15,6 +39,7 @@ const CustomersSchema = new mongoose.Schema({
     type: [Number],
   },
 
+  // Customer contact information (single source of truth)
   fName: {
     type: String,
   },

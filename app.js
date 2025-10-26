@@ -26,6 +26,8 @@ import jobOrdersFeature from "./features/jobOrders/index.js";
 import blogsFeature from "./features/blogs/index.js";
 import authFeature from "./features/auth/index.js";
 import commonFeature from "./features/common/index.js";
+import { authenticateToken } from "./features/auth/middleware/auth.js";
+
 const authRouter = authFeature.routes.auth;
 const usersRouter = authFeature.routes.users;
 const leadsRouter = leadsFeature.routes;
@@ -164,16 +166,16 @@ app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/file-upload", fileUploadRouter);
 app.use("/s3-cors", s3CorsRouter);
-app.use("/users", usersRouter);
-app.use("/leads", leadsRouter);
-app.use("/blogs", blogsRouter);
-app.use("/vendors", vendorsRouter);
-app.use("/customers", customersRouter);
-app.use("/quotes", quotesRouter);
-app.use("/salesOrders", salesOrdersRouter);
-app.use("/jobOrders", jobOrdersRouter);
-app.use("/blog-automation", blogAutomationRouter);
-app.use("/dashboard", dashboardRouter);
+app.use("/users", authenticateToken, usersRouter);
+app.use("/leads", authenticateToken, leadsRouter);
+app.use("/blogs", blogsRouter); // Keep public for marketing
+app.use("/vendors", authenticateToken, vendorsRouter);
+app.use("/customers", authenticateToken, customersRouter);
+app.use("/quotes", authenticateToken, quotesRouter);
+app.use("/salesOrders", authenticateToken, salesOrdersRouter);
+app.use("/jobOrders", authenticateToken, jobOrdersRouter);
+app.use("/blog-automation", authenticateToken, blogAutomationRouter);
+app.use("/dashboard", authenticateToken, dashboardRouter);
 
 dbConnect().catch((error) => {
   process.exit(1);

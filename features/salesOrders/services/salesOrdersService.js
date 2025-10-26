@@ -63,6 +63,11 @@ export const createSalesOrder = async (salesOrderData) => {
     salesOrderNo,
     customerNo: customer.customerNo,
     emailStatus: "Pending",
+    // Store lead reference if provided (for relationship tracking)
+    lead: salesOrderData.lead || null,
+    leadNo: salesOrderData.leadNo || null,
+    // Store quote reference if provided
+    quote: salesOrderData.quote || null,
   };
 
   return await salesOrdersRepository.create(newSalesOrderData);
@@ -145,6 +150,27 @@ export const deleteSalesOrder = async (id) => {
   if (!existingSalesOrder) {
     const error = new Error("Sales Order not found");
     error.name = "NotFoundError";
+    throw error;
+  }
+
+  // Check for related job orders
+  const JobOrder = (await import("../../jobOrders/models/JobOrders/index.js"))
+    .default;
+
+  const jobOrdersCount = await JobOrder.countDocuments({
+    $or: [
+      { salesOrder: id },
+      { salesOrderNo: existingSalesOrder.salesOrderNo },
+    ],
+  });
+
+  if (jobOrdersCount > 0) {
+    const error = new Error(
+      `Cannot delete sales order. Related records exist: ${jobOrdersCount} job order(s). ` +
+        `Please delete these records first or contact an administrator.`
+    );
+    error.name = "DeletionBlockedError";
+    error.details = { jobOrdersCount };
     throw error;
   }
 

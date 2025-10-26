@@ -148,6 +148,15 @@ router.delete("/:id", async function (req, res) {
       });
     }
 
+    if (error.name === "DeletionBlockedError") {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+        error: "DELETION_BLOCKED",
+        details: error.details,
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: "Failed to delete quote",

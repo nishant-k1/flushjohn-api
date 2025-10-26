@@ -8,16 +8,22 @@ const JobOrdersSchema = new mongoose.Schema({
   jobOrderNo: {
     type: Number,
   },
-  salesOrderNo: {
-    type: Number,
-  },
 
-  emailStatus: {
-    type: String,
-    default: "Pending",
+  // ✅ MongoDB References (ObjectId) - New proper relationships
+  salesOrder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "SalesOrder",
+    index: true,
   },
-  customerNo: {
-    type: Number,
+  lead: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Lead",
+    index: true,
+  },
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Customer",
+    index: true,
   },
   vendor: {
     name: {
@@ -25,7 +31,21 @@ const JobOrdersSchema = new mongoose.Schema({
     },
     _id: {
       type: mongoose.Schema.Types.ObjectId,
+      ref: "Vendor",
     },
+  },
+
+  // 🔄 Legacy fields (kept for backward compatibility during migration)
+  salesOrderNo: {
+    type: Number,
+  },
+  customerNo: {
+    type: Number,
+  },
+
+  emailStatus: {
+    type: String,
+    default: "Pending",
   },
   vendorAcceptanceStatus: {
     type: String,
@@ -158,6 +178,16 @@ const JobOrdersSchema = new mongoose.Schema({
     },
   ],
 });
+
+// Add indexes for faster queries
+JobOrdersSchema.index({ createdAt: -1 }); // Sort by date
+JobOrdersSchema.index({ email: 1 }); // Find by email
+JobOrdersSchema.index({ salesOrder: 1 }); // Find by sales order reference
+JobOrdersSchema.index({ lead: 1 }); // Find by lead reference
+JobOrdersSchema.index({ customer: 1 }); // Find by customer reference
+JobOrdersSchema.index({ emailStatus: 1 }); // Filter by email status
+JobOrdersSchema.index({ vendorAcceptanceStatus: 1 }); // Filter by vendor status
+JobOrdersSchema.index({ jobOrderNo: 1 }); // Find by job order number
 
 export default mongoose.models.JobOrders ||
   mongoose.model("JobOrders", JobOrdersSchema);
