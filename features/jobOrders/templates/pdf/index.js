@@ -76,7 +76,7 @@ const htmlTemplate = (jobOrderData) => {
         <div class="section-1">
           <div class="section-1-left">
             <div>
-              <img src="${localAssetsUrl}/logos/logo_quengenesis.svg" alt="logo" class="logo" style="max-width: 80px !important; width: 80px !important; height: 40px !important; object-fit: contain !important;" />          
+              <img src="${localAssetsUrl}/logos/logo_quengenesis.svg" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />          
             <div>
               <h4>${cName}</h4>
               ${address ? `<p>${address}</p>` : ""}
@@ -97,7 +97,14 @@ const htmlTemplate = (jobOrderData) => {
             <p><strong>Email: </strong>${safeValue(jobOrderData.email)}</p>
             <p><strong>Phone: </strong>${safePhone(jobOrderData.phone)}</p>
             </div>
+          </div>
+
+          <div class="section-1-right">
             <div>
+              <h1>Job Order # ${safeValue(jobOrderData.jobOrderNo)}</h1>
+              <h3>${createdAt}</h3>
+            </div>
+            <div style="margin-top: 48px;">
             <h3 style="font-size:x-large">Vendor</h3>
             <h4>${safeGet(jobOrderData, "vendor.name")}</h4>
             <p>${safeGet(jobOrderData, "vendor.streetAddress")}</p>
@@ -116,11 +123,6 @@ const htmlTemplate = (jobOrderData) => {
               safeGet(jobOrderData, "vendor.fax")
             )}</p>
           </div>
-          </div>
-
-          <div class="section-1-right">
-            <h1>Job Order # ${safeValue(jobOrderData.jobOrderNo)}</h1>
-            <h3>${createdAt}</h3>
           </div>
         </div>
         <hr/>
