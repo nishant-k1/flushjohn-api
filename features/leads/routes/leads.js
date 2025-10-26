@@ -41,10 +41,13 @@ router.post(
 
       if (global.leadsNamespace) {
         try {
-          const { default: Leads } = await import("../models/lead.js");
+          const { default: Leads } = await import("../models/Leads/index.js");
           const leadsList = await Leads.find().sort({ _id: -1 });
           global.leadsNamespace.emit("leadCreated", leadsList);
-        } catch (emitError) {}
+          console.log("📢 Emitted leadCreated event to socket clients");
+        } catch (emitError) {
+          console.error("❌ Error emitting leadCreated event:", emitError);
+        }
       }
 
       res.status(201).json({
