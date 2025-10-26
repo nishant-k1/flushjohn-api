@@ -310,7 +310,6 @@ router.post(
         ccEmail: ccEmail, // Add CC email if different
       };
 
-
       const { generateJobOrderPDF } = await import(
         "../../fileManagement/services/pdfService.js"
       );
@@ -332,8 +331,8 @@ router.post(
         vendorAcceptanceStatus: "Accepted",
       });
 
-      // Link job order to customer
-      await jobOrdersService.linkJobOrderToCustomer(updatedJobOrder);
+      // Create customer NOW (both sales order and job order emails are sent)
+      await jobOrdersService.createOrLinkCustomerFromJobOrder(updatedJobOrder);
 
       res.status(200).json({
         success: true,

@@ -214,33 +214,90 @@ export const deleteJobOrder = async (id) => {
 };
 
 /**
- * Link job order to customer when email is sent
- * Adds job order reference to customer's jobOrders array
+ * Create or link customer when job order email is sent
+ * Customer is ONLY created when BOTH sales order AND job order emails are sent
  */
-export const linkJobOrderToCustomer = async (jobOrder) => {
+export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
   if (!jobOrder.salesOrder) {
-    // No sales order reference, skip linking
+    // No sales order reference, skip
     return;
   }
 
   // Import here to avoid circular dependency
-  const SalesOrders = (await import("../../salesOrders/models/SalesOrders/index.js")).default;
+  const SalesOrders = (
+    await import("../../salesOrders/models/SalesOrders/index.js")
+  ).default;
   const salesOrder = await SalesOrders.findById(jobOrder.salesOrder);
 
-  if (!salesOrder || !salesOrder.customer) {
-    // No customer reference on sales order, skip linking
+  if (!salesOrder) {
     return;
   }
 
+  // Get customer data from lead
+  const Leads = (await import("../../leads/models/Leads/index.js")).default;
+  const lead = salesOrder.lead ? await Leads.findById(salesOrder.lead) : null;
+
+  if (!lead) {
+    // No lead data available
+    return;
+  }
+
+  const customerData = {
+    fName: lead.fName,
+    lName: lead.lName,
+    cName: lead.cName,
+    email: lead.email,
+    phone: lead.phone,
+    fax: lead.fax,
+    streetAddress: lead.streetAddress,
+    city: lead.city,
+    state: lead.state,
+    zip: lead.zip,
+    country: lead.country || "USA",
+  };
+
   // Import here to avoid circular dependency
-  const Customers = (await import("../../customers/models/Customers/index.js")).default;
-  
-  // Add job order to customer's jobOrders array
-  await Customers.findByIdAndUpdate(salesOrder.customer, {
-    $addToSet: {
-      jobOrders: jobOrder._id,
-    },
+  const Customers = (await import("../../customers/models/Customers/index.js"))
+    .default;
+
+  let customer = await Customers.findOne({
+    email: customerData.email,
   });
+
+  if (!customer) {
+    // Create customer NOW (both emails are sent)
+    const latestCustomer = await Customers.findOne({}, "customerNo");
+    const customerNo = latestCustomer ? latestCustomer.customerNo + 1 : 1000;
+
+    customer = await Customers.create({
+      ...customerData,
+      customerNo,
+      salesOrders: [salesOrder._id],
+      jobOrders: [jobOrder._id],
+      ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
+    });
+
+    // Link lead to customer
+    await Leads.findByIdAndUpdate(lead._id, {
+      customer: customer._id,
+    });
+  } else {
+    // Customer exists, link sales order and job order
+    await Customers.findByIdAndUpdate(customer._id, {
+      $addToSet: {
+        salesOrders: salesOrder._id,
+        jobOrders: jobOrder._id,
+        ...(salesOrder.quote && { quotes: salesOrder.quote }),
+      },
+    });
+  }
+
+  // Update sales order with customer number
+  await SalesOrders.findByIdAndUpdate(salesOrder._id, {
+    customerNo: customer.customerNo,
+  });
+
+  return customer;
 };
 
 export const isValidObjectId = (id) => {

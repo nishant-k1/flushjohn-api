@@ -275,9 +275,9 @@ router.post(
         emailStatus: "Sent",
       });
 
-      // Create or link customer when email is sent
-      // This converts the lead to a customer
-      await salesOrdersService.createOrLinkCustomerFromSalesOrder(
+      // Link sales order to customer if customer exists
+      // Customer will be created when job order email is sent
+      await salesOrdersService.linkSalesOrderToCustomer(
         updatedSalesOrder,
         updatedSalesOrder.lead?.toString() || null
       );
