@@ -75,7 +75,7 @@ const transformedLeadData = async (leadData) => {
 export function leadSocketHandler(leadsNamespace, socket) {
   socket.on("createLead", async (leadData) => {
     try {
-
+      console.log("📥 Received createLead socket event");
       const createdAt = getCurrentDateTime();
       const latestLead = await Leads.findOne({}, "leadNo").sort({
         leadNo: -1,
@@ -97,7 +97,9 @@ export function leadSocketHandler(leadsNamespace, socket) {
 
       const leadsList = await Leads.find().sort({ _id: -1 });
       leadsNamespace.emit("leadCreated", leadsList);
+      console.log("📢 Emitted leadCreated socket event for new lead");
     } catch (error) {
+      console.error("❌ Error creating lead via socket:", error);
     }
   });
 
