@@ -154,7 +154,26 @@ export const updateQuote = async (id, updateData) => {
     throw error;
   }
 
-  return quote;
+  // Fetch with populate to get lead data
+  const updatedQuote = await quotesRepository.findById(id);
+  
+  // Flatten lead data for frontend compatibility
+  if (updatedQuote && updatedQuote.lead) {
+    updatedQuote.fName = updatedQuote.lead.fName;
+    updatedQuote.lName = updatedQuote.lead.lName;
+    updatedQuote.cName = updatedQuote.lead.cName;
+    updatedQuote.email = updatedQuote.lead.email;
+    updatedQuote.phone = updatedQuote.lead.phone;
+    updatedQuote.fax = updatedQuote.lead.fax;
+    updatedQuote.streetAddress = updatedQuote.lead.streetAddress;
+    updatedQuote.city = updatedQuote.lead.city;
+    updatedQuote.state = updatedQuote.lead.state;
+    updatedQuote.zip = updatedQuote.lead.zip;
+    updatedQuote.country = updatedQuote.lead.country;
+    updatedQuote.usageType = updatedQuote.lead.usageType;
+  }
+
+  return updatedQuote || quote;
 };
 
 export const deleteQuote = async (id) => {
