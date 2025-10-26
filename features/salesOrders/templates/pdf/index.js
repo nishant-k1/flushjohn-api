@@ -117,12 +117,16 @@ const htmlTemplate = (salesOrderData) => {
   }</span>
               </p>
             </div>
-            ${salesOrderData.cName ? `
+            ${
+              salesOrderData.cName
+                ? `
             <div>
               <h3>Company Name</h3>
               <p>${salesOrderData.cName}</p>
             </div>
-            ` : ""}
+            `
+                : ""
+            }
             <div>
               <h3>Delivery Address</h3>
               <p>${
