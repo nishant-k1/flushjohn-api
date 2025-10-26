@@ -9,7 +9,7 @@ export const create = async (salesOrderData) => {
 };
 
 export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await SalesOrders.find(query).sort(sort).skip(skip).limit(limit).lean();
+  return await SalesOrders.find(query).populate("lead").populate("quote").sort(sort).skip(skip).limit(limit).lean();
 };
 
 export const count = async (query = {}) => {
@@ -17,7 +17,7 @@ export const count = async (query = {}) => {
 };
 
 export const findById = async (id) => {
-  return await SalesOrders.findById(id);
+  return await SalesOrders.findById(id).populate("lead").populate("quote");
 };
 
 export const findOne = async (query, projection = null) => {

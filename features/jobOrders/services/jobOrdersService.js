@@ -157,10 +157,32 @@ export const getAllJobOrders = async ({
     jobOrdersRepository.count(query),
   ]);
 
+  // Flatten lead data for frontend compatibility
+  const flattenedJobOrders = jobOrders.map(jobOrder => {
+    if (jobOrder.lead) {
+      return {
+        ...jobOrder,
+        fName: jobOrder.lead.fName,
+        lName: jobOrder.lead.lName,
+        cName: jobOrder.lead.cName,
+        email: jobOrder.lead.email,
+        phone: jobOrder.lead.phone,
+        fax: jobOrder.lead.fax,
+        streetAddress: jobOrder.lead.streetAddress,
+        city: jobOrder.lead.city,
+        state: jobOrder.lead.state,
+        zip: jobOrder.lead.zip,
+        country: jobOrder.lead.country,
+        usageType: jobOrder.lead.usageType,
+      };
+    }
+    return jobOrder;
+  });
+
   const totalPages = Math.ceil(total / limit);
 
   return {
-    data: jobOrders,
+    data: flattenedJobOrders,
     pagination: {
       currentPage: page,
       totalPages,
@@ -179,6 +201,22 @@ export const getJobOrderById = async (id) => {
     const error = new Error("Job Order not found");
     error.name = "NotFoundError";
     throw error;
+  }
+
+  // Flatten lead data for frontend compatibility
+  if (jobOrder.lead) {
+    jobOrder.fName = jobOrder.lead.fName;
+    jobOrder.lName = jobOrder.lead.lName;
+    jobOrder.cName = jobOrder.lead.cName;
+    jobOrder.email = jobOrder.lead.email;
+    jobOrder.phone = jobOrder.lead.phone;
+    jobOrder.fax = jobOrder.lead.fax;
+    jobOrder.streetAddress = jobOrder.lead.streetAddress;
+    jobOrder.city = jobOrder.lead.city;
+    jobOrder.state = jobOrder.lead.state;
+    jobOrder.zip = jobOrder.lead.zip;
+    jobOrder.country = jobOrder.lead.country;
+    jobOrder.usageType = jobOrder.lead.usageType;
   }
 
   return jobOrder;

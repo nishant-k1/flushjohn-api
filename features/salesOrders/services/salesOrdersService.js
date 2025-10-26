@@ -82,10 +82,32 @@ export const getAllSalesOrders = async ({
     salesOrdersRepository.count(query),
   ]);
 
+  // Flatten lead data for frontend compatibility
+  const flattenedSalesOrders = salesOrders.map(salesOrder => {
+    if (salesOrder.lead) {
+      return {
+        ...salesOrder,
+        fName: salesOrder.lead.fName,
+        lName: salesOrder.lead.lName,
+        cName: salesOrder.lead.cName,
+        email: salesOrder.lead.email,
+        phone: salesOrder.lead.phone,
+        fax: salesOrder.lead.fax,
+        streetAddress: salesOrder.lead.streetAddress,
+        city: salesOrder.lead.city,
+        state: salesOrder.lead.state,
+        zip: salesOrder.lead.zip,
+        country: salesOrder.lead.country,
+        usageType: salesOrder.lead.usageType,
+      };
+    }
+    return salesOrder;
+  });
+
   const totalPages = Math.ceil(total / limit);
 
   return {
-    data: salesOrders,
+    data: flattenedSalesOrders,
     pagination: {
       currentPage: page,
       totalPages,
@@ -104,6 +126,22 @@ export const getSalesOrderById = async (id) => {
     const error = new Error("Sales Order not found");
     error.name = "NotFoundError";
     throw error;
+  }
+
+  // Flatten lead data for frontend compatibility
+  if (salesOrder.lead) {
+    salesOrder.fName = salesOrder.lead.fName;
+    salesOrder.lName = salesOrder.lead.lName;
+    salesOrder.cName = salesOrder.lead.cName;
+    salesOrder.email = salesOrder.lead.email;
+    salesOrder.phone = salesOrder.lead.phone;
+    salesOrder.fax = salesOrder.lead.fax;
+    salesOrder.streetAddress = salesOrder.lead.streetAddress;
+    salesOrder.city = salesOrder.lead.city;
+    salesOrder.state = salesOrder.lead.state;
+    salesOrder.zip = salesOrder.lead.zip;
+    salesOrder.country = salesOrder.lead.country;
+    salesOrder.usageType = salesOrder.lead.usageType;
   }
 
   return salesOrder;
