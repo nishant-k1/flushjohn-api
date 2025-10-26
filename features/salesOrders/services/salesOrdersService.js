@@ -33,7 +33,7 @@ export const createSalesOrder = async (salesOrderData) => {
   const existingCustomer = await customersRepository.findOne({
     email: salesOrderData.email,
   });
-  
+
   if (existingCustomer) {
     customerNo = existingCustomer.customerNo;
   }
@@ -164,94 +164,40 @@ export const isValidObjectId = (id) => {
 };
 
 /**
- * Create or update customer when sales order email is sent
- * Links the customer to the lead if lead reference exists
+ * DO NOT create customer when sales order email is sent
+ * Customer is only created when BOTH sales order AND job order emails are sent
+ * This function just links the sales order to any existing customer
  */
-export const createOrLinkCustomerFromSalesOrder = async (salesOrder, leadId = null) => {
-  // Get customer data from sales order or from lead reference
-  let customerData = {};
-  
-  // Try to get data from sales order (may have legacy fields)
-  customerData = {
-    fName: salesOrder.fName,
-    lName: salesOrder.lName,
-    cName: salesOrder.cName,
+export const linkSalesOrderToCustomer = async (
+  salesOrder,
+  leadId = null
+) => {
+  // Check if customer already exists
+  const existingCustomer = await customersRepository.findOne({
     email: salesOrder.email,
-    phone: salesOrder.phone,
-    fax: salesOrder.fax,
-    streetAddress: salesOrder.streetAddress,
-    city: salesOrder.city,
-    state: salesOrder.state,
-    zip: salesOrder.zip,
-    country: salesOrder.country || "USA",
-  };
-
-  // If we have a lead reference, populate and use lead data
-  if (salesOrder.lead) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
-    const lead = await Leads.findById(salesOrder.lead);
-    
-    if (lead) {
-      // Use lead data if available
-      customerData = {
-        fName: lead.fName || customerData.fName,
-        lName: lead.lName || customerData.lName,
-        cName: lead.cName || customerData.cName,
-        email: lead.email || customerData.email,
-        phone: lead.phone || customerData.phone,
-        fax: lead.fax || customerData.fax,
-        streetAddress: lead.streetAddress || customerData.streetAddress,
-        city: lead.city || customerData.city,
-        state: lead.state || customerData.state,
-        zip: lead.zip || customerData.zip,
-        country: lead.country || customerData.country || "USA",
-      };
-    }
-  }
-
-  let customer = await customersRepository.findOne({
-    email: customerData.email,
   });
 
-  if (!customer) {
-    // Create new customer
-    const latestCustomer = await customersRepository.findOne({}, "customerNo");
-    const customerNo = latestCustomer ? latestCustomer.customerNo + 1 : 1000;
-
-    customer = await customersRepository.create({
-      ...customerData,
-      customerNo,
-      // Add sales order reference
-      salesOrders: [salesOrder._id],
-      // Add quote reference if exists
-      ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
-    });
-  } else {
-    // Update existing customer and add sales order reference
-    customer = await customersRepository.findOneAndUpdate(
-      { email: customerData.email },
+  if (existingCustomer) {
+    // Customer exists, just link sales order to it
+    await customersRepository.findOneAndUpdate(
+      { email: salesOrder.email },
       {
         $addToSet: {
           salesOrders: salesOrder._id,
           ...(salesOrder.quote && { quotes: salesOrder.quote }),
         },
-      },
-      { new: true }
+      }
     );
-  }
 
-  // Link lead to customer if leadId is provided
-  if (leadId) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
-    await Leads.findByIdAndUpdate(leadId, {
-      customer: customer._id,
+    // Update sales order with customer number
+    await salesOrdersRepository.updateById(salesOrder._id, {
+      customerNo: existingCustomer.customerNo,
     });
+
+    return existingCustomer;
   }
 
-  // Update sales order with customer number
-  await salesOrdersRepository.updateById(salesOrder._id, {
-    customerNo: customer.customerNo,
-  });
-
-  return customer;
+  // No customer exists yet - customer will be created when job order email is sent
+  // Just return null for now
+  return null;
 };
