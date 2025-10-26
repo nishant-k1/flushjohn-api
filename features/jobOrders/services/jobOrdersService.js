@@ -1,7 +1,3 @@
-/**
- * Job Orders Service - Business Logic Layer
- */
-
 import * as jobOrdersRepository from "../repositories/jobOrdersRepository.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
 
@@ -9,6 +5,21 @@ export const generateJobOrderNumber = async () => {
   const latestJobOrder = await jobOrdersRepository.findOne({}, "jobOrderNo");
   const latestJobOrderNo = latestJobOrder ? latestJobOrder.jobOrderNo : 999;
   return latestJobOrderNo + 1;
+};
+
+const formatJobOrderResponse = (jobOrder, lead) => {
+  const jobOrderObj = jobOrder.toObject ? jobOrder.toObject() : jobOrder;
+
+  if (!lead) {
+    return jobOrderObj;
+  }
+
+  const leadObj = lead.toObject ? lead.toObject() : lead;
+
+  return {
+    ...jobOrderObj,
+    lead: leadObj,
+  };
 };
 
 export const createJobOrder = async (jobOrderData) => {
@@ -119,10 +130,8 @@ export const createJobOrder = async (jobOrderData) => {
     createdAt,
     jobOrderNo,
     emailStatus: "Pending",
-    // Store lead reference if provided (for relationship tracking)
     lead: jobOrderData.lead || null,
     leadNo: jobOrderData.leadNo || null,
-    // Store sales order reference if provided
     salesOrder: jobOrderData.salesOrder || null,
   };
 
@@ -157,33 +166,15 @@ export const getAllJobOrders = async ({
     jobOrdersRepository.count(query),
   ]);
 
-  // Flatten lead data for frontend compatibility (from salesOrder.quote.lead)
-  const flattenedJobOrders = jobOrders.map((jobOrder) => {
-    const lead = jobOrder.salesOrder?.quote?.lead;
-    if (lead) {
-      return {
-        ...jobOrder,
-        fName: lead.fName,
-        lName: lead.lName,
-        cName: lead.cName,
-        email: lead.email,
-        phone: lead.phone,
-        fax: lead.fax,
-        streetAddress: lead.streetAddress,
-        city: lead.city,
-        state: lead.state,
-        zip: lead.zip,
-        country: lead.country,
-        usageType: lead.usageType,
-      };
-    }
-    return jobOrder;
+  const formattedJobOrders = jobOrders.map((jobOrder) => {
+    const jobOrderObj = jobOrder.toObject ? jobOrder.toObject() : jobOrder;
+    return formatJobOrderResponse(jobOrderObj, jobOrderObj.lead);
   });
 
   const totalPages = Math.ceil(total / limit);
 
   return {
-    data: flattenedJobOrders,
+    data: formattedJobOrders,
     pagination: {
       currentPage: page,
       totalPages,
@@ -204,24 +195,7 @@ export const getJobOrderById = async (id) => {
     throw error;
   }
 
-  // Flatten lead data for frontend compatibility (from salesOrder.quote.lead)
-  const lead = jobOrder.salesOrder?.quote?.lead;
-  if (lead) {
-    jobOrder.fName = lead.fName;
-    jobOrder.lName = lead.lName;
-    jobOrder.cName = lead.cName;
-    jobOrder.email = lead.email;
-    jobOrder.phone = lead.phone;
-    jobOrder.fax = lead.fax;
-    jobOrder.streetAddress = lead.streetAddress;
-    jobOrder.city = lead.city;
-    jobOrder.state = lead.state;
-    jobOrder.zip = lead.zip;
-    jobOrder.country = lead.country;
-    jobOrder.usageType = lead.usageType;
-  }
-
-  return jobOrder;
+  return formatJobOrderResponse(jobOrder, jobOrder.lead);
 };
 
 export const updateJobOrder = async (id, updateData) => {
@@ -237,27 +211,12 @@ export const updateJobOrder = async (id, updateData) => {
     throw error;
   }
 
-  // Fetch with populate to get lead data
   const updatedJobOrder = await jobOrdersRepository.findById(id);
 
-  // Flatten lead data for frontend compatibility (from salesOrder.quote.lead)
-  const lead = updatedJobOrder?.salesOrder?.quote?.lead;
-  if (updatedJobOrder && lead) {
-    updatedJobOrder.fName = lead.fName;
-    updatedJobOrder.lName = lead.lName;
-    updatedJobOrder.cName = lead.cName;
-    updatedJobOrder.email = lead.email;
-    updatedJobOrder.phone = lead.phone;
-    updatedJobOrder.fax = lead.fax;
-    updatedJobOrder.streetAddress = lead.streetAddress;
-    updatedJobOrder.city = lead.city;
-    updatedJobOrder.state = lead.state;
-    updatedJobOrder.zip = lead.zip;
-    updatedJobOrder.country = lead.country;
-    updatedJobOrder.usageType = lead.usageType;
-  }
-
-  return updatedJobOrder || jobOrder;
+  return formatJobOrderResponse(
+    updatedJobOrder || jobOrder,
+    updatedJobOrder?.lead
+  );
 };
 
 export const deleteJobOrder = async (id) => {
@@ -273,17 +232,11 @@ export const deleteJobOrder = async (id) => {
   return { _id: id };
 };
 
-/**
- * Create or link customer when job order email is sent
- * Customer is ONLY created when BOTH sales order AND job order emails are sent
- */
 export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
   if (!jobOrder.salesOrder) {
-    // No sales order reference, skip
     return;
   }
 
-  // Import here to avoid circular dependency
   const SalesOrders = (
     await import("../../salesOrders/models/SalesOrders/index.js")
   ).default;
@@ -293,12 +246,10 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     return;
   }
 
-  // Get customer data from lead
   const Leads = (await import("../../leads/models/Leads/index.js")).default;
   const lead = salesOrder.lead ? await Leads.findById(salesOrder.lead) : null;
 
   if (!lead) {
-    // No lead data available
     return;
   }
 
@@ -316,7 +267,6 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     country: lead.country || "USA",
   };
 
-  // Import here to avoid circular dependency
   const Customers = (await import("../../customers/models/Customers/index.js"))
     .default;
 
@@ -325,7 +275,6 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
   });
 
   if (!customer) {
-    // Create customer NOW (both emails are sent)
     const latestCustomer = await Customers.findOne({}, "customerNo");
     const customerNo = latestCustomer ? latestCustomer.customerNo + 1 : 1000;
 
@@ -337,12 +286,10 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
       ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
     });
 
-    // Link lead to customer
     await Leads.findByIdAndUpdate(lead._id, {
       customer: customer._id,
     });
 
-    // Link quote to customer if quote exists
     if (salesOrder.quote) {
       const Quotes = (await import("../../quotes/models/Quotes/index.js"))
         .default;
@@ -351,7 +298,6 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
       });
     }
   } else {
-    // Customer exists, link sales order and job order
     await Customers.findByIdAndUpdate(customer._id, {
       $addToSet: {
         salesOrders: salesOrder._id,
@@ -360,7 +306,6 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
       },
     });
 
-    // Link quote to customer if quote exists
     if (salesOrder.quote) {
       const Quotes = (await import("../../quotes/models/Quotes/index.js"))
         .default;
@@ -370,7 +315,6 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     }
   }
 
-  // Update sales order with customer number
   await SalesOrders.findByIdAndUpdate(salesOrder._id, {
     customerNo: customer.customerNo,
   });

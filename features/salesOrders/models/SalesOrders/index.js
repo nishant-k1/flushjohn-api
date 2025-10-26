@@ -14,7 +14,7 @@ const SalesOrdersSchema = new mongoose.Schema({
   // ✅ MongoDB References (ObjectId) - New proper relationships
   quote: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Quote",
+    ref: "Quotes",
     index: true,
   },
   lead: {

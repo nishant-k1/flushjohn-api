@@ -15,10 +15,8 @@ export const findAll = async ({
   limit = 10,
 }) => {
   return await SalesOrders.find(query)
-    .populate({
-      path: "quote",
-      populate: { path: "lead" }
-    })
+    .populate("lead")
+    .populate("quote")
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -30,12 +28,7 @@ export const count = async (query = {}) => {
 };
 
 export const findById = async (id) => {
-  return await SalesOrders.findById(id)
-    .populate("quote")
-    .populate({
-      path: "quote",
-      populate: { path: "lead" }
-    });
+  return await SalesOrders.findById(id).populate("lead").populate("quote");
 };
 
 export const findOne = async (query, projection = null) => {

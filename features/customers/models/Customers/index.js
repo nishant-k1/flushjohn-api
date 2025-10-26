@@ -16,7 +16,7 @@ const CustomersSchema = new mongoose.Schema({
   // Primary SalesOrder reference (for quick access to main sales order)
   salesOrder: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "SalesOrder",
+    ref: "SalesOrders",
     index: true,
   },
 
@@ -24,19 +24,19 @@ const CustomersSchema = new mongoose.Schema({
   quotes: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Quote",
+      ref: "Quotes",
     },
   ],
   salesOrders: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "SalesOrder",
+      ref: "SalesOrders",
     },
   ],
   jobOrders: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "JobOrder",
+      ref: "JobOrders",
     },
   ],
 
@@ -106,5 +106,5 @@ const CustomersSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.models.Customers ||
-  mongoose.model("Customers", CustomersSchema);
+export default mongoose.models.Customer ||
+  mongoose.model("Customer", CustomersSchema);

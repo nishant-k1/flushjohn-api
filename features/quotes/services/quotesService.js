@@ -1,7 +1,3 @@
-/**
- * Quotes Service - Business Logic Layer
- */
-
 import * as quotesRepository from "../repositories/quotesRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
@@ -9,6 +5,21 @@ export const generateQuoteNumber = async () => {
   const latestQuote = await quotesRepository.findOne({}, "quoteNo");
   const latestQuoteNo = latestQuote ? latestQuote.quoteNo : 999;
   return latestQuoteNo + 1;
+};
+
+const formatQuoteResponse = (quote, lead) => {
+  const quoteObj = quote.toObject ? quote.toObject() : quote;
+
+  if (!lead) {
+    return quoteObj;
+  }
+
+  const leadObj = lead.toObject ? lead.toObject() : lead;
+
+  return {
+    ...quoteObj,
+    lead: leadObj,
+  };
 };
 
 export const createQuote = async (quoteData) => {
@@ -25,6 +36,25 @@ export const createQuote = async (quoteData) => {
   const createdAt = getCurrentDateTime();
   const quoteNo = await generateQuoteNumber();
 
+  let leadId = quoteData.lead || quoteData.leadId;
+
+  if (!leadId && quoteData.leadNo) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    let leadNo = quoteData.leadNo;
+
+    if (typeof leadNo === "string") {
+      const numericPart = leadNo.replace(/\D/g, "");
+      leadNo = numericPart ? parseInt(numericPart) : null;
+    }
+
+    if (leadNo) {
+      const lead = await Leads.findOne({ leadNo });
+      if (lead) {
+        leadId = lead._id;
+      }
+    }
+  }
+
   const newQuoteData = {
     ...quoteData,
     createdAt,
@@ -32,7 +62,15 @@ export const createQuote = async (quoteData) => {
     emailStatus: "Pending",
   };
 
-  return await quotesRepository.create(newQuoteData);
+  if (leadId) {
+    newQuoteData.lead = leadId;
+  }
+
+  const quote = await quotesRepository.create(newQuoteData);
+
+  const populatedQuote = await quotesRepository.findById(quote._id);
+
+  return formatQuoteResponse(populatedQuote, populatedQuote.lead);
 };
 
 export const getAllQuotes = async ({
@@ -65,27 +103,37 @@ export const getAllQuotes = async ({
     quotesRepository.count(query),
   ]);
 
-  // Flatten lead data for frontend compatibility
-  const flattenedQuotes = quotes.map((quote) => {
-    if (quote.lead) {
-      return {
-        ...quote.toObject(),
-        fName: quote.lead.fName,
-        lName: quote.lead.lName,
-        cName: quote.lead.cName,
-        email: quote.lead.email,
-        phone: quote.lead.phone,
-        fax: quote.lead.fax,
-        streetAddress: quote.lead.streetAddress,
-        city: quote.lead.city,
-        state: quote.lead.state,
-        zip: quote.lead.zip,
-        country: quote.lead.country,
-        usageType: quote.lead.usageType,
-      };
-    }
-    return quote;
-  });
+  const flattenedQuotes = await Promise.all(
+    quotes.map(async (quote) => {
+      const quoteObj = quote.toObject();
+
+      let lead = quote.lead;
+
+      if (!lead && quoteObj.leadNo) {
+        const Leads = (await import("../../leads/models/Leads/index.js"))
+          .default;
+        let leadNo = quoteObj.leadNo;
+
+        if (typeof leadNo === "string") {
+          const numericPart = leadNo.replace(/\D/g, "");
+          leadNo = numericPart ? parseInt(numericPart) : null;
+        }
+
+        if (leadNo) {
+          lead = await Leads.findOne({ leadNo });
+        }
+      }
+
+      if (lead) {
+        const leadObj = lead.toObject ? lead.toObject() : lead;
+        return {
+          ...quoteObj,
+          lead: leadObj,
+        };
+      }
+      return quoteObj;
+    })
+  );
 
   const totalPages = Math.ceil(total / limit);
 
@@ -111,23 +159,23 @@ export const getQuoteById = async (id) => {
     throw error;
   }
 
-  // Flatten lead data for frontend compatibility
-  if (quote.lead) {
-    quote.fName = quote.lead.fName;
-    quote.lName = quote.lead.lName;
-    quote.cName = quote.lead.cName;
-    quote.email = quote.lead.email;
-    quote.phone = quote.lead.phone;
-    quote.fax = quote.lead.fax;
-    quote.streetAddress = quote.lead.streetAddress;
-    quote.city = quote.lead.city;
-    quote.state = quote.lead.state;
-    quote.zip = quote.lead.zip;
-    quote.country = quote.lead.country;
-    quote.usageType = quote.lead.usageType;
+  let lead = quote.lead;
+
+  if (!lead && quote.leadNo) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    let leadNo = quote.leadNo;
+
+    if (typeof leadNo === "string") {
+      const numericPart = leadNo.replace(/\D/g, "");
+      leadNo = numericPart ? parseInt(numericPart) : null;
+    }
+
+    if (leadNo) {
+      lead = await Leads.findOne({ leadNo });
+    }
   }
 
-  return quote;
+  return formatQuoteResponse(quote, lead);
 };
 
 export const updateQuote = async (id, updateData) => {
@@ -142,8 +190,27 @@ export const updateQuote = async (id, updateData) => {
     throw error;
   }
 
+  let leadId = updateData.lead || updateData.leadId;
+  if (!leadId && updateData.leadNo) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    let leadNo = updateData.leadNo;
+
+    if (typeof leadNo === "string") {
+      const numericPart = leadNo.replace(/\D/g, "");
+      leadNo = numericPart ? parseInt(numericPart) : null;
+    }
+
+    if (leadNo) {
+      const lead = await Leads.findOne({ leadNo });
+      if (lead) {
+        leadId = lead._id;
+      }
+    }
+  }
+
   const quote = await quotesRepository.updateById(id, {
     ...updateData,
+    ...(leadId && { lead: leadId }),
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),
   });
@@ -154,26 +221,9 @@ export const updateQuote = async (id, updateData) => {
     throw error;
   }
 
-  // Fetch with populate to get lead data
   const updatedQuote = await quotesRepository.findById(id);
 
-  // Flatten lead data for frontend compatibility
-  if (updatedQuote && updatedQuote.lead) {
-    updatedQuote.fName = updatedQuote.lead.fName;
-    updatedQuote.lName = updatedQuote.lead.lName;
-    updatedQuote.cName = updatedQuote.lead.cName;
-    updatedQuote.email = updatedQuote.lead.email;
-    updatedQuote.phone = updatedQuote.lead.phone;
-    updatedQuote.fax = updatedQuote.lead.fax;
-    updatedQuote.streetAddress = updatedQuote.lead.streetAddress;
-    updatedQuote.city = updatedQuote.lead.city;
-    updatedQuote.state = updatedQuote.lead.state;
-    updatedQuote.zip = updatedQuote.lead.zip;
-    updatedQuote.country = updatedQuote.lead.country;
-    updatedQuote.usageType = updatedQuote.lead.usageType;
-  }
-
-  return updatedQuote || quote;
+  return formatQuoteResponse(updatedQuote || quote, updatedQuote?.lead);
 };
 
 export const deleteQuote = async (id) => {
@@ -185,7 +235,6 @@ export const deleteQuote = async (id) => {
     throw error;
   }
 
-  // Check for related sales orders
   const SalesOrder = (
     await import("../../salesOrders/models/SalesOrders/index.js")
   ).default;

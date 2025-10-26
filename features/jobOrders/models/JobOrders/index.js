@@ -12,7 +12,7 @@ const JobOrdersSchema = new mongoose.Schema({
   // ✅ MongoDB References (ObjectId) - New proper relationships
   salesOrder: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "SalesOrder",
+    ref: "SalesOrders",
     index: true,
   },
   lead: {
