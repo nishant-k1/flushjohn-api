@@ -222,8 +222,6 @@ router.post("/:id/cover-image/presigned-url", async function (req, res) {
       data: result,
     });
   } catch (error) {
-    console.error("Error generating presigned URL:", error);
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -277,8 +275,6 @@ router.post("/:id/cover-image/upload-complete", async function (req, res) {
       message: "Cover image uploaded successfully",
     });
   } catch (error) {
-    console.error("Error handling upload completion:", error);
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,
@@ -313,9 +309,7 @@ router.delete("/:id/cover-image", async function (req, res) {
     const deleteSuccess = await deleteBlogCoverImageFromS3(id);
 
     if (!deleteSuccess) {
-      console.warn(
-        `Failed to delete cover image from S3 for blog ${id}, but continuing with database update`
-      );
+      // Failed to delete cover image from S3, continuing with database update
     }
 
     const updatedBlog = await blogsService.updateBlog(id, {
@@ -328,8 +322,6 @@ router.delete("/:id/cover-image", async function (req, res) {
       message: "Cover image deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting cover image:", error);
-
     if (error.name === "NotFoundError") {
       return res.status(404).json({
         success: false,

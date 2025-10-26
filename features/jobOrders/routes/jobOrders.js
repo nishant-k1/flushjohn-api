@@ -323,11 +323,6 @@ router.post(
         pdfUrls = await generateJobOrderPDF(emailData, id);
         await sendJobOrderEmail(emailData, id, pdfUrls.pdfUrl);
       } catch (pdfError) {
-        console.error(
-          "PDF/Email generation error:",
-          pdfError.message,
-          pdfError.stack
-        );
         throw pdfError;
       }
 

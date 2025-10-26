@@ -276,11 +276,6 @@ router.post(
         pdfUrls = await generateQuotePDF(emailData, id);
         await sendQuoteEmail(emailData, id, pdfUrls.pdfUrl);
       } catch (pdfError) {
-        console.error(
-          "PDF/Email generation error:",
-          pdfError.message,
-          pdfError.stack
-        );
         throw pdfError;
       }
 

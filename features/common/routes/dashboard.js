@@ -17,7 +17,6 @@ router.get("/analytics", async (req, res) => {
       data: analytics,
     });
   } catch (error) {
-    console.error("Error fetching dashboard analytics:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch dashboard analytics",

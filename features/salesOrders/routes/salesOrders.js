@@ -267,11 +267,6 @@ router.post(
         pdfUrls = await generateSalesOrderPDF(emailData, id);
         await sendSalesOrderEmail(emailData, id, pdfUrls.pdfUrl);
       } catch (pdfError) {
-        console.error(
-          "PDF/Email generation error:",
-          pdfError.message,
-          pdfError.stack
-        );
         throw pdfError;
       }
 
