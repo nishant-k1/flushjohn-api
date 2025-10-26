@@ -8,8 +8,17 @@ export const create = async (quoteData) => {
   return await Quotes.create(quoteData);
 };
 
-export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await Quotes.find(query).populate("lead").sort(sort).skip(skip).limit(limit);
+export const findAll = async ({
+  query = {},
+  sort = {},
+  skip = 0,
+  limit = 10,
+}) => {
+  return await Quotes.find(query)
+    .populate("lead")
+    .sort(sort)
+    .skip(skip)
+    .limit(limit);
 };
 
 export const count = async (query = {}) => {
