@@ -28,9 +28,28 @@ router.get("/", async function (req, res) {
       searchQuery = "",
     } = req.query;
 
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid page number",
+        error: "INVALID_PAGE_NUMBER",
+      });
+    }
+
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid limit. Must be between 1 and 100",
+        error: "INVALID_LIMIT",
+      });
+    }
+
     const result = await customersService.getAllCustomers({
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: pageNum,
+      limit: limitNum,
       sortBy,
       sortOrder,
       search: search || searchQuery,

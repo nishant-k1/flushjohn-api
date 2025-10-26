@@ -46,9 +46,28 @@ router.get("/", async function (req, res) {
       status = null, // ✅ NEW: Add status parameter
     } = req.query;
 
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid page number",
+        error: "INVALID_PAGE_NUMBER",
+      });
+    }
+
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid limit. Must be between 1 and 100",
+        error: "INVALID_LIMIT",
+      });
+    }
+
     const result = await blogsService.getAllBlogs({
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: pageNum,
+      limit: limitNum,
       sortBy,
       sortOrder,
       slug,
@@ -345,6 +364,15 @@ router.delete("/:id/cover-image", async function (req, res) {
 router.post("/:id/regenerate-excerpt", async function (req, res) {
   try {
     const { id } = req.params;
+
+    if (!blogsService.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blog ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
     const blog = await blogsService.regenerateExcerpt(id);
     res.status(200).json({ success: true, data: blog });
   } catch (error) {
