@@ -10,23 +10,33 @@ import * as leadsService from "../services/leadsService.js";
 import alertService from "../../common/services/alertService.js";
 import validateAndRecalculateProducts from "../../../middleware/validateProducts.js";
 import { authenticateToken } from "../../auth/middleware/auth.js";
+import {
+  validateCreateLead,
+  validateUpdateLead,
+  validateLeadId,
+  validateGetLeads,
+  handleValidationErrors,
+} from "../validators/leadValidator.js";
+import {
+  RESOURCES,
+  ACTIONS,
+  canCreate,
+  canRead,
+  canUpdate,
+  canDelete,
+} from "../../auth/middleware/permissions.js";
 
 const router = Router();
 
 router.post(
   "/",
   authenticateToken,
+  canCreate(RESOURCES.LEADS),
+  validateCreateLead,
+  handleValidationErrors,
   validateAndRecalculateProducts,
   async function (req, res, next) {
     try {
-      if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Request body is required",
-          error: "EMPTY_REQUEST_BODY",
-        });
-      }
-
       const lead = await leadsService.createLead(req.body);
 
       if (global.leadsNamespace) {
@@ -34,9 +44,7 @@ router.post(
           const { default: Leads } = await import("../models/lead.js");
           const leadsList = await Leads.find().sort({ _id: -1 });
           global.leadsNamespace.emit("leadCreated", leadsList);
-
-        } catch (emitError) {
-        }
+        } catch (emitError) {}
       }
 
       res.status(201).json({
@@ -74,105 +82,120 @@ router.post(
   }
 );
 
-router.get("/", authenticateToken, async function (req, res, next) {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const sortBy = req.query.sortBy || "createdAt";
-    const sortOrder = req.query.sortOrder || "desc";
-    const { status, assignedTo, leadSource, search } = req.query;
+router.get(
+  "/",
+  authenticateToken,
+  canRead(RESOURCES.LEADS),
+  validateGetLeads,
+  handleValidationErrors,
+  async function (req, res, next) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const sortBy = req.query.sortBy || "createdAt";
+      const sortOrder = req.query.sortOrder || "desc";
+      const { status, assignedTo, leadSource, search } = req.query;
 
-    const validationErrors = leadsService.validatePaginationParams(page, limit);
-    if (validationErrors.length > 0) {
-      return res.status(400).json({
+      const validationErrors = leadsService.validatePaginationParams(
+        page,
+        limit
+      );
+      if (validationErrors.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: validationErrors.join(", "),
+          error: "INVALID_PARAMETERS",
+        });
+      }
+
+      const result = await leadsService.getAllLeads({
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+        status,
+        assignedTo,
+        leadSource,
+        search,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Leads retrieved successfully",
+        ...result,
+      });
+    } catch (error) {
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: validationErrors.join(", "),
-        error: "INVALID_PARAMETERS",
+        message: "Failed to retrieve leads",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    const result = await leadsService.getAllLeads({
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      status,
-      assignedTo,
-      leadSource,
-      search,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Leads retrieved successfully",
-      ...result,
-    });
-  } catch (error) {
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID format",
-        error: "INVALID_ID_FORMAT",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to retrieve leads",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
-router.get("/:id", authenticateToken, async function (req, res, next) {
-  try {
-    const { id } = req.params;
+router.get(
+  "/:id",
+  authenticateToken,
+  canRead(RESOURCES.LEADS),
+  validateLeadId,
+  handleValidationErrors,
+  async function (req, res, next) {
+    try {
+      const { id } = req.params;
+      const lead = await leadsService.getLeadById(id);
 
-    if (!leadsService.isValidObjectId(id)) {
-      return res.status(400).json({
+      res.status(200).json({
+        success: true,
+        message: "Lead retrieved successfully",
+        data: lead,
+      });
+    } catch (error) {
+      if (error.name === "NotFoundError") {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+          error: "LEAD_NOT_FOUND",
+        });
+      }
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Invalid lead ID format",
-        error: "INVALID_ID_FORMAT",
+        message: "Failed to retrieve lead",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    const lead = await leadsService.getLeadById(id);
-
-    res.status(200).json({
-      success: true,
-      message: "Lead retrieved successfully",
-      data: lead,
-    });
-  } catch (error) {
-    if (error.name === "NotFoundError") {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-        error: "LEAD_NOT_FOUND",
-      });
-    }
-
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID format",
-        error: "INVALID_ID_FORMAT",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to retrieve lead",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
 router.put(
   "/:id",
   authenticateToken,
+  canUpdate(RESOURCES.LEADS),
+  validateUpdateLead,
+  handleValidationErrors,
   validateAndRecalculateProducts,
   async function (req, res, next) {
     try {
@@ -308,50 +331,59 @@ router.put(
   }
 );
 
-router.delete("/:id", authenticateToken, async function (req, res, next) {
-  try {
-    const { id } = req.params;
+router.delete(
+  "/:id",
+  authenticateToken,
+  canDelete(RESOURCES.LEADS),
+  validateLeadId,
+  handleValidationErrors,
+  async function (req, res, next) {
+    try {
+      const { id } = req.params;
+      const result = await leadsService.deleteLead(id);
 
-    if (!leadsService.isValidObjectId(id)) {
-      return res.status(400).json({
+      res.status(200).json({
+        success: true,
+        message: "Lead deleted successfully",
+        data: result,
+      });
+    } catch (error) {
+      if (error.name === "NotFoundError") {
+        return res.status(404).json({
+          success: false,
+          message: error.message,
+          error: "LEAD_NOT_FOUND",
+        });
+      }
+
+      if (error.name === "DeletionBlockedError") {
+        return res.status(403).json({
+          success: false,
+          message: error.message,
+          error: "DELETION_BLOCKED",
+          details: error.details,
+        });
+      }
+
+      if (error.name === "CastError") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid ID format",
+          error: "INVALID_ID_FORMAT",
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Invalid lead ID format",
-        error: "INVALID_ID_FORMAT",
+        message: "Failed to delete lead",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
     }
-
-    const result = await leadsService.deleteLead(id);
-
-    res.status(200).json({
-      success: true,
-      message: "Lead deleted successfully",
-      data: result,
-    });
-  } catch (error) {
-    if (error.name === "NotFoundError") {
-      return res.status(404).json({
-        success: false,
-        message: error.message,
-        error: "LEAD_NOT_FOUND",
-      });
-    }
-
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid ID format",
-        error: "INVALID_ID_FORMAT",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete lead",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
-    });
   }
-});
+);
 
 router.post("/test-alerts", async function (req, res, next) {
   try {

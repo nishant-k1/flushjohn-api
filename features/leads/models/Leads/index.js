@@ -7,6 +7,7 @@ const LeadsSchema = new Schema({
   },
   leadNo: {
     type: Number,
+    unique: true,
   },
   leadSource: {
     type: String,
@@ -17,6 +18,31 @@ const LeadsSchema = new Schema({
   },
   assignedTo: {
     type: String,
+  },
+
+  // ✅ MongoDB References (ObjectId) - Relationships to related records
+  quotes: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Quote",
+    },
+  ],
+  salesOrders: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "SalesOrder",
+    },
+  ],
+  jobOrders: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "JobOrder",
+    },
+  ],
+  // Optional: reference to customer if lead converted
+  customer: {
+    type: Schema.Types.ObjectId,
+    ref: "Customer",
   },
 
   usageType: {

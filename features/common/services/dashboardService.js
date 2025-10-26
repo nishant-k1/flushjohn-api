@@ -164,7 +164,7 @@ export const getDashboardAnalytics = async (
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allLeads = await leadsService.getAllLeads({
       page: 1,
-      limit: 1000,
+      limit: 200, // Reduced from 1000 - sufficient for calculations
       filter: leadsFilter,
     });
 
@@ -172,7 +172,7 @@ export const getDashboardAnalytics = async (
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allQuotes = await quotesService.getAllQuotes({
       page: 1,
-      limit: 1000,
+      limit: 200, // Reduced from 1000 - sufficient for calculations
       filter: quotesFilter,
     });
 
@@ -180,7 +180,7 @@ export const getDashboardAnalytics = async (
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allSalesOrders = await salesOrdersService.getAllSalesOrders({
       page: 1,
-      limit: 1000,
+      limit: 200, // Reduced from 1000 - sufficient for calculations
       filter: salesOrdersFilter,
     });
 
@@ -188,7 +188,7 @@ export const getDashboardAnalytics = async (
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allJobOrders = await jobOrdersService.getAllJobOrders({
       page: 1,
-      limit: 1000,
+      limit: 200, // Reduced from 1000 - sufficient for calculations
       filter: jobOrdersFilter,
     });
 
@@ -196,11 +196,12 @@ export const getDashboardAnalytics = async (
       Object.keys(dateFilter).length > 0 ? { createdAt: dateFilter } : {};
     const allCustomers = await customersService.getAllCustomers({
       page: 1,
-      limit: 1000,
+      limit: 200, // Reduced from 1000 - sufficient for calculations
       filter: customersFilter,
     });
 
-    const totalLeads = allLeads.data?.length || 0;
+    // Use pagination.totalCount for accurate counts instead of data.length
+    const totalLeads = allLeads.pagination?.totalCount || 0;
     const convertedLeads =
       allLeads.data?.filter((lead) => {
         const hasSalesOrder = allSalesOrders.data?.some(

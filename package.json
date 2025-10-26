@@ -15,7 +15,8 @@
     "publish-blogs": "node scripts/publishBlogPosts.js",
     "clean-blogs": "node scripts/cleanBlogContent.js",
     "test-automation": "node scripts/testAutomation.js",
-    "trigger-blog-generation": "node scripts/triggerBlogGeneration.js"
+    "trigger-blog-generation": "node scripts/triggerBlogGeneration.js",
+    "add-indexes": "node scripts/addIndexes.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
@@ -32,6 +33,7 @@
     "debug": "^4.3.7",
     "dotenv": "^16.3.1",
     "express": "^4.21.0",
+    "express-validator": "^7.3.0",
     "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^8.7.0",

@@ -128,6 +128,25 @@ export const deleteQuote = async (id) => {
     throw error;
   }
 
+  // Check for related sales orders
+  const SalesOrder = (
+    await import("../../salesOrders/models/SalesOrders/index.js")
+  ).default;
+
+  const salesOrdersCount = await SalesOrder.countDocuments({
+    $or: [{ quote: id }, { quoteNo: existingQuote.quoteNo }],
+  });
+
+  if (salesOrdersCount > 0) {
+    const error = new Error(
+      `Cannot delete quote. Related records exist: ${salesOrdersCount} sales order(s). ` +
+        `Please delete these records first or contact an administrator.`
+    );
+    error.name = "DeletionBlockedError";
+    error.details = { salesOrdersCount };
+    throw error;
+  }
+
   await quotesRepository.deleteById(id);
   return { _id: id };
 };

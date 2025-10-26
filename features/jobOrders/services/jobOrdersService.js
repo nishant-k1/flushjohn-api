@@ -119,6 +119,11 @@ export const createJobOrder = async (jobOrderData) => {
     createdAt,
     jobOrderNo,
     emailStatus: "Pending",
+    // Store lead reference if provided (for relationship tracking)
+    lead: jobOrderData.lead || null,
+    leadNo: jobOrderData.leadNo || null,
+    // Store sales order reference if provided
+    salesOrder: jobOrderData.salesOrder || null,
   };
 
   return await jobOrdersRepository.create(newJobOrderData);
