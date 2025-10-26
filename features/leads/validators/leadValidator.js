@@ -78,8 +78,8 @@ export const validateCreateLead = [
   body("assignedTo")
     .optional()
     .trim()
-    .isEmail()
-    .withMessage("Assigned to must be a valid email address"),
+    .isLength({ max: 100 })
+    .withMessage("Assigned to must be less than 100 characters"),
 ];
 
 /**
