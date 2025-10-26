@@ -57,46 +57,9 @@ const JobOrdersSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
-  // Customer contact information (can come from lead or be set directly)
-  fName: {
-    type: String,
-  },
-  lName: {
-    type: String,
-  },
-  cName: {
-    type: String,
-  },
-  email: {
-    type: String,
-  },
-  phone: {
-    type: String,
-  },
-  fax: {
-    type: String,
-  },
-
-  streetAddress: {
-    type: String,
-  },
-  city: {
-    type: String,
-  },
-  state: {
-    type: String,
-  },
-  zip: {
-    type: String,
-  },
-  country: {
-    type: String,
-    default: "USA",
-  },
-
-  usageType: {
-    type: String,
-  },
+  // ⚠️ REMOVED: Contact fields - Use lead reference instead
+  // fName, lName, cName, email, phone, fax, address fields, usageType
+  // Access via: jobOrder.lead.fName, jobOrder.lead.email, etc.
   products: {
     type: Array,
   },

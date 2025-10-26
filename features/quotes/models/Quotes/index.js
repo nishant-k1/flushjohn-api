@@ -40,46 +40,9 @@ const QuotesSchema = new mongoose.Schema({
     type: String,
     default: "Pending",
   },
-  // Customer contact information (can come from lead or be set directly)
-  fName: {
-    type: String,
-  },
-  lName: {
-    type: String,
-  },
-  cName: {
-    type: String,
-  },
-  email: {
-    type: String,
-  },
-  phone: {
-    type: String,
-  },
-  fax: {
-    type: String,
-  },
-
-  streetAddress: {
-    type: String,
-  },
-  city: {
-    type: String,
-  },
-  state: {
-    type: String,
-  },
-  zip: {
-    type: String,
-  },
-  country: {
-    type: String,
-    default: "USA",
-  },
-
-  usageType: {
-    type: String,
-  },
+  // ⚠️ REMOVED: Contact fields - Use lead reference instead
+  // fName, lName, cName, email, phone, fax, address fields, usageType
+  // Access via: quote.lead.fName, quote.lead.email, etc.
   products: {
     type: Array,
   },
@@ -106,7 +69,7 @@ const QuotesSchema = new mongoose.Schema({
 
 // Add indexes for faster queries
 QuotesSchema.index({ createdAt: -1 }); // Sort by date
-QuotesSchema.index({ email: 1 }); // Find by email
+// ⚠️ REMOVED: QuotesSchema.index({ email: 1 }); // Email field removed
 QuotesSchema.index({ lead: 1 }); // Find by lead reference
 QuotesSchema.index({ emailStatus: 1 }); // Filter by status
 QuotesSchema.index({ createdAt: -1, emailStatus: 1 }); // Compound index
