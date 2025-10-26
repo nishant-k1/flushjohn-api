@@ -35,7 +35,7 @@ const JobOrdersSchema = new mongoose.Schema({
     },
   },
 
-  // 🔄 Legacy fields (kept for backward compatibility during migration)
+  // Display numbers (NOT legacy - actively used in PDFs/emails)
   salesOrderNo: {
     type: Number,
   },
@@ -43,6 +43,7 @@ const JobOrdersSchema = new mongoose.Schema({
     type: Number,
   },
 
+  // Job order specific fields
   emailStatus: {
     type: String,
     default: "Pending",
