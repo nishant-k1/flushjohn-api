@@ -284,7 +284,8 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
 
     // Link quote to customer if quote exists
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes/index.js")).default;
+      const Quotes = (await import("../../quotes/models/Quotes/index.js"))
+        .default;
       await Quotes.findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });
@@ -301,7 +302,8 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
 
     // Link quote to customer if quote exists
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes/index.js")).default;
+      const Quotes = (await import("../../quotes/models/Quotes/index.js"))
+        .default;
       await Quotes.findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });
