@@ -31,17 +31,17 @@ const styles = `html,
   }
 
   .logo {
-    max-width: 80px !important;
-    width: 80px !important;
-    height: 40px !important;
+    max-width: 150px !important;
+    width: 150px !important;
+    height: 75px !important;
     object-fit: contain !important;
     display: block !important;
   }
   
   .section-1-left img.logo {
-    max-width: 80px !important;
-    width: 80px !important;
-    height: 40px !important;
+    max-width: 150px !important;
+    width: 150px !important;
+    height: 75px !important;
     object-fit: contain !important;
   }
   .section-1{
@@ -73,9 +73,9 @@ const styles = `html,
   }
   
   .section-1-left img.logo {
-    max-width: 80px !important;
-    width: 80px !important;
-    height: 40px !important;
+    max-width: 150px !important;
+    width: 150px !important;
+    height: 75px !important;
     object-fit: contain !important;
   }
   .section-1-right{
