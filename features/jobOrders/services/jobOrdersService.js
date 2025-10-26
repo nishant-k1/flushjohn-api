@@ -281,6 +281,14 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     await Leads.findByIdAndUpdate(lead._id, {
       customer: customer._id,
     });
+
+    // Link quote to customer if quote exists
+    if (salesOrder.quote) {
+      const Quotes = (await import("../../quotes/models/Quotes/index.js")).default;
+      await Quotes.findByIdAndUpdate(salesOrder.quote, {
+        customer: customer._id,
+      });
+    }
   } else {
     // Customer exists, link sales order and job order
     await Customers.findByIdAndUpdate(customer._id, {
@@ -290,6 +298,14 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
         ...(salesOrder.quote && { quotes: salesOrder.quote }),
       },
     });
+
+    // Link quote to customer if quote exists
+    if (salesOrder.quote) {
+      const Quotes = (await import("../../quotes/models/Quotes/index.js")).default;
+      await Quotes.findByIdAndUpdate(salesOrder.quote, {
+        customer: customer._id,
+      });
+    }
   }
 
   // Update sales order with customer number

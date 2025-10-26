@@ -168,10 +168,7 @@ export const isValidObjectId = (id) => {
  * Customer is only created when BOTH sales order AND job order emails are sent
  * This function just links the sales order to any existing customer
  */
-export const linkSalesOrderToCustomer = async (
-  salesOrder,
-  leadId = null
-) => {
+export const linkSalesOrderToCustomer = async (salesOrder, leadId = null) => {
   // Check if customer already exists
   const existingCustomer = await customersRepository.findOne({
     email: salesOrder.email,
