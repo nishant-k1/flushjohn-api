@@ -128,7 +128,9 @@ router.put("/:id", async function (req, res) {
         success: false,
         message: "Validation failed",
         error: "VALIDATION_ERROR",
-        details: Object.values(error.errors).map((err) => err.message),
+        details: error.errors
+          ? Object.values(error.errors).map((err) => err.message)
+          : [error.message],
       });
     }
 

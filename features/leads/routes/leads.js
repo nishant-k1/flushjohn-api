@@ -61,7 +61,7 @@ router.post(
           success: false,
           message: "Validation failed",
           error: "VALIDATION_ERROR",
-          details: Object.values(error.errors).map((err) => err.message),
+          details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
         });
       }
 
@@ -241,7 +241,7 @@ router.put(
           success: false,
           message: "Validation failed",
           error: "VALIDATION_ERROR",
-          details: Object.values(error.errors).map((err) => err.message),
+          details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
         });
       }
 
@@ -310,7 +310,7 @@ router.put(
           success: false,
           message: "Validation failed",
           error: "VALIDATION_ERROR",
-          details: Object.values(error.errors).map((err) => err.message),
+          details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
         });
       }
 
