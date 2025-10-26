@@ -31,17 +31,11 @@ const CustomersSchema = new mongoose.Schema({
     },
   ],
 
-  // 🔄 Legacy fields (kept for backward compatibility)
-  // ⚠️ REMOVED: salesOrderNo array - Use salesOrders reference array instead
-  // salesOrderNo: {
-  //   type: [Number],
-  // },
-  // ⚠️ REMOVED: quoteNo array - Use quotes reference array instead
-  // quoteNo: {
-  //   type: [Number],
-  // },
+  // ⚠️ REMOVED Legacy arrays - Use reference arrays instead
+  // salesOrderNo: [Number] - Use salesOrders reference array
+  // quoteNo: [Number] - Use quotes reference array
 
-  // Customer contact information (single source of truth)
+  // Customer contact information (single source of truth - NOT legacy)
   fName: {
     type: String,
   },

@@ -28,7 +28,7 @@ const SalesOrdersSchema = new mongoose.Schema({
     index: true,
   },
 
-  // 🔄 Legacy fields (kept for backward compatibility during migration)
+  // Display numbers (NOT legacy - actively used in PDFs/emails)
   customerNo: {
     type: Number,
   },
@@ -36,6 +36,7 @@ const SalesOrdersSchema = new mongoose.Schema({
     type: String,
   },
 
+  // Sales order specific fields
   emailStatus: {
     type: String,
     default: "Pending",
