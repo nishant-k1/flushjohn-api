@@ -66,7 +66,7 @@ export const getAllQuotes = async ({
   ]);
 
   // Flatten lead data for frontend compatibility
-  const flattenedQuotes = quotes.map(quote => {
+  const flattenedQuotes = quotes.map((quote) => {
     if (quote.lead) {
       return {
         ...quote.toObject(),
@@ -156,7 +156,7 @@ export const updateQuote = async (id, updateData) => {
 
   // Fetch with populate to get lead data
   const updatedQuote = await quotesRepository.findById(id);
-  
+
   // Flatten lead data for frontend compatibility
   if (updatedQuote && updatedQuote.lead) {
     updatedQuote.fName = updatedQuote.lead.fName;

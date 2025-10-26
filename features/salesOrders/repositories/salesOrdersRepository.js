@@ -8,8 +8,21 @@ export const create = async (salesOrderData) => {
   return await SalesOrders.create(salesOrderData);
 };
 
-export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await SalesOrders.find(query).populate("lead").populate("quote").sort(sort).skip(skip).limit(limit).lean();
+export const findAll = async ({
+  query = {},
+  sort = {},
+  skip = 0,
+  limit = 10,
+}) => {
+  return await SalesOrders.find(query)
+    .populate({
+      path: "quote",
+      populate: { path: "lead" }
+    })
+    .sort(sort)
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
 export const count = async (query = {}) => {
@@ -17,11 +30,18 @@ export const count = async (query = {}) => {
 };
 
 export const findById = async (id) => {
-  return await SalesOrders.findById(id).populate("lead").populate("quote");
+  return await SalesOrders.findById(id)
+    .populate("quote")
+    .populate({
+      path: "quote",
+      populate: { path: "lead" }
+    });
 };
 
 export const findOne = async (query, projection = null) => {
-  return await SalesOrders.findOne(query, projection).sort({ salesOrderNo: -1 });
+  return await SalesOrders.findOne(query, projection).sort({
+    salesOrderNo: -1,
+  });
 };
 
 export const updateById = async (id, updateData) => {

@@ -82,23 +82,24 @@ export const getAllSalesOrders = async ({
     salesOrdersRepository.count(query),
   ]);
 
-  // Flatten lead data for frontend compatibility
-  const flattenedSalesOrders = salesOrders.map(salesOrder => {
-    if (salesOrder.lead) {
+  // Flatten lead data for frontend compatibility (from quote.lead)
+  const flattenedSalesOrders = salesOrders.map((salesOrder) => {
+    const lead = salesOrder.quote?.lead;
+    if (lead) {
       return {
         ...salesOrder,
-        fName: salesOrder.lead.fName,
-        lName: salesOrder.lead.lName,
-        cName: salesOrder.lead.cName,
-        email: salesOrder.lead.email,
-        phone: salesOrder.lead.phone,
-        fax: salesOrder.lead.fax,
-        streetAddress: salesOrder.lead.streetAddress,
-        city: salesOrder.lead.city,
-        state: salesOrder.lead.state,
-        zip: salesOrder.lead.zip,
-        country: salesOrder.lead.country,
-        usageType: salesOrder.lead.usageType,
+        fName: lead.fName,
+        lName: lead.lName,
+        cName: lead.cName,
+        email: lead.email,
+        phone: lead.phone,
+        fax: lead.fax,
+        streetAddress: lead.streetAddress,
+        city: lead.city,
+        state: lead.state,
+        zip: lead.zip,
+        country: lead.country,
+        usageType: lead.usageType,
       };
     }
     return salesOrder;
@@ -128,20 +129,21 @@ export const getSalesOrderById = async (id) => {
     throw error;
   }
 
-  // Flatten lead data for frontend compatibility
-  if (salesOrder.lead) {
-    salesOrder.fName = salesOrder.lead.fName;
-    salesOrder.lName = salesOrder.lead.lName;
-    salesOrder.cName = salesOrder.lead.cName;
-    salesOrder.email = salesOrder.lead.email;
-    salesOrder.phone = salesOrder.lead.phone;
-    salesOrder.fax = salesOrder.lead.fax;
-    salesOrder.streetAddress = salesOrder.lead.streetAddress;
-    salesOrder.city = salesOrder.lead.city;
-    salesOrder.state = salesOrder.lead.state;
-    salesOrder.zip = salesOrder.lead.zip;
-    salesOrder.country = salesOrder.lead.country;
-    salesOrder.usageType = salesOrder.lead.usageType;
+  // Flatten lead data for frontend compatibility (from quote.lead)
+  const lead = salesOrder.quote?.lead;
+  if (lead) {
+    salesOrder.fName = lead.fName;
+    salesOrder.lName = lead.lName;
+    salesOrder.cName = lead.cName;
+    salesOrder.email = lead.email;
+    salesOrder.phone = lead.phone;
+    salesOrder.fax = lead.fax;
+    salesOrder.streetAddress = lead.streetAddress;
+    salesOrder.city = lead.city;
+    salesOrder.state = lead.state;
+    salesOrder.zip = lead.zip;
+    salesOrder.country = lead.country;
+    salesOrder.usageType = lead.usageType;
   }
 
   return salesOrder;
@@ -162,21 +164,22 @@ export const updateSalesOrder = async (id, updateData) => {
 
   // Fetch with populate to get lead data
   const updatedSalesOrder = await salesOrdersRepository.findById(id);
-  
-  // Flatten lead data for frontend compatibility
-  if (updatedSalesOrder && updatedSalesOrder.lead) {
-    updatedSalesOrder.fName = updatedSalesOrder.lead.fName;
-    updatedSalesOrder.lName = updatedSalesOrder.lead.lName;
-    updatedSalesOrder.cName = updatedSalesOrder.lead.cName;
-    updatedSalesOrder.email = updatedSalesOrder.lead.email;
-    updatedSalesOrder.phone = updatedSalesOrder.lead.phone;
-    updatedSalesOrder.fax = updatedSalesOrder.lead.fax;
-    updatedSalesOrder.streetAddress = updatedSalesOrder.lead.streetAddress;
-    updatedSalesOrder.city = updatedSalesOrder.lead.city;
-    updatedSalesOrder.state = updatedSalesOrder.lead.state;
-    updatedSalesOrder.zip = updatedSalesOrder.lead.zip;
-    updatedSalesOrder.country = updatedSalesOrder.lead.country;
-    updatedSalesOrder.usageType = updatedSalesOrder.lead.usageType;
+
+  // Flatten lead data for frontend compatibility (from quote.lead)
+  const lead = updatedSalesOrder?.quote?.lead;
+  if (updatedSalesOrder && lead) {
+    updatedSalesOrder.fName = lead.fName;
+    updatedSalesOrder.lName = lead.lName;
+    updatedSalesOrder.cName = lead.cName;
+    updatedSalesOrder.email = lead.email;
+    updatedSalesOrder.phone = lead.phone;
+    updatedSalesOrder.fax = lead.fax;
+    updatedSalesOrder.streetAddress = lead.streetAddress;
+    updatedSalesOrder.city = lead.city;
+    updatedSalesOrder.state = lead.state;
+    updatedSalesOrder.zip = lead.zip;
+    updatedSalesOrder.country = lead.country;
+    updatedSalesOrder.usageType = lead.usageType;
   }
 
   return updatedSalesOrder || salesOrder;

@@ -157,23 +157,24 @@ export const getAllJobOrders = async ({
     jobOrdersRepository.count(query),
   ]);
 
-  // Flatten lead data for frontend compatibility
-  const flattenedJobOrders = jobOrders.map(jobOrder => {
-    if (jobOrder.lead) {
+  // Flatten lead data for frontend compatibility (from salesOrder.quote.lead)
+  const flattenedJobOrders = jobOrders.map((jobOrder) => {
+    const lead = jobOrder.salesOrder?.quote?.lead;
+    if (lead) {
       return {
         ...jobOrder,
-        fName: jobOrder.lead.fName,
-        lName: jobOrder.lead.lName,
-        cName: jobOrder.lead.cName,
-        email: jobOrder.lead.email,
-        phone: jobOrder.lead.phone,
-        fax: jobOrder.lead.fax,
-        streetAddress: jobOrder.lead.streetAddress,
-        city: jobOrder.lead.city,
-        state: jobOrder.lead.state,
-        zip: jobOrder.lead.zip,
-        country: jobOrder.lead.country,
-        usageType: jobOrder.lead.usageType,
+        fName: lead.fName,
+        lName: lead.lName,
+        cName: lead.cName,
+        email: lead.email,
+        phone: lead.phone,
+        fax: lead.fax,
+        streetAddress: lead.streetAddress,
+        city: lead.city,
+        state: lead.state,
+        zip: lead.zip,
+        country: lead.country,
+        usageType: lead.usageType,
       };
     }
     return jobOrder;
@@ -203,20 +204,21 @@ export const getJobOrderById = async (id) => {
     throw error;
   }
 
-  // Flatten lead data for frontend compatibility
-  if (jobOrder.lead) {
-    jobOrder.fName = jobOrder.lead.fName;
-    jobOrder.lName = jobOrder.lead.lName;
-    jobOrder.cName = jobOrder.lead.cName;
-    jobOrder.email = jobOrder.lead.email;
-    jobOrder.phone = jobOrder.lead.phone;
-    jobOrder.fax = jobOrder.lead.fax;
-    jobOrder.streetAddress = jobOrder.lead.streetAddress;
-    jobOrder.city = jobOrder.lead.city;
-    jobOrder.state = jobOrder.lead.state;
-    jobOrder.zip = jobOrder.lead.zip;
-    jobOrder.country = jobOrder.lead.country;
-    jobOrder.usageType = jobOrder.lead.usageType;
+  // Flatten lead data for frontend compatibility (from salesOrder.quote.lead)
+  const lead = jobOrder.salesOrder?.quote?.lead;
+  if (lead) {
+    jobOrder.fName = lead.fName;
+    jobOrder.lName = lead.lName;
+    jobOrder.cName = lead.cName;
+    jobOrder.email = lead.email;
+    jobOrder.phone = lead.phone;
+    jobOrder.fax = lead.fax;
+    jobOrder.streetAddress = lead.streetAddress;
+    jobOrder.city = lead.city;
+    jobOrder.state = lead.state;
+    jobOrder.zip = lead.zip;
+    jobOrder.country = lead.country;
+    jobOrder.usageType = lead.usageType;
   }
 
   return jobOrder;
@@ -237,21 +239,22 @@ export const updateJobOrder = async (id, updateData) => {
 
   // Fetch with populate to get lead data
   const updatedJobOrder = await jobOrdersRepository.findById(id);
-  
-  // Flatten lead data for frontend compatibility
-  if (updatedJobOrder && updatedJobOrder.lead) {
-    updatedJobOrder.fName = updatedJobOrder.lead.fName;
-    updatedJobOrder.lName = updatedJobOrder.lead.lName;
-    updatedJobOrder.cName = updatedJobOrder.lead.cName;
-    updatedJobOrder.email = updatedJobOrder.lead.email;
-    updatedJobOrder.phone = updatedJobOrder.lead.phone;
-    updatedJobOrder.fax = updatedJobOrder.lead.fax;
-    updatedJobOrder.streetAddress = updatedJobOrder.lead.streetAddress;
-    updatedJobOrder.city = updatedJobOrder.lead.city;
-    updatedJobOrder.state = updatedJobOrder.lead.state;
-    updatedJobOrder.zip = updatedJobOrder.lead.zip;
-    updatedJobOrder.country = updatedJobOrder.lead.country;
-    updatedJobOrder.usageType = updatedJobOrder.lead.usageType;
+
+  // Flatten lead data for frontend compatibility (from salesOrder.quote.lead)
+  const lead = updatedJobOrder?.salesOrder?.quote?.lead;
+  if (updatedJobOrder && lead) {
+    updatedJobOrder.fName = lead.fName;
+    updatedJobOrder.lName = lead.lName;
+    updatedJobOrder.cName = lead.cName;
+    updatedJobOrder.email = lead.email;
+    updatedJobOrder.phone = lead.phone;
+    updatedJobOrder.fax = lead.fax;
+    updatedJobOrder.streetAddress = lead.streetAddress;
+    updatedJobOrder.city = lead.city;
+    updatedJobOrder.state = lead.state;
+    updatedJobOrder.zip = lead.zip;
+    updatedJobOrder.country = lead.country;
+    updatedJobOrder.usageType = lead.usageType;
   }
 
   return updatedJobOrder || jobOrder;
