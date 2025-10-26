@@ -184,16 +184,16 @@ const htmlTemplate = (quoteData) => {
           <div>
             <h3>Long Term Use</h3>
             <ul>
-              <li>Billing Cycle Period is 28 Days.</li>
-              <li>Includes weekly once cleaning service.</li>
-              <li>If the service is extended after the end of the first billing cycle period then same amount will be charged for the next month.</li>
+              <li>The billing cycle period is 28 days.</li>
+              <li>Includes weekly cleaning service.</li>
+              <li>If the service is extended after the end of the first billing cycle period, the same amount will be charged for the next month.</li>
             </ul>
           </div>
           <div>
             <h3>Short Term Use</h3>
             <ul>
-              <li>During weekends we deliver on Friday and pickup on Monday.</li>
-              <li>During normal days, we deliver a day before your event and pickup the day after your event.</li>
+              <li>On weekends, we deliver on Friday and pick up on Monday.</li>
+              <li>On weekdays, we deliver a day before your event and pick up the day after your event.</li>
             </ul>
           </div>
         </div>
