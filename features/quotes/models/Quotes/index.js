@@ -40,49 +40,46 @@ const QuotesSchema = new mongoose.Schema({
     type: String,
     default: "Pending",
   },
-  // ⚠️ REMOVED: fName, lName, cName - Use customer/lead reference instead
-  // fName: {
-  //   type: String,
-  // },
-  // lName: {
-  //   type: String,
-  // },
-  // cName: {
-  //   type: String,
-  // },
-  // ⚠️ REMOVED: email, phone, fax - Use customer/lead reference instead
-  // email: {
-  //   type: String,
-  // },
-  // phone: {
-  //   type: String,
-  // },
-  // fax: {
-  //   type: String,
-  // },
+  // Customer contact information (can come from lead or be set directly)
+  fName: {
+    type: String,
+  },
+  lName: {
+    type: String,
+  },
+  cName: {
+    type: String,
+  },
+  email: {
+    type: String,
+  },
+  phone: {
+    type: String,
+  },
+  fax: {
+    type: String,
+  },
 
-  // ⚠️ REMOVED: streetAddress, city, state, zip, country - Use customer/lead reference instead
-  // streetAddress: {
-  //   type: String,
-  // },
-  // city: {
-  //   type: String,
-  // },
-  // state: {
-  //   type: String,
-  // },
-  // zip: {
-  //   type: String,
-  // },
-  // country: {
-  //   type: String,
-  //   default: "USA",
-  // },
+  streetAddress: {
+    type: String,
+  },
+  city: {
+    type: String,
+  },
+  state: {
+    type: String,
+  },
+  zip: {
+    type: String,
+  },
+  country: {
+    type: String,
+    default: "USA",
+  },
 
-  // ⚠️ REMOVED: usageType - Use lead reference instead
-  // usageType: {
-  //   type: String,
-  // },
+  usageType: {
+    type: String,
+  },
   products: {
     type: Array,
   },
@@ -109,7 +106,7 @@ const QuotesSchema = new mongoose.Schema({
 
 // Add indexes for faster queries
 QuotesSchema.index({ createdAt: -1 }); // Sort by date
-// ⚠️ REMOVED: QuotesSchema.index({ email: 1 }); // Email field removed
+QuotesSchema.index({ email: 1 }); // Find by email
 QuotesSchema.index({ lead: 1 }); // Find by lead reference
 QuotesSchema.index({ emailStatus: 1 }); // Filter by status
 QuotesSchema.index({ createdAt: -1, emailStatus: 1 }); // Compound index

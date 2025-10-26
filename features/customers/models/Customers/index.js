@@ -12,14 +12,14 @@ const CustomersSchema = new mongoose.Schema({
 
   // ✅ MongoDB References (ObjectId) - Relationships to related records
   // Note: Leads are not stored here since Lead -> Customer is one-way
-  
+
   // Primary SalesOrder reference (for quick access to main sales order)
   salesOrder: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "SalesOrder",
     index: true,
   },
-  
+
   // Arrays for multiple related records
   quotes: [
     {

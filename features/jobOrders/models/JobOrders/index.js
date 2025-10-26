@@ -57,49 +57,46 @@ const JobOrdersSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
-  // ⚠️ REMOVED: fName, lName, cName - Use customer reference instead
-  // fName: {
-  //   type: String,
-  // },
-  // lName: {
-  //   type: String,
-  // },
-  // cName: {
-  //   type: String,
-  // },
-  // ⚠️ REMOVED: email, phone, fax - Use customer reference instead
-  // email: {
-  //   type: String,
-  // },
-  // phone: {
-  //   type: String,
-  // },
-  // fax: {
-  //   type: String,
-  // },
+  // Customer contact information (can come from lead or be set directly)
+  fName: {
+    type: String,
+  },
+  lName: {
+    type: String,
+  },
+  cName: {
+    type: String,
+  },
+  email: {
+    type: String,
+  },
+  phone: {
+    type: String,
+  },
+  fax: {
+    type: String,
+  },
 
-  // ⚠️ REMOVED: streetAddress, city, state, zip, country - Use customer reference instead
-  // streetAddress: {
-  //   type: String,
-  // },
-  // city: {
-  //   type: String,
-  // },
-  // state: {
-  //   type: String,
-  // },
-  // zip: {
-  //   type: String,
-  // },
-  // country: {
-  //   type: String,
-  //   default: "USA",
-  // },
+  streetAddress: {
+    type: String,
+  },
+  city: {
+    type: String,
+  },
+  state: {
+    type: String,
+  },
+  zip: {
+    type: String,
+  },
+  country: {
+    type: String,
+    default: "USA",
+  },
 
-  // ⚠️ REMOVED: usageType - Use salesOrder/lead reference instead
-  // usageType: {
-  //   type: String,
-  // },
+  usageType: {
+    type: String,
+  },
   products: {
     type: Array,
   },
