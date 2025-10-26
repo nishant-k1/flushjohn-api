@@ -213,6 +213,36 @@ export const deleteJobOrder = async (id) => {
   return { _id: id };
 };
 
+/**
+ * Link job order to customer when email is sent
+ * Adds job order reference to customer's jobOrders array
+ */
+export const linkJobOrderToCustomer = async (jobOrder) => {
+  if (!jobOrder.salesOrder) {
+    // No sales order reference, skip linking
+    return;
+  }
+
+  // Import here to avoid circular dependency
+  const SalesOrders = (await import("../../salesOrders/models/SalesOrders/index.js")).default;
+  const salesOrder = await SalesOrders.findById(jobOrder.salesOrder);
+
+  if (!salesOrder || !salesOrder.customer) {
+    // No customer reference on sales order, skip linking
+    return;
+  }
+
+  // Import here to avoid circular dependency
+  const Customers = (await import("../../customers/models/Customers/index.js")).default;
+  
+  // Add job order to customer's jobOrders array
+  await Customers.findByIdAndUpdate(salesOrder.customer, {
+    $addToSet: {
+      jobOrders: jobOrder._id,
+    },
+  });
+};
+
 export const isValidObjectId = (id) => {
   return /^[0-9a-fA-F]{24}$/.test(id);
 };
