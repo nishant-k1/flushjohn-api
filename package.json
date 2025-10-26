@@ -10,12 +10,9 @@
     "start": "node ./app.js",
     "dev": "nodemon ./app.js",
     "postinstall": "npx playwright install chromium || echo 'Playwright install failed, PDF generation may not work'",
-    "generate-blogs": "node scripts/generateBlogPosts.js",
-    "generate-content": "node scripts/generateBlogContentFiles.js",
-    "publish-blogs": "node scripts/publishBlogPosts.js",
-    "clean-blogs": "node scripts/cleanBlogContent.js",
-    "test-automation": "node scripts/testAutomation.js",
-    "trigger-blog-generation": "node scripts/triggerBlogGeneration.js",
+    "generate-blogs": "node features/blogs/scripts/generateBlogPosts.js",
+    "generate-content": "node features/blogs/scripts/generateBlogContentFiles.js",
+    "publish-blogs": "node features/blogs/scripts/publishBlogPosts.js",
     "add-indexes": "node scripts/addIndexes.js"
   },
   "dependencies": {
