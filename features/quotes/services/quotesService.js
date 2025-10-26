@@ -65,10 +65,32 @@ export const getAllQuotes = async ({
     quotesRepository.count(query),
   ]);
 
+  // Flatten lead data for frontend compatibility
+  const flattenedQuotes = quotes.map(quote => {
+    if (quote.lead) {
+      return {
+        ...quote.toObject(),
+        fName: quote.lead.fName,
+        lName: quote.lead.lName,
+        cName: quote.lead.cName,
+        email: quote.lead.email,
+        phone: quote.lead.phone,
+        fax: quote.lead.fax,
+        streetAddress: quote.lead.streetAddress,
+        city: quote.lead.city,
+        state: quote.lead.state,
+        zip: quote.lead.zip,
+        country: quote.lead.country,
+        usageType: quote.lead.usageType,
+      };
+    }
+    return quote;
+  });
+
   const totalPages = Math.ceil(total / limit);
 
   return {
-    data: quotes,
+    data: flattenedQuotes,
     pagination: {
       currentPage: page,
       totalPages,
@@ -87,6 +109,22 @@ export const getQuoteById = async (id) => {
     const error = new Error("Quote not found");
     error.name = "NotFoundError";
     throw error;
+  }
+
+  // Flatten lead data for frontend compatibility
+  if (quote.lead) {
+    quote.fName = quote.lead.fName;
+    quote.lName = quote.lead.lName;
+    quote.cName = quote.lead.cName;
+    quote.email = quote.lead.email;
+    quote.phone = quote.lead.phone;
+    quote.fax = quote.lead.fax;
+    quote.streetAddress = quote.lead.streetAddress;
+    quote.city = quote.lead.city;
+    quote.state = quote.lead.state;
+    quote.zip = quote.lead.zip;
+    quote.country = quote.lead.country;
+    quote.usageType = quote.lead.usageType;
   }
 
   return quote;

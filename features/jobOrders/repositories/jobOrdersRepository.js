@@ -10,7 +10,7 @@ export const create = async (jobOrderData) => {
 };
 
 export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await JobOrders.find(query).sort(sort).skip(skip).limit(limit).lean();
+  return await JobOrders.find(query).populate("lead").populate("salesOrder").sort(sort).skip(skip).limit(limit).lean();
 };
 
 export const count = async (query = {}) => {
@@ -18,7 +18,7 @@ export const count = async (query = {}) => {
 };
 
 export const findById = async (id) => {
-  return await JobOrders.findById(id);
+  return await JobOrders.findById(id).populate("lead").populate("salesOrder");
 };
 
 export const findOne = async (query, projection = null) => {
