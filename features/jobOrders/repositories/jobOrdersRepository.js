@@ -16,16 +16,8 @@ export const findAll = async ({
   limit = 10,
 }) => {
   return await JobOrders.find(query)
-    .populate({
-      path: "salesOrder",
-      populate: [
-        { path: "quote" },
-        {
-          path: "quote",
-          populate: { path: "lead" }
-        }
-      ]
-    })
+    .populate("lead")
+    .populate("salesOrder")
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -37,17 +29,7 @@ export const count = async (query = {}) => {
 };
 
 export const findById = async (id) => {
-  return await JobOrders.findById(id)
-    .populate({
-      path: "salesOrder",
-      populate: [
-        { path: "quote" },
-        {
-          path: "quote",
-          populate: { path: "lead" }
-        }
-      ]
-    });
+  return await JobOrders.findById(id).populate("lead").populate("salesOrder");
 };
 
 export const findOne = async (query, projection = null) => {

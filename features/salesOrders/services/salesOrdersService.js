@@ -1,7 +1,3 @@
-/**
- * Sales Orders Service - Business Logic Layer
- */
-
 import * as salesOrdersRepository from "../repositories/salesOrdersRepository.js";
 import * as customersRepository from "../../customers/repositories/customersRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
@@ -17,6 +13,23 @@ export const generateSalesOrderNumber = async () => {
   return latestSalesOrderNo + 1;
 };
 
+const formatSalesOrderResponse = (salesOrder, lead) => {
+  const salesOrderObj = salesOrder.toObject
+    ? salesOrder.toObject()
+    : salesOrder;
+
+  if (!lead) {
+    return salesOrderObj;
+  }
+
+  const leadObj = lead.toObject ? lead.toObject() : lead;
+
+  return {
+    ...salesOrderObj,
+    lead: leadObj,
+  };
+};
+
 export const createSalesOrder = async (salesOrderData) => {
   if (!salesOrderData.email || !salesOrderData.quoteNo) {
     const error = new Error("Email and Quote Number are required");
@@ -27,8 +40,6 @@ export const createSalesOrder = async (salesOrderData) => {
   const createdAt = getCurrentDateTime();
   const salesOrderNo = await generateSalesOrderNumber();
 
-  // Don't create customer here - customers are created when email is sent
-  // Check if customer exists to get customerNo for reference
   let customerNo = null;
   const existingCustomer = await customersRepository.findOne({
     email: salesOrderData.email,
@@ -42,12 +53,10 @@ export const createSalesOrder = async (salesOrderData) => {
     ...salesOrderData,
     createdAt,
     salesOrderNo,
-    customerNo: customerNo, // May be null if customer doesn't exist yet
+    customerNo: customerNo,
     emailStatus: "Pending",
-    // Store lead reference if provided (for relationship tracking)
     lead: salesOrderData.lead || null,
     leadNo: salesOrderData.leadNo || null,
-    // Store quote reference if provided
     quote: salesOrderData.quote || null,
   };
 
@@ -82,33 +91,17 @@ export const getAllSalesOrders = async ({
     salesOrdersRepository.count(query),
   ]);
 
-  // Flatten lead data for frontend compatibility (from quote.lead)
-  const flattenedSalesOrders = salesOrders.map((salesOrder) => {
-    const lead = salesOrder.quote?.lead;
-    if (lead) {
-      return {
-        ...salesOrder,
-        fName: lead.fName,
-        lName: lead.lName,
-        cName: lead.cName,
-        email: lead.email,
-        phone: lead.phone,
-        fax: lead.fax,
-        streetAddress: lead.streetAddress,
-        city: lead.city,
-        state: lead.state,
-        zip: lead.zip,
-        country: lead.country,
-        usageType: lead.usageType,
-      };
-    }
-    return salesOrder;
+  const formattedSalesOrders = salesOrders.map((salesOrder) => {
+    const salesOrderObj = salesOrder.toObject
+      ? salesOrder.toObject()
+      : salesOrder;
+    return formatSalesOrderResponse(salesOrderObj, salesOrderObj.lead);
   });
 
   const totalPages = Math.ceil(total / limit);
 
   return {
-    data: flattenedSalesOrders,
+    data: formattedSalesOrders,
     pagination: {
       currentPage: page,
       totalPages,
@@ -129,24 +122,7 @@ export const getSalesOrderById = async (id) => {
     throw error;
   }
 
-  // Flatten lead data for frontend compatibility (from quote.lead)
-  const lead = salesOrder.quote?.lead;
-  if (lead) {
-    salesOrder.fName = lead.fName;
-    salesOrder.lName = lead.lName;
-    salesOrder.cName = lead.cName;
-    salesOrder.email = lead.email;
-    salesOrder.phone = lead.phone;
-    salesOrder.fax = lead.fax;
-    salesOrder.streetAddress = lead.streetAddress;
-    salesOrder.city = lead.city;
-    salesOrder.state = lead.state;
-    salesOrder.zip = lead.zip;
-    salesOrder.country = lead.country;
-    salesOrder.usageType = lead.usageType;
-  }
-
-  return salesOrder;
+  return formatSalesOrderResponse(salesOrder, salesOrder.lead);
 };
 
 export const updateSalesOrder = async (id, updateData) => {
@@ -162,27 +138,12 @@ export const updateSalesOrder = async (id, updateData) => {
     throw error;
   }
 
-  // Fetch with populate to get lead data
   const updatedSalesOrder = await salesOrdersRepository.findById(id);
 
-  // Flatten lead data for frontend compatibility (from quote.lead)
-  const lead = updatedSalesOrder?.quote?.lead;
-  if (updatedSalesOrder && lead) {
-    updatedSalesOrder.fName = lead.fName;
-    updatedSalesOrder.lName = lead.lName;
-    updatedSalesOrder.cName = lead.cName;
-    updatedSalesOrder.email = lead.email;
-    updatedSalesOrder.phone = lead.phone;
-    updatedSalesOrder.fax = lead.fax;
-    updatedSalesOrder.streetAddress = lead.streetAddress;
-    updatedSalesOrder.city = lead.city;
-    updatedSalesOrder.state = lead.state;
-    updatedSalesOrder.zip = lead.zip;
-    updatedSalesOrder.country = lead.country;
-    updatedSalesOrder.usageType = lead.usageType;
-  }
-
-  return updatedSalesOrder || salesOrder;
+  return formatSalesOrderResponse(
+    updatedSalesOrder || salesOrder,
+    updatedSalesOrder?.lead
+  );
 };
 
 export const deleteSalesOrder = async (id) => {
@@ -194,7 +155,6 @@ export const deleteSalesOrder = async (id) => {
     throw error;
   }
 
-  // Check for related job orders
   const JobOrder = (await import("../../jobOrders/models/JobOrders/index.js"))
     .default;
 
@@ -223,19 +183,12 @@ export const isValidObjectId = (id) => {
   return /^[0-9a-fA-F]{24}$/.test(id);
 };
 
-/**
- * DO NOT create customer when sales order email is sent
- * Customer is only created when BOTH sales order AND job order emails are sent
- * This function just links the sales order to any existing customer
- */
 export const linkSalesOrderToCustomer = async (salesOrder, leadId = null) => {
-  // Check if customer already exists
   const existingCustomer = await customersRepository.findOne({
     email: salesOrder.email,
   });
 
   if (existingCustomer) {
-    // Customer exists, just link sales order to it
     await customersRepository.findOneAndUpdate(
       { email: salesOrder.email },
       {
@@ -246,7 +199,6 @@ export const linkSalesOrderToCustomer = async (salesOrder, leadId = null) => {
       }
     );
 
-    // Update sales order with customer number
     await salesOrdersRepository.updateById(salesOrder._id, {
       customerNo: existingCustomer.customerNo,
     });
@@ -254,7 +206,5 @@ export const linkSalesOrderToCustomer = async (salesOrder, leadId = null) => {
     return existingCustomer;
   }
 
-  // No customer exists yet - customer will be created when job order email is sent
-  // Just return null for now
   return null;
 };

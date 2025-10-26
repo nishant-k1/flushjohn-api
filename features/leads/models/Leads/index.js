@@ -24,19 +24,19 @@ const LeadsSchema = new Schema({
   quotes: [
     {
       type: Schema.Types.ObjectId,
-      ref: "Quote",
+      ref: "Quotes",
     },
   ],
   salesOrders: [
     {
       type: Schema.Types.ObjectId,
-      ref: "SalesOrder",
+      ref: "SalesOrders",
     },
   ],
   jobOrders: [
     {
       type: Schema.Types.ObjectId,
-      ref: "JobOrder",
+      ref: "JobOrders",
     },
   ],
   // Optional: reference to customer if lead converted
@@ -112,4 +112,4 @@ LeadsSchema.index({ leadSource: 1 }); // For filtering by source
 LeadsSchema.index({ createdAt: -1, leadStatus: 1 }); // Compound index for common queries
 LeadsSchema.index({ assignedTo: 1, leadStatus: 1 }); // Compound index for user-specific queries
 
-export default model("Leads", LeadsSchema);
+export default model("Lead", LeadsSchema);
