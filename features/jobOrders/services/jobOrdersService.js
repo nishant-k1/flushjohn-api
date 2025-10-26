@@ -2,9 +2,41 @@ import * as jobOrdersRepository from "../repositories/jobOrdersRepository.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
 
 export const generateJobOrderNumber = async () => {
-  const latestJobOrder = await jobOrdersRepository.findOne({}, "jobOrderNo");
-  const latestJobOrderNo = latestJobOrder ? latestJobOrder.jobOrderNo : 999;
-  return latestJobOrderNo + 1;
+  const maxRetries = 5;
+  let attempts = 0;
+
+  while (attempts < maxRetries) {
+    try {
+      const latestJobOrder = await jobOrdersRepository.findOne(
+        {},
+        "jobOrderNo"
+      );
+      const latestJobOrderNo = latestJobOrder ? latestJobOrder.jobOrderNo : 999;
+      const newJobOrderNo = latestJobOrderNo + 1;
+
+      // Verify uniqueness by checking if this number exists
+      const existingJobOrder = await jobOrdersRepository.findOne({
+        jobOrderNo: newJobOrderNo,
+      });
+      if (!existingJobOrder) {
+        return newJobOrderNo;
+      }
+
+      // If duplicate found, wait a bit and retry
+      attempts++;
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxRetries) {
+        throw new Error(
+          "Failed to generate unique job order number after retries"
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
+    }
+  }
+
+  throw new Error("Failed to generate unique job order number");
 };
 
 const formatJobOrderResponse = (jobOrder, lead) => {
@@ -276,7 +308,9 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
 
   if (!customer) {
     const latestCustomer = await Customers.findOne({}, "customerNo");
-    const customerNo = latestCustomer ? latestCustomer.customerNo + 1 : 1000;
+    const customerNo = latestCustomer?.customerNo
+      ? latestCustomer.customerNo + 1
+      : 1000;
 
     customer = await Customers.create({
       ...customerData,
@@ -302,7 +336,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
       $addToSet: {
         salesOrders: salesOrder._id,
         jobOrders: jobOrder._id,
-        ...(salesOrder.quote && { quotes: salesOrder.quote }),
+        ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
       },
     });
 

@@ -3,14 +3,43 @@ import * as customersRepository from "../../customers/repositories/customersRepo
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 export const generateSalesOrderNumber = async () => {
-  const latestSalesOrder = await salesOrdersRepository.findOne(
-    {},
-    "salesOrderNo"
-  );
-  const latestSalesOrderNo = latestSalesOrder
-    ? latestSalesOrder.salesOrderNo
-    : 999;
-  return latestSalesOrderNo + 1;
+  const maxRetries = 5;
+  let attempts = 0;
+
+  while (attempts < maxRetries) {
+    try {
+      const latestSalesOrder = await salesOrdersRepository.findOne(
+        {},
+        "salesOrderNo"
+      );
+      const latestSalesOrderNo = latestSalesOrder
+        ? latestSalesOrder.salesOrderNo
+        : 999;
+      const newSalesOrderNo = latestSalesOrderNo + 1;
+
+      // Verify uniqueness by checking if this number exists
+      const existingSalesOrder = await salesOrdersRepository.findOne({
+        salesOrderNo: newSalesOrderNo,
+      });
+      if (!existingSalesOrder) {
+        return newSalesOrderNo;
+      }
+
+      // If duplicate found, wait a bit and retry
+      attempts++;
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxRetries) {
+        throw new Error(
+          "Failed to generate unique sales order number after retries"
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
+    }
+  }
+
+  throw new Error("Failed to generate unique sales order number");
 };
 
 const formatSalesOrderResponse = (salesOrder, lead) => {
@@ -194,7 +223,7 @@ export const linkSalesOrderToCustomer = async (salesOrder, leadId = null) => {
       {
         $addToSet: {
           salesOrders: salesOrder._id,
-          ...(salesOrder.quote && { quotes: salesOrder.quote }),
+          ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
         },
       }
     );

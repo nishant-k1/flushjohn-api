@@ -2,9 +2,36 @@ import * as quotesRepository from "../repositories/quotesRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 export const generateQuoteNumber = async () => {
-  const latestQuote = await quotesRepository.findOne({}, "quoteNo");
-  const latestQuoteNo = latestQuote ? latestQuote.quoteNo : 999;
-  return latestQuoteNo + 1;
+  const maxRetries = 5;
+  let attempts = 0;
+
+  while (attempts < maxRetries) {
+    try {
+      const latestQuote = await quotesRepository.findOne({}, "quoteNo");
+      const latestQuoteNo = latestQuote ? latestQuote.quoteNo : 999;
+      const newQuoteNo = latestQuoteNo + 1;
+
+      // Verify uniqueness by checking if this number exists
+      const existingQuote = await quotesRepository.findOne({
+        quoteNo: newQuoteNo,
+      });
+      if (!existingQuote) {
+        return newQuoteNo;
+      }
+
+      // If duplicate found, wait a bit and retry
+      attempts++;
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxRetries) {
+        throw new Error("Failed to generate unique quote number after retries");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
+    }
+  }
+
+  throw new Error("Failed to generate unique quote number");
 };
 
 const formatQuoteResponse = (quote, lead) => {
@@ -44,7 +71,8 @@ export const createQuote = async (quoteData) => {
 
     if (typeof leadNo === "string") {
       const numericPart = leadNo.replace(/\D/g, "");
-      leadNo = numericPart ? parseInt(numericPart) : null;
+      const parsed = parseInt(numericPart);
+      leadNo = !isNaN(parsed) ? parsed : null;
     }
 
     if (leadNo) {
@@ -116,7 +144,8 @@ export const getAllQuotes = async ({
 
         if (typeof leadNo === "string") {
           const numericPart = leadNo.replace(/\D/g, "");
-          leadNo = numericPart ? parseInt(numericPart) : null;
+          const parsed = parseInt(numericPart);
+          leadNo = !isNaN(parsed) ? parsed : null;
         }
 
         if (leadNo) {
@@ -167,7 +196,8 @@ export const getQuoteById = async (id) => {
 
     if (typeof leadNo === "string") {
       const numericPart = leadNo.replace(/\D/g, "");
-      leadNo = numericPart ? parseInt(numericPart) : null;
+      const parsed = parseInt(numericPart);
+      leadNo = !isNaN(parsed) ? parsed : null;
     }
 
     if (leadNo) {
@@ -197,7 +227,8 @@ export const updateQuote = async (id, updateData) => {
 
     if (typeof leadNo === "string") {
       const numericPart = leadNo.replace(/\D/g, "");
-      leadNo = numericPart ? parseInt(numericPart) : null;
+      const parsed = parseInt(numericPart);
+      leadNo = !isNaN(parsed) ? parsed : null;
     }
 
     if (leadNo) {
