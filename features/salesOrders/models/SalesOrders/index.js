@@ -40,45 +40,49 @@ const SalesOrdersSchema = new mongoose.Schema({
     type: String,
     default: "Pending",
   },
-  fName: {
-    type: String,
-  },
-  lName: {
-    type: String,
-  },
-  cName: {
-    type: String,
-  },
-  email: {
-    type: String,
-  },
-  phone: {
-    type: String,
-  },
-  fax: {
-    type: String,
-  },
+  // ⚠️ REMOVED: fName, lName, cName - Use customer reference instead
+  // fName: {
+  //   type: String,
+  // },
+  // lName: {
+  //   type: String,
+  // },
+  // cName: {
+  //   type: String,
+  // },
+  // ⚠️ REMOVED: email, phone, fax - Use customer reference instead
+  // email: {
+  //   type: String,
+  // },
+  // phone: {
+  //   type: String,
+  // },
+  // fax: {
+  //   type: String,
+  // },
 
-  streetAddress: {
-    type: String,
-  },
-  city: {
-    type: String,
-  },
-  state: {
-    type: String,
-  },
-  zip: {
-    type: String,
-  },
-  country: {
-    type: String,
-    default: "USA",
-  },
+  // ⚠️ REMOVED: streetAddress, city, state, zip, country - Use customer reference instead
+  // streetAddress: {
+  //   type: String,
+  // },
+  // city: {
+  //   type: String,
+  // },
+  // state: {
+  //   type: String,
+  // },
+  // zip: {
+  //   type: String,
+  // },
+  // country: {
+  //   type: String,
+  //   default: "USA",
+  // },
 
-  usageType: {
-    type: String,
-  },
+  // ⚠️ REMOVED: usageType - Use lead reference instead
+  // usageType: {
+  //   type: String,
+  // },
   products: {
     type: Array,
   },
@@ -165,7 +169,7 @@ const SalesOrdersSchema = new mongoose.Schema({
 
 // Add indexes for faster queries
 SalesOrdersSchema.index({ createdAt: -1 }); // Sort by date
-SalesOrdersSchema.index({ email: 1 }); // Find by email
+// ⚠️ REMOVED: SalesOrdersSchema.index({ email: 1 }); // Email field removed
 SalesOrdersSchema.index({ customer: 1 }); // Find by customer reference
 SalesOrdersSchema.index({ lead: 1 }); // Find by lead reference
 SalesOrdersSchema.index({ quote: 1 }); // Find by quote reference

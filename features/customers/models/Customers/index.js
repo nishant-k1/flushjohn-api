@@ -32,12 +32,14 @@ const CustomersSchema = new mongoose.Schema({
   ],
 
   // 🔄 Legacy fields (kept for backward compatibility)
-  salesOrderNo: {
-    type: [Number],
-  },
-  quoteNo: {
-    type: [Number],
-  },
+  // ⚠️ REMOVED: salesOrderNo array - Use salesOrders reference array instead
+  // salesOrderNo: {
+  //   type: [Number],
+  // },
+  // ⚠️ REMOVED: quoteNo array - Use quotes reference array instead
+  // quoteNo: {
+  //   type: [Number],
+  // },
 
   // Customer contact information (single source of truth)
   fName: {
@@ -76,24 +78,25 @@ const CustomersSchema = new mongoose.Schema({
     default: "USA",
   },
 
-  deliveryDate: {
-    type: String,
-  },
-  pickupDate: {
-    type: String,
-  },
-  contactPersonName: {
-    type: String,
-  },
-  contactPersonPhone: {
-    type: String,
-  },
-  products: {
-    type: Array,
-  },
-  instructions: {
-    type: String,
-  },
+  // ⚠️ REMOVED: These should be on sales order level, not customer level
+  // deliveryDate: {
+  //   type: String,
+  // },
+  // pickupDate: {
+  //   type: String,
+  // },
+  // contactPersonName: {
+  //   type: String,
+  // },
+  // contactPersonPhone: {
+  //   type: String,
+  // },
+  // products: {
+  //   type: Array,
+  // },
+  // instructions: {
+  //   type: String,
+  // },
 
   note: {
     type: String,

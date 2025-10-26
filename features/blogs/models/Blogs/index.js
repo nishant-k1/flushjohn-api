@@ -115,23 +115,23 @@ const BlogsSchema = new Schema(
         maxlength: [100, "Alt text cannot exceed 100 characters"],
       },
     },
-    // Legacy field for backward compatibility
-    coverImage: {
-      src: {
-        type: String,
-        validate: {
-          validator: function (v) {
-            return !v || /^https?:\/\/.+/.test(v);
-          },
-          message: "Cover image must be a valid URL",
-        },
-      },
-      alt: {
-        type: String,
-        default: "Blog cover image",
-        maxlength: [100, "Alt text cannot exceed 100 characters"],
-      },
-    },
+    // ⚠️ REMOVED: coverImage - Duplicate of cover reference
+    // coverImage: {
+    //   src: {
+    //     type: String,
+    //     validate: {
+    //       validator: function (v) {
+    //         return !v || /^https?:\/\/.+/.test(v);
+    //       },
+    //       message: "Cover image must be a valid URL",
+    //     },
+    //   },
+    //   alt: {
+    //     type: String,
+    //     default: "Blog cover image",
+    //     maxlength: [100, "Alt text cannot exceed 100 characters"],
+    //   },
+    // },
     publishedAt: {
       type: Date,
       default: null,
