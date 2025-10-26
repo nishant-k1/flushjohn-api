@@ -27,41 +27,22 @@ export const createSalesOrder = async (salesOrderData) => {
   const createdAt = getCurrentDateTime();
   const salesOrderNo = await generateSalesOrderNumber();
 
-  let customer = await customersRepository.findOne({
+  // Don't create customer here - customers are created when email is sent
+  // Check if customer exists to get customerNo for reference
+  let customerNo = null;
+  const existingCustomer = await customersRepository.findOne({
     email: salesOrderData.email,
   });
-
-  if (!customer) {
-    const latestCustomer = await customersRepository.findOne({}, "customerNo");
-    const customerNo = latestCustomer ? latestCustomer.customerNo + 1 : 1000;
-
-    customer = await customersRepository.create({
-      ...salesOrderData,
-      createdAt,
-      customerNo,
-      salesOrderNo: [salesOrderNo],
-      quoteNo: [salesOrderData.quoteNo] || [],
-    });
-  } else {
-    const { quoteNo, salesOrderNo: _, ...customerData } = salesOrderData;
-
-    customer = await customersRepository.findOneAndUpdate(
-      { email: salesOrderData.email },
-      {
-        $set: customerData,
-        $push: {
-          salesOrderNo: salesOrderNo,
-          quoteNo: salesOrderData.quoteNo,
-        },
-      }
-    );
+  
+  if (existingCustomer) {
+    customerNo = existingCustomer.customerNo;
   }
 
   const newSalesOrderData = {
     ...salesOrderData,
     createdAt,
     salesOrderNo,
-    customerNo: customer.customerNo,
+    customerNo: customerNo, // May be null if customer doesn't exist yet
     emailStatus: "Pending",
     // Store lead reference if provided (for relationship tracking)
     lead: salesOrderData.lead || null,
@@ -180,4 +161,97 @@ export const deleteSalesOrder = async (id) => {
 
 export const isValidObjectId = (id) => {
   return /^[0-9a-fA-F]{24}$/.test(id);
+};
+
+/**
+ * Create or update customer when sales order email is sent
+ * Links the customer to the lead if lead reference exists
+ */
+export const createOrLinkCustomerFromSalesOrder = async (salesOrder, leadId = null) => {
+  // Get customer data from sales order or from lead reference
+  let customerData = {};
+  
+  // Try to get data from sales order (may have legacy fields)
+  customerData = {
+    fName: salesOrder.fName,
+    lName: salesOrder.lName,
+    cName: salesOrder.cName,
+    email: salesOrder.email,
+    phone: salesOrder.phone,
+    fax: salesOrder.fax,
+    streetAddress: salesOrder.streetAddress,
+    city: salesOrder.city,
+    state: salesOrder.state,
+    zip: salesOrder.zip,
+    country: salesOrder.country || "USA",
+  };
+
+  // If we have a lead reference, populate and use lead data
+  if (salesOrder.lead) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const lead = await Leads.findById(salesOrder.lead);
+    
+    if (lead) {
+      // Use lead data if available
+      customerData = {
+        fName: lead.fName || customerData.fName,
+        lName: lead.lName || customerData.lName,
+        cName: lead.cName || customerData.cName,
+        email: lead.email || customerData.email,
+        phone: lead.phone || customerData.phone,
+        fax: lead.fax || customerData.fax,
+        streetAddress: lead.streetAddress || customerData.streetAddress,
+        city: lead.city || customerData.city,
+        state: lead.state || customerData.state,
+        zip: lead.zip || customerData.zip,
+        country: lead.country || customerData.country || "USA",
+      };
+    }
+  }
+
+  let customer = await customersRepository.findOne({
+    email: customerData.email,
+  });
+
+  if (!customer) {
+    // Create new customer
+    const latestCustomer = await customersRepository.findOne({}, "customerNo");
+    const customerNo = latestCustomer ? latestCustomer.customerNo + 1 : 1000;
+
+    customer = await customersRepository.create({
+      ...customerData,
+      customerNo,
+      // Add sales order reference
+      salesOrders: [salesOrder._id],
+      // Add quote reference if exists
+      ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
+    });
+  } else {
+    // Update existing customer and add sales order reference
+    customer = await customersRepository.findOneAndUpdate(
+      { email: customerData.email },
+      {
+        $addToSet: {
+          salesOrders: salesOrder._id,
+          ...(salesOrder.quote && { quotes: salesOrder.quote }),
+        },
+      },
+      { new: true }
+    );
+  }
+
+  // Link lead to customer if leadId is provided
+  if (leadId) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    await Leads.findByIdAndUpdate(leadId, {
+      customer: customer._id,
+    });
+  }
+
+  // Update sales order with customer number
+  await salesOrdersRepository.updateById(salesOrder._id, {
+    customerNo: customer.customerNo,
+  });
+
+  return customer;
 };

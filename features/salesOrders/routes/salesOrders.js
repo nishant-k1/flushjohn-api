@@ -275,6 +275,13 @@ router.post(
         emailStatus: "Sent",
       });
 
+      // Create or link customer when email is sent
+      // This converts the lead to a customer
+      await salesOrdersService.createOrLinkCustomerFromSalesOrder(
+        updatedSalesOrder,
+        updatedSalesOrder.lead?.toString() || null
+      );
+
       res.status(200).json({
         success: true,
         message: "Sales Order email sent successfully",

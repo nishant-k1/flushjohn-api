@@ -332,6 +332,9 @@ router.post(
         vendorAcceptanceStatus: "Accepted",
       });
 
+      // Link job order to customer
+      await jobOrdersService.linkJobOrderToCustomer(updatedJobOrder);
+
       res.status(200).json({
         success: true,
         message: "Job Order email sent successfully",
