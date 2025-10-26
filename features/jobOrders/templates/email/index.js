@@ -18,11 +18,11 @@ As per our conversation, I have attached the Job_Order # ${
     vendorData.jobOrderNo ? vendorData.jobOrderNo : ""
   }.
 
-Delivery date is ${
+The delivery date is ${
     vendorData.deliveryDate ? deliveryDate : ""
-  }. Please, go through the attachment for the onsite and other details.
+  }. Please go through the attachment for the onsite and other details.
 
-Request you to acknowledge the receiving of this Job_Order by responding back to this email stating "Received".
+Please acknowledge receipt of this Job Order by responding to this email stating "Received".
 
 ${email_signature}`;
 };
