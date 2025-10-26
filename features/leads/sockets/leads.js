@@ -21,8 +21,7 @@ const productsData = (leadSource, products) => {
         rate: rate,
         amount: amount,
       };
-    }
-    else {
+    } else {
       const qty = Number(product.qty);
       const rate = Number(product.rate) || 0;
       const amount = Number(product.amount) || rate * qty;
@@ -92,8 +91,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const lead = await Leads.create(webLead);
       try {
         const alertResults = await alertService.sendLeadAlerts(lead);
-      } catch (alertError) {
-      }
+      } catch (alertError) {}
 
       const leadsList = await Leads.find().sort({ _id: -1 });
       leadsNamespace.emit("leadCreated", leadsList);
@@ -107,16 +105,14 @@ export function leadSocketHandler(leadsNamespace, socket) {
     try {
       const leadsList = await Leads.find().sort({ _id: -1 });
       socket.emit("leadList", leadsList);
-    } catch (error) {
-    }
+    } catch (error) {}
   });
 
   socket.on("getLead", async (leadId) => {
     try {
       const lead = await Leads.findById(leadId);
       socket.emit("leadData", lead);
-    } catch (error) {
-    }
+    } catch (error) {}
   });
 
   socket.on("updateLead", async ({ _id, data }) => {
@@ -125,8 +121,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
         new: true,
       });
       socket.emit("leadUpdated", lead);
-    } catch (error) {
-    }
+    } catch (error) {}
   });
 
   socket.on("deleteLead", async (leadId) => {
@@ -134,10 +129,8 @@ export function leadSocketHandler(leadsNamespace, socket) {
       await Leads.findByIdAndDelete(leadId);
       const leadsList = await Leads.find().sort({ _id: -1 });
       socket.emit("leadDeleted", leadsList);
-    } catch (error) {
-    }
+    } catch (error) {}
   });
 
-  socket.on("disconnect", () => {
-  });
+  socket.on("disconnect", () => {});
 }
