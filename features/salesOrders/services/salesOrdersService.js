@@ -160,7 +160,26 @@ export const updateSalesOrder = async (id, updateData) => {
     throw error;
   }
 
-  return salesOrder;
+  // Fetch with populate to get lead data
+  const updatedSalesOrder = await salesOrdersRepository.findById(id);
+  
+  // Flatten lead data for frontend compatibility
+  if (updatedSalesOrder && updatedSalesOrder.lead) {
+    updatedSalesOrder.fName = updatedSalesOrder.lead.fName;
+    updatedSalesOrder.lName = updatedSalesOrder.lead.lName;
+    updatedSalesOrder.cName = updatedSalesOrder.lead.cName;
+    updatedSalesOrder.email = updatedSalesOrder.lead.email;
+    updatedSalesOrder.phone = updatedSalesOrder.lead.phone;
+    updatedSalesOrder.fax = updatedSalesOrder.lead.fax;
+    updatedSalesOrder.streetAddress = updatedSalesOrder.lead.streetAddress;
+    updatedSalesOrder.city = updatedSalesOrder.lead.city;
+    updatedSalesOrder.state = updatedSalesOrder.lead.state;
+    updatedSalesOrder.zip = updatedSalesOrder.lead.zip;
+    updatedSalesOrder.country = updatedSalesOrder.lead.country;
+    updatedSalesOrder.usageType = updatedSalesOrder.lead.usageType;
+  }
+
+  return updatedSalesOrder || salesOrder;
 };
 
 export const deleteSalesOrder = async (id) => {

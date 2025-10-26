@@ -235,7 +235,26 @@ export const updateJobOrder = async (id, updateData) => {
     throw error;
   }
 
-  return jobOrder;
+  // Fetch with populate to get lead data
+  const updatedJobOrder = await jobOrdersRepository.findById(id);
+  
+  // Flatten lead data for frontend compatibility
+  if (updatedJobOrder && updatedJobOrder.lead) {
+    updatedJobOrder.fName = updatedJobOrder.lead.fName;
+    updatedJobOrder.lName = updatedJobOrder.lead.lName;
+    updatedJobOrder.cName = updatedJobOrder.lead.cName;
+    updatedJobOrder.email = updatedJobOrder.lead.email;
+    updatedJobOrder.phone = updatedJobOrder.lead.phone;
+    updatedJobOrder.fax = updatedJobOrder.lead.fax;
+    updatedJobOrder.streetAddress = updatedJobOrder.lead.streetAddress;
+    updatedJobOrder.city = updatedJobOrder.lead.city;
+    updatedJobOrder.state = updatedJobOrder.lead.state;
+    updatedJobOrder.zip = updatedJobOrder.lead.zip;
+    updatedJobOrder.country = updatedJobOrder.lead.country;
+    updatedJobOrder.usageType = updatedJobOrder.lead.usageType;
+  }
+
+  return updatedJobOrder || jobOrder;
 };
 
 export const deleteJobOrder = async (id) => {
