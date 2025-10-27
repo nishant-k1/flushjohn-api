@@ -30,7 +30,9 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(token, process.env.SECRET_KEY, {
+      algorithms: ["HS256"], // Explicitly specify the algorithm
+    });
 
     const user = await User.findOne({ userId: decoded.userId });
 
@@ -134,7 +136,9 @@ export const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(token, process.env.SECRET_KEY, {
+      algorithms: ["HS256"], // Explicitly specify the algorithm
+    });
     const user = await User.findOne({ userId: decoded.userId });
 
     if (user && user.isActive && !user.isLocked()) {
