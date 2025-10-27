@@ -1,11 +1,28 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import rateLimit from "express-rate-limit";
 import User from "../models/User/index.js";
+import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+// Rate limiter for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: {
+    success: false,
+    message:
+      "Too many authentication attempts from this IP, please try again later.",
+    error: "RATE_LIMIT_EXCEEDED",
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply rate limiting to login endpoint
+router.post("/", authLimiter, async (req, res) => {
   try {
     const { userId, password } = req.body;
 
@@ -40,7 +57,6 @@ router.post("/", async (req, res) => {
       try {
         validPassword = await user.comparePassword(password);
       } catch (error) {
-
         await user.incLoginAttempts();
         return res.status(401).json({
           success: false,
@@ -58,6 +74,7 @@ router.post("/", async (req, res) => {
           process.env.SECRET_KEY,
           {
             expiresIn: "24h", // Extended to 24 hours for better user experience
+            algorithm: "HS256", // Explicitly specify the algorithm
           }
         );
 
@@ -66,15 +83,9 @@ router.post("/", async (req, res) => {
           httpOnly: true, // ✅ Prevent XSS attacks
           maxAge: 24 * 3600 * 1000, // 24 hours expiration to match JWT
           path: "/",
+          secure: isProduction, // Only send over HTTPS in production
+          sameSite: isProduction ? "none" : "lax", // Cross-origin support in production
         };
-
-        if (isProduction) {
-          cookieOptions.sameSite = "none"; // Cross-origin support
-          cookieOptions.secure = true; // HTTPS only
-        } else {
-          cookieOptions.sameSite = "lax"; // Works with same-site requests
-          cookieOptions.secure = false; // Works with HTTP
-        }
 
         res.cookie("token", token, cookieOptions);
 
@@ -104,7 +115,6 @@ router.post("/", async (req, res) => {
       });
     }
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -113,7 +123,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.post("/register", async (req, res) => {
+router.post("/register", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { userId, email, password, fName, lName, role = "user" } = req.body;
 
@@ -122,6 +132,23 @@ router.post("/register", async (req, res) => {
         success: false,
         message:
           "User ID, email, password, first name, and last name are required",
+      });
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long",
+      });
+    }
+
+    // Validate role is valid
+    const validRoles = ["admin", "manager", "user"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid role. Must be one of: admin, manager, user",
       });
     }
 
@@ -158,7 +185,6 @@ router.post("/register", async (req, res) => {
       },
     });
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -185,7 +211,9 @@ router.get("/verify", async (req, res) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    const decoded = jwt.verify(token, process.env.SECRET_KEY, {
+      algorithms: ["HS256"], // Explicitly specify the algorithm
+    });
 
     const user = await User.findOne({ userId: decoded.userId });
 
@@ -209,7 +237,6 @@ router.get("/verify", async (req, res) => {
       },
     });
   } catch (error) {
-
     res.status(401).json({
       success: false,
       message: "Invalid token",
@@ -224,15 +251,9 @@ router.post("/logout", (req, res) => {
     const cookieOptions = {
       httpOnly: true,
       path: "/",
+      secure: isProduction, // Only send over HTTPS in production
+      sameSite: isProduction ? "none" : "lax",
     };
-
-    if (isProduction) {
-      cookieOptions.sameSite = "none";
-      cookieOptions.secure = true;
-    } else {
-      cookieOptions.sameSite = "lax";
-      cookieOptions.secure = false;
-    }
 
     res.clearCookie("token", cookieOptions);
 
@@ -241,7 +262,6 @@ router.post("/logout", (req, res) => {
       message: "Logout successful",
     });
   } catch (error) {
-
     res.status(500).json({
       success: false,
       message: "Internal server error",

@@ -26,7 +26,11 @@ import jobOrdersFeature from "./features/jobOrders/index.js";
 import blogsFeature from "./features/blogs/index.js";
 import authFeature from "./features/auth/index.js";
 import commonFeature from "./features/common/index.js";
-import { authenticateToken } from "./features/auth/middleware/auth.js";
+import notesFeature from "./features/notes/index.js";
+import {
+  authenticateToken,
+  authorizeRoles,
+} from "./features/auth/middleware/auth.js";
 
 const authRouter = authFeature.routes.auth;
 const usersRouter = authFeature.routes.users;
@@ -38,8 +42,24 @@ const customersRouter = customersFeature.routes;
 const quotesRouter = quotesFeature.routes;
 const salesOrdersRouter = salesOrdersFeature.routes;
 const jobOrdersRouter = jobOrdersFeature.routes;
+const notesRouter = notesFeature.router;
 
 config({ path: "./.env" });
+
+// Validate critical environment variables
+if (!process.env.SECRET_KEY) {
+  console.error(
+    "ERROR: SECRET_KEY environment variable is required for JWT authentication"
+  );
+  process.exit(1);
+}
+
+if (!process.env.MONGO_DB_URI) {
+  console.error(
+    "ERROR: MONGO_DB_URI environment variable is required for database connection"
+  );
+  process.exit(1);
+}
 
 if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
   // AWS credentials not configured
@@ -166,7 +186,7 @@ app.use("/", indexRouter);
 app.use("/auth", authRouter);
 app.use("/file-upload", fileUploadRouter);
 app.use("/s3-cors", s3CorsRouter);
-app.use("/users", authenticateToken, usersRouter);
+app.use("/users", authenticateToken, authorizeRoles("admin"), usersRouter); // Only admins can manage users
 app.use("/leads", authenticateToken, leadsRouter);
 app.use("/blogs", blogsRouter); // Keep public for marketing
 app.use("/vendors", authenticateToken, vendorsRouter);
@@ -174,8 +194,14 @@ app.use("/customers", authenticateToken, customersRouter);
 app.use("/quotes", authenticateToken, quotesRouter);
 app.use("/salesOrders", authenticateToken, salesOrdersRouter);
 app.use("/jobOrders", authenticateToken, jobOrdersRouter);
-app.use("/blog-automation", authenticateToken, blogAutomationRouter);
+app.use(
+  "/blog-automation",
+  authenticateToken,
+  authorizeRoles("admin"),
+  blogAutomationRouter
+); // Only admins can automate blogs
 app.use("/dashboard", authenticateToken, dashboardRouter);
+app.use("/notes", authenticateToken, notesRouter);
 
 dbConnect().catch((error) => {
   process.exit(1);
