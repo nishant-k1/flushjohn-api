@@ -1,5 +1,6 @@
 import { Router } from "express";
 import nodemailer from "nodemailer";
+import * as contactsService from "../features/contacts/services/contactsService.js";
 
 const router = Router();
 
@@ -13,6 +14,21 @@ router.post("/", async (req, res, next) => {
         success: false,
         message: "Missing required fields",
       });
+    }
+
+    // Save contact to database
+    try {
+      await contactsService.createContact({
+        firstName: emailData.firstName,
+        lastName: emailData.lastName,
+        email: emailData.email,
+        phone: emailData.phone || "",
+        message: emailData.message,
+        status: "New",
+      });
+    } catch (dbError) {
+      console.error("Error saving contact to database:", dbError);
+      // Continue with email even if DB save fails
     }
 
     const transporter = nodemailer.createTransport({

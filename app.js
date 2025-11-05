@@ -28,6 +28,7 @@ import blogsFeature from "./features/blogs/index.js";
 import authFeature from "./features/auth/index.js";
 import commonFeature from "./features/common/index.js";
 import notesFeature from "./features/notes/index.js";
+import contactsFeature from "./features/contacts/index.js";
 import {
   authenticateToken,
   authorizeRoles,
@@ -44,6 +45,7 @@ const quotesRouter = quotesFeature.routes;
 const salesOrdersRouter = salesOrdersFeature.routes;
 const jobOrdersRouter = jobOrdersFeature.routes;
 const notesRouter = notesFeature.router;
+const contactsRouter = contactsFeature.routes;
 
 config({ path: "./.env" });
 
@@ -185,6 +187,7 @@ app.use(
 ); // Only admins can automate blogs
 app.use("/dashboard", authenticateToken, dashboardRouter);
 app.use("/notes", authenticateToken, notesRouter);
+app.use("/contacts", authenticateToken, contactsRouter);
 
 dbConnect().catch((error) => {
   process.exit(1);

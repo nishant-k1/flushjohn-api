@@ -47,21 +47,21 @@ router.get(
       } catch (error) {
         // If PDF doesn't exist in S3, return 404
         if (error.name === "NoSuchKey" || error.Code === "NoSuchKey") {
-          return res.status(404).json({
-            success: false,
-            message: "PDF not found",
-            error: "PDF_NOT_FOUND",
-          });
-        }
+        return res.status(404).json({
+          success: false,
+          message: "PDF not found",
+          error: "PDF_NOT_FOUND",
+        });
+      }
         
         // For other errors, return 500
         console.error("Error generating PDF signed URL:", error);
-        res.status(500).json({
-          success: false,
+          res.status(500).json({
+            success: false,
           message: "Error accessing PDF file",
           error: "PDF_ACCESS_ERROR",
-        });
-      }
+          });
+        }
     } catch (error) {
       console.error("PDF access error:", error);
       res.status(500).json({
@@ -119,23 +119,23 @@ router.get(
         const signedUrl = await getPDFSignedUrl(pdfKey, 3600);
         
         // Also provide the API endpoint URL for backward compatibility
-        const secureUrl = `${req.protocol}://${req.get(
-          "host"
-        )}/pdf/${documentType}/${documentId}?token=${token}`;
+      const secureUrl = `${req.protocol}://${req.get(
+        "host"
+      )}/pdf/${documentType}/${documentId}?token=${token}`;
         
-        res.json({
-          success: true,
-          message: "Secure PDF URL generated",
-          data: {
+      res.json({
+        success: true,
+        message: "Secure PDF URL generated",
+        data: {
             secureUrl, // API endpoint (redirects to S3)
             s3SignedUrl: signedUrl, // Direct S3 signed URL
-            expiresIn: "1 hour",
-            documentType,
-            documentId,
-            generatedBy: req.user.userId,
-            generatedAt: getCurrentDateTime().toISOString(),
-          },
-        });
+          expiresIn: "1 hour",
+          documentType,
+          documentId,
+          generatedBy: req.user.userId,
+          generatedAt: getCurrentDateTime().toISOString(),
+        },
+      });
       } catch (error) {
         // If PDF doesn't exist in S3, return 404
         if (error.name === "NoSuchKey" || error.Code === "NoSuchKey") {
