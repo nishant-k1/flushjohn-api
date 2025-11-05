@@ -1,11 +1,4 @@
 import { uploadPDFToS3 } from "../../common/services/s3Service.js";
-import fs from "fs";
-import path from "path";
-import { promisify } from "util";
-
-const readdir = promisify(fs.readdir);
-const stat = promisify(fs.stat);
-const unlink = promisify(fs.unlink);
 
 import quoteTemplate from "../../quotes/templates/pdf/index.js";
 import salesOrderTemplate from "../../salesOrders/templates/pdf/index.js";
@@ -34,6 +27,10 @@ try {
  * @returns {Promise<string>} - S3 URL of generated PDF
  */
 export const generatePDF = async (documentData, documentType, documentId) => {
+  let browser = null;
+  let context = null;
+  let page = null;
+
   try {
     let htmlContent;
     switch (documentType) {
@@ -54,7 +51,7 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       throw new Error(`Failed to generate HTML template for ${documentType}`);
     }
 
-    let browser, page, pdfBuffer;
+    let pdfBuffer;
 
     if (usePuppeteer) {
       browser = await browserLib.launch({
@@ -71,95 +68,121 @@ export const generatePDF = async (documentData, documentType, documentId) => {
         ],
       });
 
-      page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+      try {
+        page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
-      pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: {
-          top: "0.5in",
-          right: "0.5in",
-          bottom: "0.5in",
-          left: "0.5in",
-        },
-      });
+        pdfBuffer = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          margin: {
+            top: "0.5in",
+            right: "0.5in",
+            bottom: "0.5in",
+            left: "0.5in",
+          },
+        });
+      } finally {
+        if (page) {
+          try {
+            await page.close();
+          } catch (closeError) {
+            console.error("Error closing page:", closeError);
+          }
+        }
+        if (browser) {
+          try {
+            await browser.close();
+          } catch (closeError) {
+            console.error("Error closing browser:", closeError);
+          }
+        }
+      }
     } else {
       browser = await browserLib.launch({
         headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-gpu",
+        ],
       });
 
-      const context = await browser.newContext();
-      page = await context.newPage();
-
-      await page.setContent(htmlContent, { waitUntil: "networkidle" });
-
-      pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: {
-          top: "0.5in",
-          right: "0.5in",
-          bottom: "0.5in",
-          left: "0.5in",
-        },
-      });
-    }
-
-    await browser.close();
-
-    const useS3 = process.env.USE_S3_STORAGE === "true";
-
-    if (useS3) {
       try {
-        const s3Result = await uploadPDFToS3(
-          pdfBuffer,
-          documentType,
-          documentId
-        );
+        context = await browser.newContext();
+        page = await context.newPage();
 
-        return {
-          pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
-        };
-      } catch (s3Error) {}
-    } else {
-    }
+        await page.setContent(htmlContent, { waitUntil: "networkidle" });
 
-    const fileName = `${documentType}-${documentId}.pdf`;
-    const finalPath = path.join(process.cwd(), "public", "temp", fileName);
-    const timestamp = Date.now();
-
-    const tempDir = path.dirname(finalPath);
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-
-    const tempFileName = `${fileName}.tmp`;
-    const tempPath = path.join(tempDir, tempFileName);
-
-    try {
-      fs.writeFileSync(tempPath, pdfBuffer);
-
-      fs.renameSync(tempPath, finalPath);
-
-    } catch (writeError) {
-      if (fs.existsSync(tempPath)) {
-        fs.unlinkSync(tempPath);
+        pdfBuffer = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          margin: {
+            top: "0.5in",
+            right: "0.5in",
+            bottom: "0.5in",
+            left: "0.5in",
+          },
+        });
+      } finally {
+        if (page) {
+          try {
+            await page.close();
+          } catch (closeError) {
+            console.error("Error closing page:", closeError);
+          }
+        }
+        if (context) {
+          try {
+            await context.close();
+          } catch (closeError) {
+            console.error("Error closing context:", closeError);
+          }
+        }
+        if (browser) {
+          try {
+            await browser.close();
+          } catch (closeError) {
+            console.error("Error closing browser:", closeError);
+          }
+        }
       }
-      throw new Error(`Failed to write PDF file: ${writeError.message}`);
     }
 
-    const baseUrl =
-      process.env.API_BASE_URL ||
-      process.env.BASE_URL ||
-      "http://localhost:8080";
-    const pdfUrl = `${baseUrl}/temp/${fileName}?t=${timestamp}`;
+    // Always upload to S3 - no local file storage
+    const s3Result = await uploadPDFToS3(
+      pdfBuffer,
+      documentType,
+      documentId
+    );
 
     return {
-      pdfUrl, // Single URL for all use cases
+      pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
     };
   } catch (error) {
+    // Ensure browser is closed even if error occurs
+    if (page) {
+      try {
+        await page.close();
+      } catch (closeError) {
+        console.error("Error closing page during error handling:", closeError);
+      }
+    }
+    if (context) {
+      try {
+        await context.close();
+      } catch (closeError) {
+        console.error("Error closing context during error handling:", closeError);
+      }
+    }
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error("Error closing browser during error handling:", closeError);
+      }
+    }
     throw error;
   }
 };
@@ -218,51 +241,3 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
   return generatePDF(jobOrderData, "jobOrder", jobOrderId);
 };
 
-/**
- * Clean up old local PDF files
- * @param {number} maxAgeInDays - Delete files older than this many days (default: 1)
- * @returns {Promise<Object>} - Cleanup stats
- */
-export const cleanupOldPDFs = async (maxAgeInDays = 1) => {
-  try {
-    const tempDir = path.join(process.cwd(), "public", "temp");
-
-    if (!fs.existsSync(tempDir)) {
-      return { deleted: 0, message: "Temp directory does not exist" };
-    }
-
-    const files = await readdir(tempDir);
-    const now = Date.now();
-    const maxAgeMs = maxAgeInDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
-
-    let deletedCount = 0;
-    const deletedFiles = [];
-
-    for (const file of files) {
-      if (!file.endsWith(".pdf")) continue;
-
-      const filePath = path.join(tempDir, file);
-      const stats = await stat(filePath);
-      const fileAge = now - stats.mtimeMs; // Time since last modification
-
-      if (fileAge > maxAgeMs) {
-        await unlink(filePath);
-        deletedCount++;
-        deletedFiles.push({
-          name: file,
-          ageInDays: Math.floor(fileAge / (24 * 60 * 60 * 1000)),
-          size: stats.size,
-        });
-
-      }
-    }
-
-    return {
-      deleted: deletedCount,
-      files: deletedFiles,
-      message: `Deleted ${deletedCount} PDF(s) older than ${maxAgeInDays} days`,
-    };
-  } catch (error) {
-    throw error;
-  }
-};
