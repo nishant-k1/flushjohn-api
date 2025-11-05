@@ -245,6 +245,14 @@ async function healthCheckJob() {
       })),
     };
 
+    // Log memory usage if it's high
+    const memoryUsage = process.memoryUsage();
+    const memoryUsageMB = memoryUsage.heapUsed / 1024 / 1024;
+    if (memoryUsageMB > 512) {
+      console.warn(
+        `⚠️ High memory usage detected: ${memoryUsageMB.toFixed(2)} MB`
+      );
+    }
 
     jobStatus[jobName].lastSuccess = new Date();
     jobStatus[jobName].successfulRuns++;

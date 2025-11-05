@@ -96,15 +96,37 @@ router.post("/blog-content-image", async (req, res) => {
       });
     }
 
+    // Validate file size (max 5MB for images)
+    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
     let fileBuffer;
     if (typeof fileData === "string" && fileData.startsWith("data:")) {
       const base64Data = fileData.split(",")[1];
+      // Estimate size from base64 (base64 is ~33% larger than binary)
+      const estimatedSize = (base64Data.length * 3) / 4;
+      if (estimatedSize > maxSizeBytes) {
+        return res.status(400).json({
+          error: "File size exceeds maximum allowed size of 5MB",
+        });
+      }
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
+      const estimatedSize = (fileData.length * 3) / 4;
+      if (estimatedSize > maxSizeBytes) {
+        return res.status(400).json({
+          error: "File size exceeds maximum allowed size of 5MB",
+        });
+      }
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
       return res.status(400).json({
         error: "Invalid fileData format",
+      });
+    }
+
+    // Validate actual buffer size
+    if (fileBuffer.length > maxSizeBytes) {
+      return res.status(400).json({
+        error: "File size exceeds maximum allowed size of 5MB",
       });
     }
 
@@ -248,15 +270,37 @@ router.put("/blog-cover-image", async (req, res) => {
       });
     }
 
+    // Validate file size (max 5MB for cover images)
+    const maxSizeBytes = 5 * 1024 * 1024; // 5MB
     let fileBuffer;
     if (typeof fileData === "string" && fileData.startsWith("data:")) {
       const base64Data = fileData.split(",")[1];
+      // Estimate size from base64 (base64 is ~33% larger than binary)
+      const estimatedSize = (base64Data.length * 3) / 4;
+      if (estimatedSize > maxSizeBytes) {
+        return res.status(400).json({
+          error: "File size exceeds maximum allowed size of 5MB",
+        });
+      }
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
+      const estimatedSize = (fileData.length * 3) / 4;
+      if (estimatedSize > maxSizeBytes) {
+        return res.status(400).json({
+          error: "File size exceeds maximum allowed size of 5MB",
+        });
+      }
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
       return res.status(400).json({
         error: "Invalid fileData format",
+      });
+    }
+
+    // Validate actual buffer size
+    if (fileBuffer.length > maxSizeBytes) {
+      return res.status(400).json({
+        error: "File size exceeds maximum allowed size of 5MB",
       });
     }
 

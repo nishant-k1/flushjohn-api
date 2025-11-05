@@ -15,6 +15,7 @@ import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
 import s3CorsRouter from "./routes/s3-cors.js";
+import contactRouter from "./routes/contact.js";
 import blogAutomationRouter from "./features/blogs/routes/blog-automation.js";
 
 import leadsFeature from "./features/leads/index.js";
@@ -121,8 +122,8 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
 app.use(logger("dev"));
-app.use(json({ limit: "50mb" }));
-app.use(urlencoded({ extended: false, limit: "50mb" }));
+app.use(json({ limit: "10mb" }));
+app.use(urlencoded({ extended: false, limit: "10mb" }));
 app.use(cookieParser());
 
 app.use((req, res, next) => {
@@ -162,28 +163,10 @@ app.use((req, res, next) => {
 
 app.use("/logos", express.static("public/logos"));
 
-app.use(
-  "/temp",
-  (req, res, next) => {
-    res.setHeader(
-      "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
-    );
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    res.setHeader("Surrogate-Control", "no-store");
-    next();
-  },
-  express.static("public/temp", {
-    etag: false,
-    lastModified: false,
-    cacheControl: false,
-  })
-);
-
 app.use("/pdf", pdfAccessRouter);
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
+app.use("/contact", contactRouter);
 app.use("/file-upload", fileUploadRouter);
 app.use("/s3-cors", s3CorsRouter);
 app.use("/users", authenticateToken, authorizeRoles("admin"), usersRouter); // Only admins can manage users
