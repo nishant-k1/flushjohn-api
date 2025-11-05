@@ -69,19 +69,19 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       });
 
       try {
-        page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+      page = await browser.newPage();
+      await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
-        pdfBuffer = await page.pdf({
-          format: "A4",
-          printBackground: true,
-          margin: {
-            top: "0.5in",
-            right: "0.5in",
-            bottom: "0.5in",
-            left: "0.5in",
-          },
-        });
+      pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: {
+          top: "0.5in",
+          right: "0.5in",
+          bottom: "0.5in",
+          left: "0.5in",
+        },
+      });
       } finally {
         if (page) {
           try {
@@ -111,20 +111,20 @@ export const generatePDF = async (documentData, documentType, documentId) => {
 
       try {
         context = await browser.newContext();
-        page = await context.newPage();
+      page = await context.newPage();
 
-        await page.setContent(htmlContent, { waitUntil: "networkidle" });
+      await page.setContent(htmlContent, { waitUntil: "networkidle" });
 
-        pdfBuffer = await page.pdf({
-          format: "A4",
-          printBackground: true,
-          margin: {
-            top: "0.5in",
-            right: "0.5in",
-            bottom: "0.5in",
-            left: "0.5in",
-          },
-        });
+      pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: {
+          top: "0.5in",
+          right: "0.5in",
+          bottom: "0.5in",
+          left: "0.5in",
+        },
+      });
       } finally {
         if (page) {
           try {
@@ -141,7 +141,7 @@ export const generatePDF = async (documentData, documentType, documentId) => {
           }
         }
         if (browser) {
-          try {
+      try {
             await browser.close();
           } catch (closeError) {
             console.error("Error closing browser:", closeError);
@@ -151,15 +151,15 @@ export const generatePDF = async (documentData, documentType, documentId) => {
     }
 
     // Always upload to S3 - no local file storage
-    const s3Result = await uploadPDFToS3(
-      pdfBuffer,
-      documentType,
-      documentId
-    );
+        const s3Result = await uploadPDFToS3(
+          pdfBuffer,
+          documentType,
+          documentId
+        );
 
-    return {
-      pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
-    };
+        return {
+          pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
+        };
   } catch (error) {
     // Ensure browser is closed even if error occurs
     if (page) {
@@ -167,14 +167,14 @@ export const generatePDF = async (documentData, documentType, documentId) => {
         await page.close();
       } catch (closeError) {
         console.error("Error closing page during error handling:", closeError);
-      }
+    }
     }
     if (context) {
       try {
         await context.close();
       } catch (closeError) {
         console.error("Error closing context during error handling:", closeError);
-      }
+    }
     }
     if (browser) {
       try {
