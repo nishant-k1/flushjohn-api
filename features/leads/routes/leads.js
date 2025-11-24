@@ -28,6 +28,9 @@ import {
 
 const router = Router();
 
+// POST /leads is now public (handled in app.js)
+// This route is kept for backward compatibility but won't be used
+// since app.js handles POST /leads before this router
 router.post(
   "/",
   authenticateToken,

@@ -171,7 +171,81 @@ app.use("/auth", authRouter);
 app.use("/contact", contactRouter);
 app.use("/file-upload", fileUploadRouter);
 app.use("/s3-cors", s3CorsRouter);
+// Public lead submission endpoint (POST /leads - no auth required)
+app.post("/leads", async (req, res, next) => {
+  try {
+    console.log("📥 Received public lead submission");
+    const leadData = req.body;
+
+    // Basic validation
+    if (!leadData.email || !leadData.fName || !leadData.phone) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required fields: email, fName, and phone are required",
+        error: "VALIDATION_ERROR",
+      });
+    }
+
+    // Use the service to create the lead
+    const { createLead } = await import(
+      "./features/leads/services/leadsService.js"
+    );
+    const lead = await createLead(leadData);
+
+    // Emit socket event if namespace is available
+    if (global.leadsNamespace) {
+      try {
+        const { default: Leads } = await import(
+          "./features/leads/models/Leads/index.js"
+        );
+        const leadsList = await Leads.find().sort({ _id: -1 });
+        global.leadsNamespace.emit("leadCreated", leadsList);
+        console.log("📢 Emitted leadCreated event to socket clients");
+      } catch (emitError) {
+        console.error("❌ Error emitting leadCreated event:", emitError);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Lead created successfully",
+      data: lead,
+    });
+  } catch (error) {
+    console.error("❌ Error creating lead via public endpoint:", error);
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        error: "VALIDATION_ERROR",
+        details: error.errors
+          ? Object.values(error.errors).map((err) => err.message)
+          : [error.message],
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "Lead already exists",
+        error: "DUPLICATE_LEAD",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to create lead",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && {
+        details: error.message,
+      }),
+    });
+  }
+});
 app.use("/users", authenticateToken, authorizeRoles("admin"), usersRouter); // Only admins can manage users
+// Other lead routes (GET, PUT, DELETE) require authentication
 app.use("/leads", authenticateToken, leadsRouter);
 app.use("/blogs", blogsRouter); // Keep public for marketing
 app.use("/vendors", authenticateToken, vendorsRouter);
