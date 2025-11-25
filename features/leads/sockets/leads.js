@@ -95,9 +95,16 @@ export function leadSocketHandler(leadsNamespace, socket) {
 
       const leadsList = await Leads.find().sort({ _id: -1 });
       leadsNamespace.emit("leadCreated", leadsList);
+      // Also emit success to the specific socket that made the request
+      socket.emit("leadCreated", leadsList);
       console.log("📢 Emitted leadCreated socket event for new lead");
     } catch (error) {
       console.error("❌ Error creating lead via socket:", error);
+      // Emit error back to the specific socket that made the request
+      socket.emit("leadCreationError", {
+        message: error.message || "Failed to create lead",
+        error: error.name || "LEAD_CREATION_ERROR",
+      });
     }
   });
 
