@@ -38,7 +38,7 @@ export const validateCreateQuote = [
     .trim()
     .notEmpty()
     .withMessage("Usage type is required")
-    .isIn(["Event", "Construction", "Emergency", "Other"])
+    .isIn(["Event", "Construction", "Emergency", "Renovation", "Other"])
     .withMessage("Please select a valid usage type"),
 
   body("products")
@@ -75,7 +75,7 @@ export const validateUpdateQuote = [
   body("usageType")
     .optional()
     .trim()
-    .isIn(["Event", "Construction", "Emergency", "Other"])
+    .isIn(["Event", "Construction", "Emergency", "Renovation", "Other"])
     .withMessage("Please select a valid usage type"),
 ];
 
