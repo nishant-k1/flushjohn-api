@@ -62,7 +62,7 @@ export const validateCreateLead = [
     .trim()
     .notEmpty()
     .withMessage("Usage type is required")
-    .isIn(["Event", "Construction", "Emergency", "Other"])
+    .isIn(["Event", "Construction", "Emergency", "Renovation", "Other"])
     .withMessage("Please select a valid usage type"),
 
   body("products")
@@ -114,7 +114,7 @@ export const validateUpdateLead = [
   body("usageType")
     .optional()
     .trim()
-    .isIn(["Event", "Construction", "Emergency", "Other"])
+    .isIn(["Event", "Construction", "Emergency", "Renovation", "Other"])
     .withMessage("Please select a valid usage type"),
 
   body("leadStatus")

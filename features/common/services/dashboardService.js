@@ -250,7 +250,7 @@ export const getDashboardAnalytics = async (
       }
     });
 
-    const officialUsageTypes = ["Event", "Construction"];
+    const officialUsageTypes = ["Event", "Construction", "Emergency", "Renovation"];
     const usageTypes = {};
 
     officialUsageTypes.forEach((type) => {
