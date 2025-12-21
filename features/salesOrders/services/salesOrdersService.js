@@ -1,5 +1,6 @@
 import * as salesOrdersRepository from "../repositories/salesOrdersRepository.js";
 import * as customersRepository from "../../customers/repositories/customersRepository.js";
+import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 export const generateSalesOrderNumber = async () => {
@@ -89,7 +90,27 @@ export const createSalesOrder = async (salesOrderData) => {
     quote: salesOrderData.quote || null,
   };
 
-  return await salesOrdersRepository.create(newSalesOrderData);
+  const createdSalesOrder = await salesOrdersRepository.create(
+    newSalesOrderData
+  );
+
+  // Update ConversationLog for AI learning - mark as converted
+  if (createdSalesOrder.lead) {
+    try {
+      await conversationLogRepository.updateOnSalesOrderCreated(
+        createdSalesOrder.lead,
+        createdSalesOrder._id
+      );
+    } catch (error) {
+      // Log but don't fail the sales order creation
+      console.error(
+        "Error updating ConversationLog on SalesOrder creation:",
+        error
+      );
+    }
+  }
+
+  return createdSalesOrder;
 };
 
 export const getAllSalesOrders = async ({
