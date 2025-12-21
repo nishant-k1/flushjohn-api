@@ -29,6 +29,7 @@ import authFeature from "./features/auth/index.js";
 import commonFeature from "./features/common/index.js";
 import notesFeature from "./features/notes/index.js";
 import contactsFeature from "./features/contacts/index.js";
+import salesAssistFeature from "./features/salesAssist/index.js";
 import {
   authenticateToken,
   authorizeRoles,
@@ -46,6 +47,8 @@ const salesOrdersRouter = salesOrdersFeature.routes;
 const jobOrdersRouter = jobOrdersFeature.routes;
 const notesRouter = notesFeature.router;
 const contactsRouter = contactsFeature.routes;
+const salesAssistRouter = salesAssistFeature.routes.salesAssist;
+const speechRecognitionRouter = salesAssistFeature.routes.speechRecognition;
 
 config({ path: "./.env" });
 
@@ -262,6 +265,8 @@ app.use(
 app.use("/dashboard", authenticateToken, dashboardRouter);
 app.use("/notes", authenticateToken, notesRouter);
 app.use("/contacts", authenticateToken, contactsRouter);
+app.use("/sales-assist", salesAssistRouter);
+app.use("/sales-assist", speechRecognitionRouter);
 
 dbConnect().catch((error) => {
   process.exit(1);

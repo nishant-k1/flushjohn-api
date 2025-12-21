@@ -1,4 +1,5 @@
 import * as jobOrdersRepository from "../repositories/jobOrdersRepository.js";
+import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
 
 export const generateJobOrderNumber = async () => {
@@ -167,7 +168,26 @@ export const createJobOrder = async (jobOrderData) => {
     salesOrder: jobOrderData.salesOrder || null,
   };
 
-  return await jobOrdersRepository.create(newJobOrderData);
+  const createdJobOrder = await jobOrdersRepository.create(newJobOrderData);
+
+  // Update ConversationLog for AI learning - mark as conversion success!
+  // This is the gold standard - when a JobOrder is created, the sale is confirmed
+  if (createdJobOrder.lead) {
+    try {
+      await conversationLogRepository.updateOnJobOrderCreated(
+        createdJobOrder.lead,
+        createdJobOrder._id
+      );
+    } catch (error) {
+      // Log but don't fail the job order creation
+      console.error(
+        "Error updating ConversationLog on JobOrder creation:",
+        error
+      );
+    }
+  }
+
+  return createdJobOrder;
 };
 
 export const getAllJobOrders = async ({
