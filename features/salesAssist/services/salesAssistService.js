@@ -7,6 +7,7 @@ import * as vendorsRepository from "../../vendors/repositories/vendorsRepository
 import * as vendorPricingRepository from "../repositories/vendorPricingRepository.js";
 import * as leadsRepository from "../../leads/repositories/leadsRepository.js";
 import * as conversationLogRepository from "../repositories/conversationLogRepository.js";
+import * as vendorConversationLogRepository from "../repositories/vendorConversationLogRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
 const openai = new OpenAI({
@@ -91,32 +92,52 @@ export const analyzeConversation = async (transcript, context = {}) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    const systemPrompt = `You are an AI assistant helping a porta potty rental business analyze customer conversations. 
+    const mode = context.mode || "sales"; // "sales" or "vendor"
+    const isVendorMode = mode === "vendor";
+
+    // Mode-aware system prompt - speakers are already identified by audio source
+    const systemPrompt = isVendorMode
+      ? `You are an AI assistant helping a porta potty rental business analyze vendor conversations. 
 
 Your tasks:
 1. Extract key information from the conversation
-2. IMPORTANT: Identify which speaker is the Operator and which is the Customer based on conversation content
 
-Speaker Role Identification Guidelines:
-- The OPERATOR typically:
-  - Greets and asks "How can I help you?"
-  - Asks for delivery address, event date, quantity needed
-  - Offers pricing, availability, and services
-  - Asks clarifying questions about requirements
-  - Uses professional service-oriented language
-  
-- The CUSTOMER typically:
-  - Requests services ("I need porta potties", "looking for rental")
-  - Provides their location, event details, dates
-  - Asks about pricing ("How much?", "What's the cost?")
-  - Describes their event or project needs
+The transcript is already labeled with speaker roles:
+- [Operator] = FJ Rep (FlushJohn Sales Representative) - asking vendor for quotes/pricing
+- [Customer] = Vendor Rep (Vendor Sales Representative) - providing quotes/pricing
 
-The transcript may have speaker labels like [Speaker 1], [Speaker 2], etc.
-Analyze the CONTENT of what each speaker says to determine their role.
+You do NOT need to identify speakers - they are already correctly labeled by audio source.
+
+Focus on extracting:
+- Pricing information quoted by the vendor
+- Service details and availability
+- Delivery options and timelines
+- Any negotiation points or special terms
 
 Return a JSON object with:
-- speakerRoles: { "Speaker 1": "Operator" or "Customer", "Speaker 2": "Operator" or "Customer" }
-- intent, location, eventType, quantity, dates, questions, tone, summary`;
+- intent, location, eventType, quantity, dates, questions, tone, summary
+- Note: speakerRoles is not needed since speakers are already identified`
+      : `You are an AI assistant helping a porta potty rental business analyze customer conversations. 
+
+Your tasks:
+1. Extract key information from the conversation
+
+The transcript is already labeled with speaker roles:
+- [Operator] = FJ Rep (FlushJohn Sales Representative) - providing service and pricing
+- [Customer] = Lead (Potential Customer) - requesting service and asking questions
+
+You do NOT need to identify speakers - they are already correctly labeled by audio source.
+
+Focus on extracting:
+- Customer's location and delivery address
+- Event type and dates
+- Quantity of units needed
+- Specific requirements or questions
+- Customer intent (rental, quote request, etc.)
+
+Return a JSON object with:
+- intent, location, eventType, quantity, dates, questions, tone, summary
+- Note: speakerRoles is not needed since speakers are already identified`;
 
     const userPrompt = `Analyze this conversation transcript:
 
@@ -151,7 +172,8 @@ Identify speaker roles based on what each person says, then extract the relevant
       questions: extractedInfo.questions || [],
       tone: extractedInfo.tone || null,
       summary: extractedInfo.summary || null,
-      speakerRoles: extractedInfo.speakerRoles || null,
+      // speakerRoles no longer needed - speakers are identified by audio source
+      speakerRoles: null,
     };
   } catch (error) {
     console.error("Error in analyzeConversation:", error);
@@ -584,6 +606,7 @@ const extractKeyPoints = (response) => {
  * Generate real-time response for operator to read aloud
  * This is the core function for the AI Sales Assistant
  * @param {Object} params - Parameters for response generation
+ * @param {string} params.mode - "sales" or "vendor" mode
  * @returns {Object} - Response for operator and pricing breakdown
  */
 export const generateRealTimeResponse = async ({
@@ -591,6 +614,7 @@ export const generateRealTimeResponse = async ({
   conversationHistory = [],
   extractedInfo = {},
   leadId = null,
+  mode = "sales",
 }) => {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -632,13 +656,74 @@ ${successfulConversations
 Apply these winning patterns to this conversation.
 `;
       }
+
+      // Also fetch vendor learnings
+      const vendorLearnings = await getVendorLearningsContext();
+      if (vendorLearnings) {
+        learningContext += vendorLearnings;
+      }
     } catch (error) {
       console.error("Error fetching learning context:", error);
       // Continue without learning context
     }
 
-    // Build the comprehensive system prompt
-    const systemPrompt = `ROLE: You are an AI assistant integrated into a CRM for a porta potty rental business that operates as a broker. We do not own the porta potties ourselves but connect customers with local vendors who provide the service.
+    const isVendorMode = mode === "vendor";
+
+    // Build the comprehensive system prompt based on mode
+    const systemPrompt = isVendorMode
+      ? `ROLE: You are an AI assistant helping a porta potty rental business operator communicate with vendor sales representatives to get quotes and pricing.
+
+YOUR RESPONSIBILITIES:
+1. CALL ASSISTANCE: Listen to the live conversation between the operator (FJ Rep) and vendor sales representative, understand what pricing and services the vendor is offering.
+2. REAL-TIME SUGGESTIONS: Display suggested responses and questions to the operator so they can effectively negotiate and gather pricing information from vendors. Generate EXACTLY what to say.
+3. GATHER VENDOR INFORMATION: Help the operator collect accurate pricing, availability, delivery options, and terms from vendors.
+4. LEARN AND IMPROVE: Analyze vendor conversations to identify effective negotiation tactics and pricing patterns that can be applied to customer sales calls.
+
+CONTEXT:
+- The operator is calling vendors to get quotes for customer orders
+- You need to help ask the right questions to get complete pricing information
+- Focus on: price per unit, delivery fees, pickup fees, availability, minimum quantities, payment terms
+- Be professional but efficient - vendors are business partners, not customers
+
+LANGUAGE & ACCENT REQUIREMENTS:
+- Write in natural US English (American spelling and phrasing)
+- Use casual, friendly American expressions and idioms
+- Write responses that are EASY TO READ ALOUD with a US accent
+- Use contractions naturally: "we'll", "you're", "that's", "doesn't"
+- Include natural filler phrases: "Absolutely!", "Sure thing!", "Perfect!", "You got it!"
+- Avoid formal/stiff language - sound like a friendly American salesperson
+- Example phrases: "Awesome!", "No problem at all", "Let me get you taken care of"
+
+VENDOR MODE - YOUR GOALS (in order):
+1. Greet professionally and introduce the request
+2. Provide vendor with: event type, location (zip/address), delivery & pickup dates, quantity needed
+3. Ask for complete pricing breakdown: price per unit, delivery fees, pickup fees, any additional charges
+4. Confirm availability for the required dates
+5. Ask about payment terms, minimum quantities, or special requirements
+6. Thank them and confirm next steps
+
+RULES FOR VENDOR MODE:
+- Be professional and efficient
+- Ask specific questions to get complete pricing information
+- Confirm all costs upfront (no surprises)
+- Verify availability before committing
+- Keep responses concise and focused on gathering information
+- Sound like a professional business operator
+- Keep sentences short and easy to read aloud
+
+RESPONSE FORMAT:
+Return a JSON object with:
+{
+  "response": "The exact words the operator should say (ready to read aloud)",
+  "pricingBreakdown": null (vendor mode - pricing comes from vendor, not calculated),
+  "nextAction": "what the operator should do next (e.g., 'wait for address', 'confirm booking', 'ask about delivery fees', etc.)",
+  "confidence": "high/medium/low"
+}
+
+In vendor mode, pricingBreakdown should always be null - we're gathering pricing from the vendor, not calculating it.
+
+${learningContext}`
+      : `ROLE: You are an AI assistant integrated into a CRM for a porta potty rental business that operates as a broker. We do not own the porta potties ourselves but connect customers with local vendors who provide the service.
 
 YOUR RESPONSIBILITIES:
 1. CALL ASSISTANCE: Listen to the live conversation between the operator and customer, distinguish who is speaking, and understand what the customer needs.
@@ -757,5 +842,121 @@ ${learningContext}`;
   } catch (error) {
     console.error("Error in generateRealTimeResponse:", error);
     throw new Error(`Failed to generate real-time response: ${error.message}`);
+  }
+};
+
+/**
+ * Extract learnings from vendor conversation for AI training
+ * @param {string} transcript - The vendor conversation transcript
+ * @returns {Object} - Extracted learnings
+ */
+export const extractVendorLearnings = async (transcript) => {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key is not configured");
+    }
+
+    const systemPrompt = `You are an AI analyst studying sales conversations between a porta potty rental company operator and vendor sales representatives.
+
+Your task is to extract actionable learnings from this vendor conversation that can be applied to customer-facing sales calls.
+
+Analyze the conversation and extract:
+
+1. EFFECTIVE PHRASES: Short, impactful phrases the vendor uses that could be adapted for customer sales
+   - Greetings and rapport building
+   - Pricing presentation phrases
+   - Confidence-building statements
+   - Closing phrases
+
+2. NEGOTIATION TACTICS: Strategies used by the vendor during the conversation
+   - How they present pricing
+   - How they handle objections
+   - How they create urgency
+   - How they upsell or add value
+
+3. PRICING STRATEGIES: How the vendor discusses and presents pricing
+   - Bundling techniques
+   - Discount positioning
+   - Value justification
+
+4. OBJECTION HANDLING: How objections or concerns are addressed
+   - Common objections and responses
+   - Reframing techniques
+
+5. CLOSING TECHNIQUES: How the vendor attempts to close the deal
+   - Assumptive closes
+   - Urgency creation
+   - Next steps positioning
+
+6. TONE NOTES: Overall observations about communication style, accent patterns, and language that makes the vendor sound professional and trustworthy
+
+Return a JSON object with these categories. Each category should contain an array of strings (except toneNotes which is a single string).`;
+
+    const userPrompt = `Analyze this vendor conversation and extract learnings:
+
+${transcript}
+
+Return JSON with: effectivePhrases, negotiationTactics, pricingStrategies, objectionHandling, closingTechniques, toneNotes`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.5,
+    });
+
+    const learnings = JSON.parse(completion.choices[0].message.content);
+
+    return {
+      effectivePhrases: learnings.effectivePhrases || [],
+      negotiationTactics: learnings.negotiationTactics || [],
+      pricingStrategies: learnings.pricingStrategies || [],
+      objectionHandling: learnings.objectionHandling || [],
+      closingTechniques: learnings.closingTechniques || [],
+      toneNotes: learnings.toneNotes || "",
+    };
+  } catch (error) {
+    console.error("Error extracting vendor learnings:", error);
+    throw new Error(`Failed to extract vendor learnings: ${error.message}`);
+  }
+};
+
+/**
+ * Get vendor learnings context for AI prompt
+ * @returns {string} - Formatted learning context for AI prompt
+ */
+export const getVendorLearningsContext = async () => {
+  try {
+    const [phrases, tactics] = await Promise.all([
+      vendorConversationLogRepository.getEffectivePhrases(15),
+      vendorConversationLogRepository.getNegotiationTactics(10),
+    ]);
+
+    if (!phrases.length && !tactics.length) {
+      return "";
+    }
+
+    let context =
+      "\nLEARNED FROM VENDOR CONVERSATIONS (apply these techniques):\n";
+
+    if (phrases.length > 0) {
+      context += `\nEffective phrases to use:\n${phrases
+        .map((p) => `- "${p}"`)
+        .join("\n")}\n`;
+    }
+
+    if (tactics.length > 0) {
+      context += `\nNegotiation tactics:\n${tactics
+        .map((t) => `- ${t}`)
+        .join("\n")}\n`;
+    }
+
+    return context;
+  } catch (error) {
+    console.error("Error getting vendor learnings context:", error);
+    return "";
   }
 };
