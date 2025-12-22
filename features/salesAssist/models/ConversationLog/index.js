@@ -111,12 +111,6 @@ const ConversationLogSchema = new mongoose.Schema({
     },
   ],
 
-  // AI-identified speaker roles
-  speakerRoles: {
-    type: Map,
-    of: String,
-  },
-
   // Operator who handled the call
   operatorId: {
     type: mongoose.Schema.Types.ObjectId,
