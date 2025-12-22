@@ -10,6 +10,7 @@ import * as conversationLogRepository from "../repositories/conversationLogRepos
 import * as vendorConversationLogRepository from "../repositories/vendorConversationLogRepository.js";
 import * as systemAudioCapture from "../services/systemAudioCapture.js";
 import * as aggregateAudioCapture from "../services/aggregateAudioCapture.js";
+import * as pronunciationAnalysisService from "../services/pronunciationAnalysisService.js";
 
 // Store active recognition streams per socket
 const activeStreams = new Map();
@@ -56,6 +57,9 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
   let extractedInfo = {}; // Store extracted information
   let isGeneratingResponse = false; // Prevent concurrent AI calls
   let lastResponseTime = 0; // Throttle response generation
+  let operatorStreamStartTime = null; // Track when operator stream started
+  let customerStreamStartTime = null; // Track when customer stream started
+  let isRestartingStreams = false; // Prevent multiple simultaneous restarts
 
   // Initialize conversation context
   conversationContexts.set(socket.id, {
@@ -114,12 +118,43 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
           // Update context
           context.transcript = fullTranscript;
 
-          // Throttle: only generate response if 1.5 seconds have passed
-          const now = Date.now();
-          if (now - lastResponseTime > 1500 && !isGeneratingResponse) {
-            lastResponseTime = now;
-            generateAIResponse(socket, context);
+          // Analyze pronunciation for operator speech
+          if (data.transcript && data.transcript.trim().length > 0) {
+            try {
+              const confidence = data.confidence || 0.7;
+              const wordLevelConfidence =
+                data.alternatives?.[0]?.words?.map((w) => w.confidence) || [];
+
+              const pronunciationResult =
+                await pronunciationAnalysisService.analyzePronunciation({
+                  transcript: data.transcript,
+                  confidence: confidence,
+                  wordLevelConfidence: wordLevelConfidence,
+                });
+
+              // Store segment for final summary
+              if (!context.pronunciationSegments) {
+                context.pronunciationSegments = [];
+              }
+              context.pronunciationSegments.push(pronunciationResult);
+
+              // Emit real-time pronunciation score
+              socket.emit("pronunciation-score", {
+                score: pronunciationResult.score,
+                segment: pronunciationResult.segment,
+                confidence: pronunciationResult.confidence,
+                timestamp: pronunciationResult.timestamp,
+                syllableAnalysis: pronunciationResult.syllableAnalysis,
+                phoneticAnalysis: pronunciationResult.phoneticAnalysis,
+              });
+            } catch (error) {
+              console.error("Error analyzing pronunciation:", error);
+              // Continue without blocking
+            }
           }
+
+          // DO NOT generate AI response when operator speaks
+          // AI responses should only be generated when customer/lead speaks
         }
       };
 
@@ -157,8 +192,111 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
         }
       };
 
+      // Function to restart both streams when either hits the 305-second limit
+      // We restart both together since they likely started at the same time
+      const restartStreams = () => {
+        if (isRestartingStreams) {
+          console.log(
+            `[StreamRestart] Already restarting streams, skipping duplicate restart`
+          );
+          return;
+        }
+
+        console.log(
+          `[StreamRestart] Restarting both streams due to 305-second limit`
+        );
+        isRestartingStreams = true;
+
+        try {
+          // Close old streams
+          if (operatorStream) {
+            try {
+              operatorStream.end();
+            } catch (err) {
+              console.error(
+                `[StreamRestart] Error ending old operator stream:`,
+                err
+              );
+            }
+            operatorStream = null;
+          }
+
+          if (customerStream) {
+            try {
+              customerStream.end();
+            } catch (err) {
+              console.error(
+                `[StreamRestart] Error ending old customer stream:`,
+                err
+              );
+            }
+            customerStream = null;
+          }
+
+          // Small delay to ensure old streams are fully closed
+          setTimeout(() => {
+            try {
+              // Create new streams
+              operatorStream = googleSpeechService.startStreamingRecognition(
+                onOperatorTranscriptCallback,
+                onOperatorErrorCallback
+              );
+              operatorStreamStartTime = Date.now();
+
+              customerStream = googleSpeechService.startStreamingRecognition(
+                onCustomerTranscriptCallback,
+                onCustomerErrorCallback
+              );
+              customerStreamStartTime = Date.now();
+
+              // Update active streams map
+              activeStreams.set(socket.id, {
+                operator: operatorStream,
+                customer: customerStream,
+              });
+
+              console.log(
+                `[StreamRestart] Both streams restarted successfully`
+              );
+              socket.emit("stream-restarted", {
+                streamType: "both",
+                message: `Streams automatically restarted after 5-minute limit`,
+              });
+            } catch (err) {
+              console.error(`[StreamRestart] Error restarting streams:`, err);
+              socket.emit("error", {
+                message: `Failed to restart streams: ${err.message}`,
+                severity: "error",
+              });
+            } finally {
+              isRestartingStreams = false;
+            }
+          }, 100); // 100ms delay to ensure clean restart
+        } catch (err) {
+          console.error(`[StreamRestart] Error in restart process:`, err);
+          socket.emit("error", {
+            message: `Failed to restart streams: ${err.message}`,
+            severity: "error",
+          });
+          isRestartingStreams = false;
+        }
+      };
+
       const onOperatorErrorCallback = (error) => {
         console.error("Operator recognition stream error:", error);
+
+        // Check if this is the 305-second limit error (code 11)
+        if (
+          error.code === 11 ||
+          (error.message && error.message.includes("305 seconds"))
+        ) {
+          console.log(
+            "[StreamRestart] Operator stream exceeded 305-second limit, restarting both streams..."
+          );
+          restartStreams();
+          return; // Don't emit error to client - streams are being restarted automatically
+        }
+
         socket.emit("error", {
           message:
             error.message || "Operator speech recognition error occurred",
@@ -167,6 +305,19 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
 
       const onCustomerErrorCallback = (error) => {
         console.error("Customer recognition stream error:", error);
+
+        // Check if this is the 305-second limit error (code 11)
+        if (
+          error.code === 11 ||
+          (error.message && error.message.includes("305 seconds"))
+        ) {
+          console.log(
+            "[StreamRestart] Customer stream exceeded 305-second limit, restarting both streams..."
+          );
+          restartStreams();
+          return; // Don't emit error to client - streams are being restarted automatically
+        }
+
         socket.emit("error", {
           message:
             error.message || "Customer speech recognition error occurred",
@@ -178,12 +329,14 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
         onOperatorTranscriptCallback,
         onOperatorErrorCallback
       );
+      operatorStreamStartTime = Date.now();
 
       // Start customer recognition stream (from system audio)
       customerStream = googleSpeechService.startStreamingRecognition(
         onCustomerTranscriptCallback,
         onCustomerErrorCallback
       );
+      customerStreamStartTime = Date.now();
 
       // Check if Aggregate Device is configured (preferred method)
       const aggregateConfigValid =
@@ -584,6 +737,40 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
       return;
     }
 
+    // Generate pronunciation summary if segments exist
+    if (
+      context.pronunciationSegments &&
+      context.pronunciationSegments.length > 0
+    ) {
+      try {
+        const overallScore = pronunciationAnalysisService.calculateOverallScore(
+          context.pronunciationSegments
+        );
+        const recommendations =
+          await pronunciationAnalysisService.generateRecommendations(
+            overallScore,
+            context.pronunciationSegments,
+            context.transcript
+          );
+
+        socket.emit("pronunciation-summary", {
+          overallScore: overallScore.overallScore,
+          segmentScores: context.pronunciationSegments.map((s) => ({
+            score: s.score,
+            segment: s.segment,
+            timestamp: s.timestamp,
+          })),
+          recommendations: recommendations.recommendations,
+          breakdown: overallScore.breakdown,
+          syllableIssues: recommendations.syllableIssues,
+          phoneticIssues: recommendations.phoneticIssues,
+        });
+      } catch (error) {
+        console.error("Error generating pronunciation summary:", error);
+        // Continue without blocking conversation save
+      }
+    }
+
     try {
       const duration = context.startTime
         ? Math.floor((Date.now() - context.startTime) / 1000)
@@ -703,8 +890,47 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
   }
 
   // Handle disconnect
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log(`Speech recognition client disconnected: ${socket.id}`);
+
+    // Generate pronunciation summary on disconnect if segments exist
+    const context = conversationContexts.get(socket.id);
+    if (
+      context &&
+      context.pronunciationSegments &&
+      context.pronunciationSegments.length > 0
+    ) {
+      try {
+        const overallScore = pronunciationAnalysisService.calculateOverallScore(
+          context.pronunciationSegments
+        );
+        const recommendations =
+          await pronunciationAnalysisService.generateRecommendations(
+            overallScore,
+            context.pronunciationSegments,
+            context.transcript || ""
+          );
+
+        socket.emit("pronunciation-summary", {
+          overallScore: overallScore.overallScore,
+          segmentScores: context.pronunciationSegments.map((s) => ({
+            score: s.score,
+            segment: s.segment,
+            timestamp: s.timestamp,
+          })),
+          recommendations: recommendations.recommendations,
+          breakdown: overallScore.breakdown,
+          syllableIssues: recommendations.syllableIssues,
+          phoneticIssues: recommendations.phoneticIssues,
+        });
+      } catch (error) {
+        console.error(
+          "Error generating pronunciation summary on disconnect:",
+          error
+        );
+        // Continue with cleanup
+      }
+    }
     cleanup();
   });
 
