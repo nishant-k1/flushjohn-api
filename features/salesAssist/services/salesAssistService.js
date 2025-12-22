@@ -172,8 +172,6 @@ Identify speaker roles based on what each person says, then extract the relevant
       questions: extractedInfo.questions || [],
       tone: extractedInfo.tone || null,
       summary: extractedInfo.summary || null,
-      // speakerRoles no longer needed - speakers are identified by audio source
-      speakerRoles: null,
     };
   } catch (error) {
     console.error("Error in analyzeConversation:", error);

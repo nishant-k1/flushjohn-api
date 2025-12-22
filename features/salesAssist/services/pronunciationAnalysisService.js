@@ -407,28 +407,3 @@ export const generateRecommendations = async (
     phoneticIssues: phoneticIssues.slice(0, 10), // Limit to top 10
   };
 };
-
-/**
- * Detect accent patterns (simplified)
- * @param {string} transcript - Transcribed text
- * @param {number} confidence - Overall confidence
- * @returns {Object} - Detected patterns
- */
-export const detectAccentPatterns = (transcript, confidence) => {
-  // This is a simplified version
-  // Full accent detection would require more sophisticated analysis
-  const patterns = [];
-
-  if (confidence < 0.7) {
-    patterns.push({
-      type: "low_confidence",
-      severity: "medium",
-      description: "Some words may be unclear",
-    });
-  }
-
-  return {
-    patterns: patterns,
-    overallConfidence: confidence,
-  };
-};

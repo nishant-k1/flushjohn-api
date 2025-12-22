@@ -69,7 +69,6 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
     leadId: null,
     lastPricingBreakdown: null,
     lastQuotedPrice: null,
-    speakerRoles: null,
     startTime: null,
     mode: "sales", // Default to sales mode
   });
@@ -570,9 +569,6 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
         context.lastPricingBreakdown = responseResult.pricingBreakdown;
         context.lastQuotedPrice = responseResult.pricingBreakdown.grandTotal;
       }
-      if (analysisResult.speakerRoles) {
-        context.speakerRoles = analysisResult.speakerRoles;
-      }
 
       // Emit the operator response
       socket.emit("operator-response", {
@@ -581,7 +577,6 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
         nextAction: responseResult.nextAction,
         confidence: responseResult.confidence,
         extractedInfo: context.extractedInfo,
-        speakerRoles: analysisResult.speakerRoles,
       });
 
       console.log(`Generated AI response for socket: ${socket.id}`);
@@ -827,7 +822,6 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
           quotedPrice: context.lastQuotedPrice || null,
           pricingBreakdown: context.lastPricingBreakdown || null,
           outcome: options.outcome || "pending",
-          speakerRoles: context.speakerRoles || {},
           operatorId: socket.userId || null,
           duration: duration,
           operatorFeedback: options.feedback || null,
