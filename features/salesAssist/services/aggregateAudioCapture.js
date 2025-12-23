@@ -114,7 +114,8 @@ const createDetailedErrorMessage = (error, device) => {
   // Only mark as SOX_NOT_INSTALLED if it's actually about SOX not being found
   // Don't mark it if SOX is found but failing to record (that's a different error)
   if (
-    (errorString.includes("command not found") && errorString.includes("sox")) ||
+    (errorString.includes("command not found") &&
+      errorString.includes("sox")) ||
     errorString.includes("sox: command not found") ||
     errorString.includes("which: no sox")
   ) {
@@ -128,7 +129,7 @@ const createDetailedErrorMessage = (error, device) => {
       originalError: errorMessage,
     };
   }
-  
+
   // If SOX is found but failing (e.g., "sox has exited with error code"),
   // this is likely a device configuration issue, not a SOX installation issue
   if (
@@ -457,30 +458,36 @@ export const startAggregateAudioCapture = (
     audioStream.on("error", (error) => {
       console.error("[AggregateAudio] Stream error:", error);
       console.error("[AggregateAudio] Stream error message:", error.message);
-      
+
       if (dataTimeout) {
         clearTimeout(dataTimeout);
       }
-      
+
       // Check if this is a SOX device error (not installation error)
       const errorMessage = error.message || String(error);
       const errorString = errorMessage.toLowerCase();
+
+      // Check if this is a SOX-related error
+      // If SOX check passed earlier, any SOX error here is a device/configuration issue, not installation
+      const isSoxError = errorString.includes("sox");
       
-      if (
-        errorString.includes("sox has exited") ||
-        errorString.includes("sox failed") ||
-        (errorString.includes("sox") && errorString.includes("error code"))
-      ) {
-        console.log("[AggregateAudio] SOX stream error - device configuration issue");
+      if (isSoxError) {
+        // Since we already verified SOX is available, this must be a device/configuration error
+        console.log(
+          "[AggregateAudio] SOX stream error detected - device configuration issue (SOX is installed)"
+        );
+        console.log("[AggregateAudio] Original error:", errorMessage);
+        
         if (onError) {
           onError({
             code: "AUDIO_DEVICE_ERROR",
             message: `Audio device error: SOX cannot access device "${device}". Check device configuration.`,
             details: [
-              `SOX is installed but cannot access the audio device.`,
-              `Verify the Aggregate Device "${device}" exists in Audio MIDI Setup.`,
-              `Check device name matches exactly (case-sensitive).`,
-              `Ensure the device is enabled and configured correctly.`,
+              `SOX is installed but cannot access the audio device "${device}".`,
+              `Verify the Aggregate Device exists in Audio MIDI Setup.`,
+              `Check device name matches exactly (case-sensitive): "${device}"`,
+              `Ensure the device is enabled and has both mic and BlackHole channels configured.`,
+              `Original error: ${errorMessage}`,
             ],
             originalError: errorMessage,
             type: "STREAM_ERROR",
@@ -533,15 +540,15 @@ export const startAggregateAudioCapture = (
     console.error("[AggregateAudio] Failed to start capture:", error);
     console.error("[AggregateAudio] Error message:", error.message);
     console.error("[AggregateAudio] Error stack:", error.stack);
-    
+
     if (dataTimeout) {
       clearTimeout(dataTimeout);
     }
-    
+
     // Check if this is actually a SOX availability issue or a device/configuration issue
     const errorMessage = error.message || String(error);
     const errorString = errorMessage.toLowerCase();
-    
+
     // If error mentions "sox has exited" or "sox failed", it means SOX is installed but failing
     // This is NOT a SOX_NOT_INSTALLED error - it's a device/configuration error
     if (
@@ -549,7 +556,9 @@ export const startAggregateAudioCapture = (
       errorString.includes("sox failed") ||
       (errorString.includes("sox") && errorString.includes("error code"))
     ) {
-      console.log("[AggregateAudio] SOX is installed but failing - this is a device configuration issue");
+      console.log(
+        "[AggregateAudio] SOX is installed but failing - this is a device configuration issue"
+      );
       const deviceError = {
         code: "AUDIO_DEVICE_ERROR",
         message: `Audio device configuration error: ${errorMessage}`,
@@ -562,7 +571,7 @@ export const startAggregateAudioCapture = (
         ],
         originalError: errorMessage,
       };
-      
+
       if (onError) {
         onError({
           ...deviceError,
@@ -572,7 +581,7 @@ export const startAggregateAudioCapture = (
       }
       throw new Error(deviceError.message);
     }
-    
+
     const detailedError = createDetailedErrorMessage(error, device);
 
     // Log detailed error information
