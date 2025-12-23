@@ -111,43 +111,59 @@ const createDetailedErrorMessage = (error, device) => {
     };
   }
 
-  // Only mark as SOX_NOT_INSTALLED if it's actually about SOX not being found
-  // Don't mark it if SOX is found but failing to record (that's a different error)
-  if (
-    (errorString.includes("command not found") &&
-      errorString.includes("sox")) ||
-    errorString.includes("sox: command not found") ||
-    errorString.includes("which: no sox")
-  ) {
-    return {
-      code: "SOX_NOT_INSTALLED",
-      message: "Sox audio tool is not installed or not in PATH.",
-      details: [
-        `Install sox using: brew install sox`,
-        `Verify installation: sox --version`,
-      ],
-      originalError: errorMessage,
-    };
-  }
-
-  // If SOX is found but failing (e.g., "sox has exited with error code"),
-  // this is likely a device configuration issue, not a SOX installation issue
-  if (
-    errorString.includes("sox has exited") ||
-    errorString.includes("sox failed") ||
-    (errorString.includes("sox") && errorString.includes("error code"))
-  ) {
-    return {
-      code: "AUDIO_DEVICE_ERROR",
-      message: `Audio device error: ${errorMessage}`,
-      details: [
-        `SOX is installed but failed to access the audio device.`,
-        `Check that the Aggregate Device "${device}" exists in Audio MIDI Setup.`,
-        `Verify the device name matches exactly (case-sensitive).`,
-        `Ensure the device is enabled and has both mic and BlackHole channels.`,
-      ],
-      originalError: errorMessage,
-    };
+  // Check if error is SOX-related
+  const isSoxError = errorString.includes("sox");
+  
+  if (isSoxError) {
+    // First, verify if SOX is actually available
+    // If SOX is available, this is a device/configuration error, not installation error
+    const soxAvailable = checkSoxAvailable();
+    
+    if (soxAvailable) {
+      // SOX is installed but failing - this is a device/configuration issue
+      return {
+        code: "AUDIO_DEVICE_ERROR",
+        message: `Audio device error: ${errorMessage}`,
+        details: [
+          `SOX is installed but cannot access the audio device "${device}".`,
+          `Check that the Aggregate Device exists in Audio MIDI Setup.`,
+          `Verify the device name matches exactly (case-sensitive): "${device}"`,
+          `Ensure the device is enabled and has both mic and BlackHole channels configured.`,
+          `Original error: ${errorMessage}`,
+        ],
+        originalError: errorMessage,
+      };
+    } else {
+      // SOX is not available - this is an installation issue
+      // Only return SOX_NOT_INSTALLED if it's explicitly about command not found
+      if (
+        errorString.includes("command not found") ||
+        errorString.includes("which: no sox")
+      ) {
+        return {
+          code: "SOX_NOT_INSTALLED",
+          message: "Sox audio tool is not installed or not in PATH.",
+          details: [
+            `Install sox using: brew install sox`,
+            `Verify installation: sox --version`,
+          ],
+          originalError: errorMessage,
+        };
+      }
+      // If SOX error but not explicitly "command not found", still treat as device error
+      // (might be a PATH issue that we can't detect)
+      return {
+        code: "AUDIO_DEVICE_ERROR",
+        message: `Audio device error: ${errorMessage}`,
+        details: [
+          `SOX-related error detected.`,
+          `Check that SOX is installed: brew install sox`,
+          `Verify the Aggregate Device "${device}" exists in Audio MIDI Setup.`,
+          `Original error: ${errorMessage}`,
+        ],
+        originalError: errorMessage,
+      };
+    }
   }
 
   if (
