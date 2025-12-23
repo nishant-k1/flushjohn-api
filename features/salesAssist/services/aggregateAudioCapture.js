@@ -26,8 +26,8 @@ const checkSoxAvailable = () => {
   // Method 2: Try common installation paths
   const commonPaths = [
     "/opt/homebrew/bin/sox", // Homebrew on Apple Silicon
-    "/usr/local/bin/sox",    // Homebrew on Intel Mac
-    "/usr/bin/sox",          // System installation
+    "/usr/local/bin/sox", // Homebrew on Intel Mac
+    "/usr/bin/sox", // System installation
   ];
 
   for (const soxPath of commonPaths) {
@@ -111,9 +111,12 @@ const createDetailedErrorMessage = (error, device) => {
     };
   }
 
+  // Only mark as SOX_NOT_INSTALLED if it's actually about SOX not being found
+  // Don't mark it if SOX is found but failing to record (that's a different error)
   if (
-    errorString.includes("sox") ||
-    errorString.includes("command not found")
+    (errorString.includes("command not found") && errorString.includes("sox")) ||
+    errorString.includes("sox: command not found") ||
+    errorString.includes("which: no sox")
   ) {
     return {
       code: "SOX_NOT_INSTALLED",
@@ -121,6 +124,26 @@ const createDetailedErrorMessage = (error, device) => {
       details: [
         `Install sox using: brew install sox`,
         `Verify installation: sox --version`,
+      ],
+      originalError: errorMessage,
+    };
+  }
+  
+  // If SOX is found but failing (e.g., "sox has exited with error code"),
+  // this is likely a device configuration issue, not a SOX installation issue
+  if (
+    errorString.includes("sox has exited") ||
+    errorString.includes("sox failed") ||
+    (errorString.includes("sox") && errorString.includes("error code"))
+  ) {
+    return {
+      code: "AUDIO_DEVICE_ERROR",
+      message: `Audio device error: ${errorMessage}`,
+      details: [
+        `SOX is installed but failed to access the audio device.`,
+        `Check that the Aggregate Device "${device}" exists in Audio MIDI Setup.`,
+        `Verify the device name matches exactly (case-sensitive).`,
+        `Ensure the device is enabled and has both mic and BlackHole channels.`,
       ],
       originalError: errorMessage,
     };
@@ -221,7 +244,7 @@ export const startAggregateAudioCapture = (
   // Check sox availability before attempting capture
   const soxAvailable = checkSoxAvailable();
   console.log(`[AggregateAudio] SOX availability check: ${soxAvailable}`);
-  
+
   if (!soxAvailable) {
     // Try to get more information about why SOX isn't available
     let soxPath = null;
@@ -244,9 +267,11 @@ export const startAggregateAudioCapture = (
         }
       }
     }
-    
+
     const error = new Error(
-      `Sox audio tool is not installed or not in PATH. Install with: brew install sox${soxPath ? ` (Found at: ${soxPath})` : ""}`
+      `Sox audio tool is not installed or not in PATH. Install with: brew install sox${
+        soxPath ? ` (Found at: ${soxPath})` : ""
+      }`
     );
     console.error("[AggregateAudio] SOX check failed:", error.message);
     console.error("[AggregateAudio] PATH:", process.env.PATH);
@@ -258,8 +283,10 @@ export const startAggregateAudioCapture = (
     }
     throw error;
   }
-  
-  console.log("[AggregateAudio] SOX is available, proceeding with audio capture");
+
+  console.log(
+    "[AggregateAudio] SOX is available, proceeding with audio capture"
+  );
 
   console.log(`[AggregateAudio] Starting capture from device: ${device}`);
   console.log(
@@ -278,18 +305,20 @@ export const startAggregateAudioCapture = (
     // The library needs to find sox when it executes it
     const originalPath = process.env.PATH || "";
     const homebrewPaths = [
-      "/opt/homebrew/bin",  // Apple Silicon
-      "/usr/local/bin",     // Intel Mac
+      "/opt/homebrew/bin", // Apple Silicon
+      "/usr/local/bin", // Intel Mac
     ];
-    
+
     // Add Homebrew paths if not already in PATH
     const pathParts = originalPath.split(":");
-    const missingPaths = homebrewPaths.filter(p => !pathParts.includes(p));
+    const missingPaths = homebrewPaths.filter((p) => !pathParts.includes(p));
     if (missingPaths.length > 0) {
       process.env.PATH = [...missingPaths, ...pathParts].join(":");
-      console.log(`[AggregateAudio] Updated PATH to include: ${missingPaths.join(", ")}`);
+      console.log(
+        `[AggregateAudio] Updated PATH to include: ${missingPaths.join(", ")}`
+      );
     }
-    
+
     // Capture from aggregate device with multiple channels
     // The aggregate device should have at least 2 channels (mic + BlackHole)
     recording = recorder.record({
@@ -427,9 +456,40 @@ export const startAggregateAudioCapture = (
 
     audioStream.on("error", (error) => {
       console.error("[AggregateAudio] Stream error:", error);
+      console.error("[AggregateAudio] Stream error message:", error.message);
+      
       if (dataTimeout) {
         clearTimeout(dataTimeout);
       }
+      
+      // Check if this is a SOX device error (not installation error)
+      const errorMessage = error.message || String(error);
+      const errorString = errorMessage.toLowerCase();
+      
+      if (
+        errorString.includes("sox has exited") ||
+        errorString.includes("sox failed") ||
+        (errorString.includes("sox") && errorString.includes("error code"))
+      ) {
+        console.log("[AggregateAudio] SOX stream error - device configuration issue");
+        if (onError) {
+          onError({
+            code: "AUDIO_DEVICE_ERROR",
+            message: `Audio device error: SOX cannot access device "${device}". Check device configuration.`,
+            details: [
+              `SOX is installed but cannot access the audio device.`,
+              `Verify the Aggregate Device "${device}" exists in Audio MIDI Setup.`,
+              `Check device name matches exactly (case-sensitive).`,
+              `Ensure the device is enabled and configured correctly.`,
+            ],
+            originalError: errorMessage,
+            type: "STREAM_ERROR",
+            stack: error.stack,
+          });
+        }
+        return;
+      }
+      
       const detailedError = createDetailedErrorMessage(error, device);
       if (onError) {
         onError({
@@ -471,9 +531,48 @@ export const startAggregateAudioCapture = (
     };
   } catch (error) {
     console.error("[AggregateAudio] Failed to start capture:", error);
+    console.error("[AggregateAudio] Error message:", error.message);
+    console.error("[AggregateAudio] Error stack:", error.stack);
+    
     if (dataTimeout) {
       clearTimeout(dataTimeout);
     }
+    
+    // Check if this is actually a SOX availability issue or a device/configuration issue
+    const errorMessage = error.message || String(error);
+    const errorString = errorMessage.toLowerCase();
+    
+    // If error mentions "sox has exited" or "sox failed", it means SOX is installed but failing
+    // This is NOT a SOX_NOT_INSTALLED error - it's a device/configuration error
+    if (
+      errorString.includes("sox has exited") ||
+      errorString.includes("sox failed") ||
+      (errorString.includes("sox") && errorString.includes("error code"))
+    ) {
+      console.log("[AggregateAudio] SOX is installed but failing - this is a device configuration issue");
+      const deviceError = {
+        code: "AUDIO_DEVICE_ERROR",
+        message: `Audio device configuration error: ${errorMessage}`,
+        details: [
+          `SOX is installed but cannot access the audio device "${device}".`,
+          `Check that the Aggregate Device exists in Audio MIDI Setup.`,
+          `Verify the device name matches exactly (case-sensitive): "${device}"`,
+          `Ensure the device is enabled and has both mic and BlackHole channels configured.`,
+          `Try running: sox --show-device to list available devices.`,
+        ],
+        originalError: errorMessage,
+      };
+      
+      if (onError) {
+        onError({
+          ...deviceError,
+          type: "AUDIO_DEVICE_ERROR",
+          stack: error.stack,
+        });
+      }
+      throw new Error(deviceError.message);
+    }
+    
     const detailedError = createDetailedErrorMessage(error, device);
 
     // Log detailed error information
