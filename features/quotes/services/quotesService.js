@@ -131,25 +131,51 @@ export const getAllQuotes = async ({
     quotesRepository.count(query),
   ]);
 
-  const flattenedQuotes = await Promise.all(
-    quotes.map(async (quote) => {
-      const quoteObj = quote.toObject();
+  // ✅ OPTIMIZED: Batch fetch leads instead of N+1 queries
+  const quotesNeedingLeads = quotes.filter(
+    (quote) => !quote.lead && quote.leadNo
+  );
 
-      let lead = quote.lead;
-
-      if (!lead && quoteObj.leadNo) {
-        const Leads = (await import("../../leads/models/Leads/index.js"))
-          .default;
-        let leadNo = quoteObj.leadNo;
-
+  let leadsMap = new Map();
+  if (quotesNeedingLeads.length > 0) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const leadNumbers = quotesNeedingLeads
+      .map((quote) => {
+        let leadNo = quote.leadNo;
         if (typeof leadNo === "string") {
           const numericPart = leadNo.replace(/\D/g, "");
           const parsed = parseInt(numericPart);
           leadNo = !isNaN(parsed) ? parsed : null;
         }
+        return leadNo;
+      })
+      .filter(Boolean);
 
-        if (leadNo) {
-          lead = await Leads.findOne({ leadNo });
+    if (leadNumbers.length > 0) {
+      // ✅ Batch fetch all leads in one query
+      const leads = await Leads.find({ leadNo: { $in: leadNumbers } }).lean();
+      leads.forEach((lead) => {
+        leadsMap.set(lead.leadNo, lead);
+      });
+    }
+  }
+
+  // ✅ Map leads to quotes efficiently
+  const flattenedQuotes = quotes.map((quote) => {
+    const quoteObj = quote.toObject ? quote.toObject() : quote;
+
+    let lead = quote.lead;
+
+    // Use batch-fetched lead if available
+    if (!lead && quoteObj.leadNo) {
+      let leadNo = quoteObj.leadNo;
+      if (typeof leadNo === "string") {
+        const numericPart = leadNo.replace(/\D/g, "");
+        const parsed = parseInt(numericPart);
+        leadNo = !isNaN(parsed) ? parsed : null;
+      }
+      if (leadNo) {
+        lead = leadsMap.get(leadNo);
         }
       }
 
@@ -161,8 +187,7 @@ export const getAllQuotes = async ({
         };
       }
       return quoteObj;
-    })
-  );
+  });
 
   const totalPages = Math.ceil(total / limit);
 
