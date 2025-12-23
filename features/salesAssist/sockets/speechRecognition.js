@@ -99,7 +99,7 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
         // Tag transcript with audioSource
         const transcriptData = {
           ...data,
-          audioSource: "operator",
+          audioSource: "input_audio",
           speakerTag: null, // Don't rely on Google's diarization
         };
         socket.emit("transcript", transcriptData);
@@ -162,7 +162,7 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
         // Tag transcript with audioSource
         const transcriptData = {
           ...data,
-          audioSource: "customer",
+          audioSource: "output_audio",
           speakerTag: null, // Don't rely on Google's diarization
         };
         socket.emit("transcript", transcriptData);
@@ -330,16 +330,24 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
       );
       operatorStreamStartTime = Date.now();
 
-      // Start customer recognition stream (from system audio)
+      // Start customer recognition stream (from frontend BlackHole/system audio)
       customerStream = googleSpeechService.startStreamingRecognition(
         onCustomerTranscriptCallback,
         onCustomerErrorCallback
       );
       customerStreamStartTime = Date.now();
 
-      // Check if Aggregate Device is configured (preferred method)
-      const aggregateConfigValid =
-        aggregateAudioCapture.validateConfiguration();
+      // Check if backend audio capture should be used (legacy mode)
+      // Default: false - frontend captures both mic and BlackHole
+      // Set USE_BACKEND_AUDIO_CAPTURE=true to use backend Aggregate Device/BlackHole capture
+      const useBackendAudioCapture =
+        process.env.USE_BACKEND_AUDIO_CAPTURE === "true";
+
+      if (useBackendAudioCapture) {
+        // Legacy mode: Backend captures audio (Aggregate Device or BlackHole)
+        // Check if Aggregate Device is configured (preferred method)
+        const aggregateConfigValid =
+          aggregateAudioCapture.validateConfiguration();
 
       if (aggregateConfigValid) {
         // Use Aggregate Device - captures both operator (mic) and customer (BlackHole) audio
@@ -370,7 +378,33 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
               (error) => {
                 console.error("[AggregateAudio] Capture error:", error);
 
-                // Create detailed error message
+                // Don't emit errors for platform/configuration issues
+                // These are expected on deployed servers where Aggregate Device is not available
+                const isPlatformError =
+                  error.code === "PLATFORM_NOT_SUPPORTED" ||
+                  error.code === "AUDIO_DEVICE_ERROR" ||
+                  error.type === "PLATFORM_ERROR";
+
+                if (isPlatformError) {
+                  console.log(
+                    "[AggregateAudio] Platform/configuration error - stopping aggregate capture, will use fallback"
+                  );
+                  // Stop the aggregate capture and let the fallback handle it
+                  try {
+                    if (aggregateHandle && aggregateHandle.stop) {
+                      aggregateHandle.stop();
+                    }
+                    aggregateAudioCaptures.delete(socket.id);
+                  } catch (stopError) {
+                    console.error(
+                      "[AggregateAudio] Error stopping capture:",
+                      stopError
+                    );
+                  }
+                  return; // Don't emit error to client
+                }
+
+                // Create detailed error message for other errors
                 let errorMessage = "Aggregate audio capture failed. ";
                 let errorDetails = [];
 
@@ -436,15 +470,31 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
             errorDetails = error.details;
           }
 
-          socket.emit("error", {
-            message: errorMessage,
-            details: errorDetails,
-            code: error.code || "AGGREGATE_AUDIO_INIT_ERROR",
-            type: error.type || "INITIALIZATION_ERROR",
-            severity: "warning",
-            fallback:
-              "Will attempt to use separate audio sources (frontend mic + system audio)",
-          });
+          // Don't emit error to client if this is a platform/configuration issue
+          // This is expected on deployed servers (Linux) where Aggregate Device is not available
+          // Only log it and continue with fallback
+          const isPlatformError =
+            error.code === "PLATFORM_NOT_SUPPORTED" ||
+            error.code === "AUDIO_DEVICE_ERROR" ||
+            error.type === "PLATFORM_ERROR";
+
+          if (isPlatformError) {
+            console.log(
+              "[AggregateAudio] Platform/configuration issue - silently falling back to separate audio sources"
+            );
+            // Don't emit error - this is expected behavior on non-macOS systems
+          } else {
+            // For other errors (like SOX_NOT_INSTALLED), emit as warning
+            socket.emit("error", {
+              message: errorMessage,
+              details: errorDetails,
+              code: error.code || "AGGREGATE_AUDIO_INIT_ERROR",
+              type: error.type || "INITIALIZATION_ERROR",
+              severity: "warning",
+              fallback:
+                "Will attempt to use separate audio sources (frontend mic + system audio)",
+            });
+          }
 
           // Fall through to system audio capture as fallback
         }
@@ -511,20 +561,24 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
           });
         }
       }
+      } else {
+        // Default mode: Frontend captures both mic and BlackHole
+        // Backend just receives both streams via audio-chunk events
+        console.log(
+          `[FrontendAudio] Using frontend audio capture (mic + BlackHole)`
+        );
+        socket.emit("recognition-started", {
+          audioSource: "frontend-capture",
+          message:
+            "Using frontend audio capture. Make sure BlackHole is installed and selected.",
+        });
+      }
 
       activeStreams.set(socket.id, {
         operator: operatorStream,
         customer: customerStream,
       });
       console.log(`Started dual recognition streams for socket: ${socket.id}`);
-
-      // Only emit recognition-started if not already emitted by Aggregate Device handler
-      if (!aggregateAudioCaptures.has(socket.id)) {
-        socket.emit("recognition-started", {
-          audioSource: "separate-sources",
-          message: "Using separate audio sources (frontend mic + system audio)",
-        });
-      }
     } catch (error) {
       console.error("Error starting recognition:", error);
       socket.emit("error", {
@@ -601,10 +655,10 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
       // Validate audioSource
       if (
         !audioSource ||
-        (audioSource !== "operator" && audioSource !== "customer")
+        (audioSource !== "input_audio" && audioSource !== "output_audio")
       ) {
         console.warn(
-          `Received audio chunk with invalid source: ${audioSource}. Expected 'operator' or 'customer'.`
+          `Received audio chunk with invalid source: ${audioSource}. Expected 'input_audio' or 'output_audio'.`
         );
         return;
       }
@@ -612,36 +666,54 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
       // Convert base64 to buffer (audioData is already LINEAR16 PCM in base64)
       const audioBuffer = Buffer.from(audioData, "base64");
 
-      if (audioSource === "operator") {
-        // Operator audio (microphone) -> operator stream
-        // Note: This is only used as fallback when Aggregate Device is not configured
+      if (audioSource === "input_audio") {
+        // Input audio (microphone) from frontend -> operator stream
         if (!operatorStream) {
           console.warn(
-            "Received operator audio chunk but no active operator recognition stream"
+            "Received input_audio chunk but no active operator recognition stream"
           );
           return;
         }
+
+        // If using backend audio capture (Aggregate Device), ignore frontend input_audio
+        const useBackendAudioCapture =
+          process.env.USE_BACKEND_AUDIO_CAPTURE === "true";
+        if (
+          useBackendAudioCapture &&
+          aggregateAudioCaptures.has(socket.id)
+        ) {
+          console.log(
+            "[Audio] Ignoring frontend input_audio - using Aggregate Device instead"
+          );
+          return;
+        }
+
+        // Process frontend input_audio
         operatorStream.write(audioBuffer);
-      } else if (audioSource === "customer") {
-        // Customer audio from frontend -> customer stream
-        // Note: This is only used as fallback when Aggregate Device is not configured
-        // When using Aggregate Device, customer audio comes from BlackHole channel
+      } else if (audioSource === "output_audio") {
+        // Output audio from frontend (BlackHole/system audio) -> customer stream
         if (!customerStream) {
           console.warn(
-            "Received customer audio chunk but no active customer recognition stream"
+            "Received output_audio chunk but no active customer recognition stream"
           );
           return;
         }
 
-        // If using Aggregate Device, ignore frontend customer audio
-        if (aggregateAudioCaptures.has(socket.id)) {
+        // If using backend audio capture (Aggregate Device or systemAudioCapture), ignore frontend output_audio
+        const useBackendAudioCapture =
+          process.env.USE_BACKEND_AUDIO_CAPTURE === "true";
+        if (
+          useBackendAudioCapture &&
+          (aggregateAudioCaptures.has(socket.id) ||
+            systemAudioCaptures.has(socket.id))
+        ) {
           console.log(
-            "[Audio] Ignoring frontend customer audio - using Aggregate Device instead"
+            "[Audio] Ignoring frontend output_audio - using backend capture instead"
           );
           return;
         }
 
-        // Only process if not using Aggregate Device (fallback mode)
+        // Process frontend output_audio
         customerStream.write(audioBuffer);
       }
     } catch (error) {
