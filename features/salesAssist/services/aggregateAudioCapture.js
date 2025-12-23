@@ -12,10 +12,38 @@ import { execSync } from "child_process";
 
 /**
  * Check if sox is installed and available
+ * Tries multiple methods to find sox, including common installation paths
  */
 const checkSoxAvailable = () => {
+  // Method 1: Try 'which sox' (works if sox is in PATH)
   try {
     execSync("which sox", { stdio: "ignore" });
+    return true;
+  } catch (error) {
+    // Continue to try other methods
+  }
+
+  // Method 2: Try common installation paths
+  const commonPaths = [
+    "/opt/homebrew/bin/sox", // Homebrew on Apple Silicon
+    "/usr/local/bin/sox",    // Homebrew on Intel Mac
+    "/usr/bin/sox",          // System installation
+  ];
+
+  for (const soxPath of commonPaths) {
+    try {
+      execSync(`test -f ${soxPath}`, { stdio: "ignore" });
+      // If file exists, try to run it
+      execSync(`${soxPath} --version`, { stdio: "ignore" });
+      return true;
+    } catch (error) {
+      // Continue to next path
+    }
+  }
+
+  // Method 3: Try running 'sox --version' directly (might work even if 'which' fails)
+  try {
+    execSync("sox --version", { stdio: "ignore" });
     return true;
   } catch (error) {
     return false;
@@ -191,11 +219,37 @@ export const startAggregateAudioCapture = (
   }
 
   // Check sox availability before attempting capture
-  if (!checkSoxAvailable()) {
+  const soxAvailable = checkSoxAvailable();
+  console.log(`[AggregateAudio] SOX availability check: ${soxAvailable}`);
+  
+  if (!soxAvailable) {
+    // Try to get more information about why SOX isn't available
+    let soxPath = null;
+    try {
+      soxPath = execSync("which sox", { encoding: "utf-8" }).trim();
+    } catch (e) {
+      // Try common paths
+      const commonPaths = [
+        "/opt/homebrew/bin/sox",
+        "/usr/local/bin/sox",
+        "/usr/bin/sox",
+      ];
+      for (const path of commonPaths) {
+        try {
+          execSync(`test -f ${path}`, { stdio: "ignore" });
+          soxPath = path;
+          break;
+        } catch (e2) {
+          // Continue
+        }
+      }
+    }
+    
     const error = new Error(
-      "Sox audio tool is not installed or not in PATH. Install with: brew install sox"
+      `Sox audio tool is not installed or not in PATH. Install with: brew install sox${soxPath ? ` (Found at: ${soxPath})` : ""}`
     );
-    console.error("[AggregateAudio]", error.message);
+    console.error("[AggregateAudio] SOX check failed:", error.message);
+    console.error("[AggregateAudio] PATH:", process.env.PATH);
     if (onError) {
       onError({
         ...createDetailedErrorMessage(error, device),
@@ -204,6 +258,8 @@ export const startAggregateAudioCapture = (
     }
     throw error;
   }
+  
+  console.log("[AggregateAudio] SOX is available, proceeding with audio capture");
 
   console.log(`[AggregateAudio] Starting capture from device: ${device}`);
   console.log(
@@ -218,6 +274,22 @@ export const startAggregateAudioCapture = (
   let dataTimeout = null;
 
   try {
+    // Ensure PATH includes common SOX locations for node-record-lpcm16
+    // The library needs to find sox when it executes it
+    const originalPath = process.env.PATH || "";
+    const homebrewPaths = [
+      "/opt/homebrew/bin",  // Apple Silicon
+      "/usr/local/bin",     // Intel Mac
+    ];
+    
+    // Add Homebrew paths if not already in PATH
+    const pathParts = originalPath.split(":");
+    const missingPaths = homebrewPaths.filter(p => !pathParts.includes(p));
+    if (missingPaths.length > 0) {
+      process.env.PATH = [...missingPaths, ...pathParts].join(":");
+      console.log(`[AggregateAudio] Updated PATH to include: ${missingPaths.join(", ")}`);
+    }
+    
     // Capture from aggregate device with multiple channels
     // The aggregate device should have at least 2 channels (mic + BlackHole)
     recording = recorder.record({
