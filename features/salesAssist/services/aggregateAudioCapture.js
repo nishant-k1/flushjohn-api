@@ -113,12 +113,12 @@ const createDetailedErrorMessage = (error, device) => {
 
   // Check if error is SOX-related
   const isSoxError = errorString.includes("sox");
-  
+
   if (isSoxError) {
     // First, verify if SOX is actually available
     // If SOX is available, this is a device/configuration error, not installation error
     const soxAvailable = checkSoxAvailable();
-    
+
     if (soxAvailable) {
       // SOX is installed but failing - this is a device/configuration issue
       return {
@@ -486,14 +486,14 @@ export const startAggregateAudioCapture = (
       // Check if this is a SOX-related error
       // If SOX check passed earlier, any SOX error here is a device/configuration issue, not installation
       const isSoxError = errorString.includes("sox");
-      
+
       if (isSoxError) {
         // Since we already verified SOX is available, this must be a device/configuration error
         console.log(
           "[AggregateAudio] SOX stream error detected - device configuration issue (SOX is installed)"
         );
         console.log("[AggregateAudio] Original error:", errorMessage);
-        
+
         if (onError) {
           onError({
             code: "AUDIO_DEVICE_ERROR",
@@ -512,7 +512,7 @@ export const startAggregateAudioCapture = (
         }
         return;
       }
-      
+
       const detailedError = createDetailedErrorMessage(error, device);
       if (onError) {
         onError({
