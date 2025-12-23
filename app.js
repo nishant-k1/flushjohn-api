@@ -6,6 +6,7 @@ import debug from "debug";
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import cors from "cors";
+import compression from "compression";
 import { createServer } from "http";
 
 import dbConnect from "./lib/dbConnect/index.js";
@@ -34,6 +35,11 @@ import {
   authenticateToken,
   authorizeRoles,
 } from "./features/auth/middleware/auth.js";
+import {
+  strictLimiter,
+  uploadLimiter,
+  publicLimiter,
+} from "./middleware/rateLimiter.js";
 
 const authRouter = authFeature.routes.auth;
 const usersRouter = authFeature.routes.users;
@@ -126,6 +132,9 @@ app.use(cors(corsOptions));
 
 app.options("*", cors(corsOptions));
 
+// ✅ PERFORMANCE: Add compression middleware (50-80% smaller responses)
+app.use(compression());
+
 app.use(logger("dev"));
 app.use(json({ limit: "10mb" }));
 app.use(urlencoded({ extended: false, limit: "10mb" }));
@@ -144,13 +153,19 @@ app.use((req, res, next) => {
 
 app.use((req, res, next) => {
   if (req.method !== "OPTIONS") {
-    res.setHeader(
-      "Cache-Control",
-      "no-store, no-cache, must-revalidate, proxy-revalidate"
-    );
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    res.setHeader("Surrogate-Control", "no-store");
+    // ✅ PERFORMANCE: Allow caching for GET requests (will be overridden by cache middleware where needed)
+    if (req.method === "GET") {
+      // Cache middleware will set appropriate headers
+    } else {
+      // No cache for non-GET requests
+      res.setHeader(
+        "Cache-Control",
+        "no-store, no-cache, must-revalidate, proxy-revalidate"
+      );
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      res.setHeader("Surrogate-Control", "no-store");
+    }
   }
 
   res.setHeader(
@@ -171,11 +186,13 @@ app.use("/logos", express.static("public/logos"));
 app.use("/pdf", pdfAccessRouter);
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
-app.use("/contact", contactRouter);
-app.use("/file-upload", fileUploadRouter);
+// ✅ PERFORMANCE: Add rate limiting to public and expensive endpoints
+app.use("/contact", publicLimiter, contactRouter);
+app.use("/file-upload", authenticateToken, uploadLimiter, fileUploadRouter);
 app.use("/s3-cors", s3CorsRouter);
 // Public lead submission endpoint (POST /leads - no auth required)
-app.post("/leads", async (req, res, next) => {
+// ✅ PERFORMANCE: Add rate limiting to prevent abuse
+app.post("/leads", publicLimiter, async (req, res, next) => {
   try {
     console.log("📥 Received public lead submission");
     const leadData = req.body;
@@ -262,7 +279,8 @@ app.use(
   authorizeRoles("admin"),
   blogAutomationRouter
 ); // Only admins can automate blogs
-app.use("/dashboard", authenticateToken, dashboardRouter);
+// ✅ PERFORMANCE: Add strict rate limiting to dashboard (expensive queries)
+app.use("/dashboard", authenticateToken, strictLimiter, dashboardRouter);
 app.use("/notes", authenticateToken, notesRouter);
 app.use("/contacts", authenticateToken, contactsRouter);
 app.use("/sales-assist", salesAssistRouter);

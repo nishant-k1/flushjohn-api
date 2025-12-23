@@ -25,6 +25,7 @@
     "bcrypt": "^5.1.1",
     "chartjs-chart-funnel": "^4.2.5",
     "chartjs-gauge": "^0.3.0",
+    "compression": "^1.8.1",
     "cookie-parser": "^1.0.0",
     "cors": "^2.8.5",
     "dayjs": "^1.11.18",
