@@ -51,6 +51,14 @@ const checkSoxAvailable = () => {
 };
 
 /**
+ * Check if running on macOS (required for Aggregate Device)
+ * Aggregate Device is a macOS-specific feature
+ */
+const isMacOS = () => {
+  return process.platform === "darwin";
+};
+
+/**
  * Get the configured aggregate device name
  * This should be the name of your Aggregate Device in Audio MIDI Setup
  */
@@ -232,6 +240,27 @@ export const startAggregateAudioCapture = (
   onCustomerData,
   onError
 ) => {
+  // Aggregate Device is only available on macOS
+  if (!isMacOS()) {
+    const error = new Error(
+      "Aggregate Device is only available on macOS. This feature is not supported on this platform."
+    );
+    console.error("[AggregateAudio] Platform check failed:", error.message);
+    if (onError) {
+      onError({
+        code: "PLATFORM_NOT_SUPPORTED",
+        message: "Aggregate Device is only available on macOS",
+        details: [
+          "Aggregate Device is a macOS-specific feature",
+          "On deployed servers (Linux), use frontend mic + system audio instead",
+        ],
+        originalError: error.message,
+        type: "PLATFORM_ERROR",
+      });
+    }
+    throw error;
+  }
+
   const device = getAggregateDevice();
   const channelMapping = getChannelMapping();
 
@@ -625,6 +654,14 @@ export const startAggregateAudioCapture = (
  * Returns validation result with detailed error information
  */
 export const validateConfiguration = () => {
+  // Aggregate Device is only available on macOS
+  if (!isMacOS()) {
+    console.log(
+      "[AggregateAudio] Not on macOS - Aggregate Device is not available (macOS-only feature)"
+    );
+    return false;
+  }
+
   const device = getAggregateDevice();
   const channelMapping = getChannelMapping();
   const errors = [];
