@@ -8,6 +8,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
 
+# Install SOX (Sound eXchange) for audio capture
+# Required for Aggregate Device audio capture on backend
+RUN apt-get update && \
+    apt-get install -y sox && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    sox --version
+
 # Copy package files
 COPY package*.json ./
 
