@@ -546,7 +546,7 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
                 "System audio capture unavailable. Only operator audio will be captured. " +
                 "This is normal if BlackHole is not installed. Error: " +
                 error.message,
-              severity: "warning", // Non-fatal - fallback to diarization
+              severity: "warning", // Non-fatal - will only capture operator audio
             });
           }
         } else {
@@ -729,13 +729,88 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
   // Tab audio was only needed for browser-based Phone.com, which is no longer used
 
   // End recognition
-  socket.on("end-recognition", () => {
-    cleanup();
+  socket.on("end-recognition", async () => {
+    await cleanup();
     socket.emit("recognition-ended");
   });
 
-  // Cleanup function
-  const cleanup = () => {
+  // Cleanup function - now auto-saves before cleanup
+  const cleanup = async () => {
+    // Auto-save conversation before cleanup if transcript exists
+    const context = conversationContexts.get(socket.id);
+    if (context && context.transcript && context.transcript.length >= 20) {
+      try {
+        const duration = context.startTime
+          ? Math.floor((Date.now() - context.startTime) / 1000)
+          : null;
+
+        const mode = context.mode || "sales";
+        const isVendorMode = mode === "vendor";
+
+        if (isVendorMode) {
+          // Save vendor conversation
+          const vendorConversationData = {
+            transcript: context.transcript,
+            speakerCount: 2,
+            wordCount: context.transcript.split(/\s+/).filter(Boolean).length,
+            lineCount: context.transcript.split("\n").filter(Boolean).length,
+            duration: duration,
+            operatorId: socket.userId || null,
+            operatorNotes: null,
+            processed: false,
+          };
+
+          const savedLog = await vendorConversationLogRepository.create(
+            vendorConversationData
+          );
+
+          // Trigger async processing for AI learning extraction
+          processVendorConversationForLearning(savedLog._id).catch((err) => {
+            console.error("Error processing vendor conversation:", err);
+          });
+
+          console.log(`Auto-saved vendor conversation for socket: ${socket.id}`);
+        } else {
+          // Save sales conversation
+          const conversationData = {
+            lead: context.leadId || null,
+            transcript: context.transcript,
+            extractedInfo: context.extractedInfo
+              ? {
+                  location: context.extractedInfo.location,
+                  eventType: context.extractedInfo.eventType,
+                  quantity: context.extractedInfo.quantity,
+                  dates: context.extractedInfo.dates,
+                  intent: context.extractedInfo.intent,
+                  summary: context.extractedInfo.summary,
+                }
+              : {},
+            quotedPrice: context.lastQuotedPrice || null,
+            pricingBreakdown: context.lastPricingBreakdown || null,
+            outcome: "pending",
+            operatorId: socket.userId || null,
+            duration: duration,
+            operatorFeedback: null,
+            aiHelpful: null,
+          };
+
+          const savedLog = await conversationLogRepository.create(
+            conversationData
+          );
+
+          // Trigger async processing for AI learning extraction
+          processSalesConversationForLearning(savedLog._id).catch((err) => {
+            console.error("Error processing sales conversation:", err);
+          });
+
+          console.log(`Auto-saved sales conversation for socket: ${socket.id}`);
+        }
+      } catch (error) {
+        console.error("Error auto-saving conversation on cleanup:", error);
+        // Continue with cleanup even if save fails
+      }
+    }
+
     // Stop aggregate audio capture (if using aggregate device)
     const aggregateHandle = aggregateAudioCaptures.get(socket.id);
     if (aggregateHandle) {
@@ -955,6 +1030,39 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
     }
   }
 
+  /**
+   * Process sales conversation for AI learning extraction
+   * This runs async after saving the conversation
+   */
+  async function processSalesConversationForLearning(conversationId) {
+    try {
+      const conversation = await conversationLogRepository.findById(
+        conversationId
+      );
+      if (!conversation || conversation.processed) return;
+
+      // Use OpenAI to extract learnings from the conversation
+      const extractedLearnings =
+        await salesAssistService.extractSalesLearnings(
+          conversation.transcript
+        );
+
+      await conversationLogRepository.markAsProcessed(
+        conversationId,
+        extractedLearnings
+      );
+
+      console.log(
+        `Processed sales conversation ${conversationId} for learnings`
+      );
+    } catch (error) {
+      console.error(
+        `Error processing sales conversation ${conversationId}:`,
+        error
+      );
+    }
+  }
+
   // Handle disconnect
   socket.on("disconnect", async () => {
     console.log(`Speech recognition client disconnected: ${socket.id}`);
@@ -997,13 +1105,13 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
         // Continue with cleanup
       }
     }
-    cleanup();
+    await cleanup();
   });
 
   // Handle errors
-  socket.on("error", (error) => {
+  socket.on("error", async (error) => {
     console.error(`Socket error for ${socket.id}:`, error);
-    cleanup();
+    await cleanup();
   });
 };
 

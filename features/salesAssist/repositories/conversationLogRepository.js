@@ -62,6 +62,21 @@ export const updateOnJobOrderCreated = async (leadId, jobOrderId) => {
 };
 
 /**
+ * Mark conversation as processed with extracted learnings
+ */
+export const markAsProcessed = async (id, extractedLearnings) => {
+  return await ConversationLog.findByIdAndUpdate(
+    id,
+    {
+      extractedLearnings,
+      processed: true,
+      processedAt: new Date(),
+    },
+    { new: true }
+  );
+};
+
+/**
  * Find successful conversations for AI learning context
  * Returns conversations that led to actual sales
  */
