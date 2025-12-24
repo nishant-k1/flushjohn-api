@@ -138,6 +138,56 @@ const ConversationLogSchema = new mongoose.Schema({
   aiHelpful: {
     type: Boolean,
   },
+
+  // AI-extracted learnings from the conversation
+  extractedLearnings: {
+    // Effective phrases used during successful conversations
+    effectivePhrases: [
+      {
+        type: String,
+      },
+    ],
+    // Sales tactics that worked
+    salesTactics: [
+      {
+        type: String,
+      },
+    ],
+    // Objection handling techniques that succeeded
+    objectionHandling: [
+      {
+        type: String,
+      },
+    ],
+    // Closing techniques that led to sales
+    closingTechniques: [
+      {
+        type: String,
+      },
+    ],
+    // Pricing presentation strategies
+    pricingStrategies: [
+      {
+        type: String,
+      },
+    ],
+    // Overall tone and communication style notes
+    toneNotes: {
+      type: String,
+    },
+  },
+
+  // Whether AI has processed this conversation for learnings
+  processed: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+
+  // Processing timestamp
+  processedAt: {
+    type: Date,
+  },
 });
 
 // Indexes for efficient querying
@@ -157,6 +207,9 @@ ConversationLogSchema.index({
   "extractedInfo.location.state": 1,
   createdAt: -1,
 });
+
+// Index for processed conversations
+ConversationLogSchema.index({ processed: 1, createdAt: -1 });
 
 export default mongoose.models.ConversationLog ||
   mongoose.model("ConversationLog", ConversationLogSchema);

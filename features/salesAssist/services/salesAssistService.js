@@ -623,47 +623,8 @@ export const generateRealTimeResponse = async ({
     const state = extractedInfo?.location?.state || null;
     const taxRate = getStateTaxRate(state);
 
-    // Fetch successful conversations for AI learning context
-    let learningContext = "";
-    try {
-      const successfulConversations =
-        await conversationLogRepository.findSuccessfulConversations({
-          limit: 5,
-          daysBack: 30,
-          eventType: extractedInfo?.eventType || null,
-          state: state,
-        });
-
-      if (successfulConversations && successfulConversations.length > 0) {
-        learningContext = `
-LEARN FROM THESE SUCCESSFUL SALES (conversations that led to actual closed deals):
-${successfulConversations
-  .map(
-    (c, i) =>
-      `${i + 1}. Event: ${c.extractedInfo?.eventType || "unknown"}, ${
-        c.extractedInfo?.quantity || "?"
-      } units
-   - Price quoted: $${c.quotedPrice || c.pricingBreakdown?.grandTotal || "N/A"}
-   - Successful tactics: ${
-     c.successfulResponses?.slice(0, 2).join("; ") || "N/A"
-   }
-   - Result: SALE CLOSED ✓`
-  )
-  .join("\n")}
-
-Apply these winning patterns to this conversation.
-`;
-      }
-
-      // Also fetch vendor learnings
-      const vendorLearnings = await getVendorLearningsContext();
-      if (vendorLearnings) {
-        learningContext += vendorLearnings;
-      }
-    } catch (error) {
-      console.error("Error fetching learning context:", error);
-      // Continue without learning context
-    }
+    // Note: Learning from past conversations happens AFTER conversations are saved
+    // Real-time responses use prompt engineering only for faster response times
 
     const isVendorMode = mode === "vendor";
 
@@ -753,9 +714,7 @@ Return a JSON object with:
   "confidence": "high/medium/low"
 }
 
-In vendor mode, pricingBreakdown should always be null - we're gathering pricing from the vendor, not calculating it.
-
-${learningContext}`
+In vendor mode, pricingBreakdown should always be null - we're gathering pricing from the vendor, not calculating it.`
       : `ROLE: You are an AI assistant integrated into a CRM for a porta potty rental business that operates as a broker. We do not own the porta potties ourselves but connect customers with local vendors who provide the service.
 
 YOUR RESPONSIBILITIES:
@@ -864,9 +823,7 @@ Return a JSON object with:
   "confidence": "high/medium/low"
 }
 
-If pricing cannot be calculated yet (missing info), set pricingBreakdown to null.
-
-${learningContext}`;
+If pricing cannot be calculated yet (missing info), set pricingBreakdown to null.`;
 
     // Build the user prompt with conversation context
     let userPrompt = `Current conversation transcript:\n${transcript}\n\n`;
@@ -1007,6 +964,89 @@ Return JSON with: effectivePhrases, negotiationTactics, pricingStrategies, objec
   } catch (error) {
     console.error("Error extracting vendor learnings:", error);
     throw new Error(`Failed to extract vendor learnings: ${error.message}`);
+  }
+};
+
+/**
+ * Extract learnings from sales conversation for AI training
+ * @param {string} transcript - The sales conversation transcript
+ * @returns {Object} - Extracted learnings
+ */
+export const extractSalesLearnings = async (transcript) => {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key is not configured");
+    }
+
+    const systemPrompt = `You are an AI analyst studying sales conversations between a porta potty rental company sales representative (FJ Rep) and potential customers (Leads).
+
+Your task is to extract actionable learnings from this sales conversation that can be applied to future customer sales calls.
+
+Analyze the conversation and extract:
+
+1. EFFECTIVE PHRASES: Short, impactful phrases the FJ Rep used that led to successful outcomes
+   - Greetings and rapport building
+   - Pricing presentation phrases
+   - Confidence-building statements
+   - Closing phrases
+   - Value proposition statements
+
+2. SALES TACTICS: Strategies used by the FJ Rep during the conversation
+   - How they presented pricing
+   - How they built rapport
+   - How they created urgency
+   - How they handled objections
+   - How they closed the deal
+
+3. OBJECTION HANDLING: How objections or concerns were addressed
+   - Common objections and effective responses
+   - Reframing techniques
+   - Value justification methods
+
+4. CLOSING TECHNIQUES: How the FJ Rep successfully closed the deal
+   - Assumptive closes
+   - Urgency creation
+   - Next steps positioning
+   - Commitment techniques
+
+5. PRICING STRATEGIES: How pricing was presented and discussed
+   - Value-based pricing presentation
+   - Bundling techniques
+   - Payment flexibility options
+
+6. TONE NOTES: Overall observations about communication style, accent patterns, and language that made the FJ Rep sound professional, trustworthy, and effective
+
+Return a JSON object with these categories. Each category should contain an array of strings (except toneNotes which is a single string).`;
+
+    const userPrompt = `Analyze this sales conversation and extract learnings:
+
+${transcript}
+
+Return JSON with: effectivePhrases, salesTactics, objectionHandling, closingTechniques, pricingStrategies, toneNotes`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.5,
+    });
+
+    const learnings = JSON.parse(completion.choices[0].message.content);
+
+    return {
+      effectivePhrases: learnings.effectivePhrases || [],
+      salesTactics: learnings.salesTactics || [],
+      objectionHandling: learnings.objectionHandling || [],
+      closingTechniques: learnings.closingTechniques || [],
+      pricingStrategies: learnings.pricingStrategies || [],
+      toneNotes: learnings.toneNotes || "",
+    };
+  } catch (error) {
+    console.error("Error extracting sales learnings:", error);
+    throw new Error(`Failed to extract sales learnings: ${error.message}`);
   }
 };
 

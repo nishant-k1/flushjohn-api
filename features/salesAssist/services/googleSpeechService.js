@@ -1,6 +1,7 @@
 /**
  * Google Cloud Speech-to-Text Service
- * Handles real-time speech recognition with speaker diarization
+ * Handles real-time speech recognition
+ * Note: Speaker identification is done via audio source (input_audio/output_audio), not diarization
  */
 
 import { SpeechClient } from "@google-cloud/speech";
@@ -62,12 +63,8 @@ export const createRecognitionConfig = () => {
     enableAutomaticPunctuation: true,
     model: "phone_call", // Optimized for phone calls
     useEnhanced: true, // Use enhanced model for better accuracy
-    // Speaker diarization config
-    diarizationConfig: {
-      enableSpeakerDiarization: true,
-      minSpeakerCount: 2,
-      maxSpeakerCount: 2,
-    },
+    // Note: Speaker identification is done via audio source tags (input_audio/output_audio)
+    // No diarization needed since we have separate audio streams
   };
 };
 
@@ -108,24 +105,12 @@ export const startStreamingRecognition = (onTranscript, onError) => {
           const transcript = result.alternatives[0].transcript;
           const isFinal = result.isFinal || false;
 
-          // Extract speaker tag if available from diarization
-          let speakerTag = null;
-          if (
-            result.alternatives[0].words &&
-            result.alternatives[0].words.length > 0
-          ) {
-            // Get speaker tag from the last word (most accurate for diarization)
-            const lastWord =
-              result.alternatives[0].words[
-                result.alternatives[0].words.length - 1
-              ];
-            speakerTag = lastWord.speakerTag || null;
-          }
+          // Note: speakerTag is not used - speaker identification is done via audio source
+          // (input_audio = FJ Rep, output_audio = Lead/Vendor Rep)
 
           onTranscript({
             transcript,
             isFinal,
-            speakerTag,
             confidence: result.alternatives[0].confidence || null,
           });
         }
