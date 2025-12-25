@@ -43,7 +43,6 @@ export const getAISuggestedRate = async ({
       throw new Error("Product item is required");
     }
 
-    // Collect historical data from multiple sources
     const historicalData = {
       vendorPricing: [],
       jobOrders: [],
@@ -51,7 +50,6 @@ export const getAISuggestedRate = async ({
       quotes: [],
     };
 
-    // 1. Get vendor pricing history for this location
     try {
       const vendorPricing = await vendorPricingRepository.findRecentPricing({
         zipCode,
@@ -75,7 +73,6 @@ export const getAISuggestedRate = async ({
       console.error("Error fetching vendor pricing history:", error);
     }
 
-    // 2. Get historical job orders for this location (these show actual vendor costs)
     try {
       const JobOrders = (
         await import("../../jobOrders/models/JobOrders/index.js")
@@ -99,7 +96,6 @@ export const getAISuggestedRate = async ({
         historicalData.jobOrders = jobOrders
           .filter((jo) => jo.products && Array.isArray(jo.products))
           .map((jo) => {
-            // Find matching product in job order
             const matchingProduct = jo.products.find(
               (p) =>
                 p.item &&
@@ -123,7 +119,6 @@ export const getAISuggestedRate = async ({
       console.error("Error fetching job orders:", error);
     }
 
-    // 3. Get historical sales orders for this location
     try {
       const SalesOrders = (
         await import("../../salesOrders/models/SalesOrders/index.js")
@@ -170,7 +165,6 @@ export const getAISuggestedRate = async ({
       console.error("Error fetching sales orders:", error);
     }
 
-    // 4. Get historical quotes for this location
     try {
       const Quotes = (await import("../models/Quotes/index.js")).default;
 
@@ -215,7 +209,6 @@ export const getAISuggestedRate = async ({
       console.error("Error fetching quotes:", error);
     }
 
-    // Calculate data quality metrics
     const totalSamples =
       historicalData.vendorPricing.length +
       historicalData.jobOrders.length +
@@ -250,7 +243,6 @@ export const getAISuggestedRate = async ({
       })),
     };
 
-    // Calculate average vendor cost from historical data
     let averageVendorCost = null;
     const allVendorCosts = [
       ...historicalData.vendorPricing.map((vp) => vp.pricePerUnit),
@@ -262,7 +254,6 @@ export const getAISuggestedRate = async ({
       averageVendorCost = sum / allVendorCosts.length;
     }
 
-    // Build AI prompt
     const systemPrompt = `You are an AI rate analyst for a porta potty rental business. Your task is to suggest a quote rate (per unit) for a rental item based on:
 1. Historical rate data from the database
 2. Your general knowledge about regional rate variations, market rates, cost of living, and supply/demand factors
@@ -332,7 +323,6 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
     let aiResponse;
     try {
       const content = completion.choices[0].message.content.trim();
-      // Remove markdown code blocks if present
       const cleanedContent = content
         .replace(/^```json\s*/i, "")
         .replace(/^```\s*/i, "")
@@ -342,7 +332,7 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
     } catch (parseError) {
       console.error("Error parsing AI response:", parseError);
       // Fallback calculation
-      const fallbackVendorCost = averageVendorCost || 150; // Base rate if no data
+      const fallbackVendorCost = averageVendorCost || 150;
       aiResponse = {
         suggestedRatePerUnit:
           Math.round((fallbackVendorCost + 50) * 100) / 100,
@@ -369,7 +359,6 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
       }
     }
 
-    // Use confidence from data quality if AI didn't provide it
     if (!aiResponse.confidence || aiResponse.confidence === "low") {
       aiResponse.confidence = confidence;
     }
