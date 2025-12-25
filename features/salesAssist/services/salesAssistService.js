@@ -9,6 +9,7 @@ import * as leadsRepository from "../../leads/repositories/leadsRepository.js";
 import * as conversationLogRepository from "../repositories/conversationLogRepository.js";
 import * as vendorConversationLogRepository from "../repositories/vendorConversationLogRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import * as quoteAIRateService from "../../quotes/services/quoteAIRateService.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -190,9 +191,9 @@ export const getVendorPricing = async ({
   state,
   eventType,
   quantity = 1,
+  productItem = "Standard Porta Potty", // Default product item for sales assist
 }) => {
   try {
-    // Build query to find vendors serving the location
     let query = {};
 
     if (zipCode) {
@@ -214,7 +215,6 @@ export const getVendorPricing = async ({
       query.$or.push({ serviceStates: { $regex: state, $options: "i" } });
     }
 
-    // Find vendors that serve the location
     const vendors = await vendorsRepository.findAll({
       query: query.$or && query.$or.length > 0 ? { $or: query.$or } : query,
       sort: { createdAt: -1 },
@@ -232,33 +232,45 @@ export const getVendorPricing = async ({
       };
     }
 
-    // Try to get historical pricing data first
-    let historicalPricing = null;
+    let aiSuggestedRate = null;
     let vendorBasePrice = null;
     let averagePrice = null;
+    let recommendedPrice = null;
+    let historicalData = {
+      sampleSize: 0,
+      isHistoricalData: false,
+      message: "Using AI-powered pricing estimation.",
+    };
 
     try {
-      historicalPricing = await vendorPricingRepository.calculateAveragePricing(
-        {
-          zipCode,
-          city,
-          state,
-          eventType,
-          quantity,
-        }
-      );
-    } catch (error) {
-      console.error("Error fetching historical pricing:", error);
-    }
+      aiSuggestedRate = await quoteAIRateService.getAISuggestedRate({
+        zipCode,
+        city,
+        state,
+        productItem,
+        quantity,
+        usageType: eventType,
+      });
 
-    if (historicalPricing && historicalPricing.sampleSize > 0) {
-      // Use historical data
-      vendorBasePrice = historicalPricing.averagePricePerUnit;
-      averagePrice = historicalPricing.averageTotalPrice;
-    } else {
-      // Fallback to estimated pricing if no historical data
-      const basePricePerUnit = 150; // Base price per porta potty
-      const locationMultiplier = 1.0; // Could vary by location
+      vendorBasePrice = aiSuggestedRate.vendorCostEstimate || null;
+      const suggestedRatePerUnit = aiSuggestedRate.suggestedRatePerUnit;
+
+      averagePrice = suggestedRatePerUnit * quantity;
+      recommendedPrice = averagePrice;
+      if (aiSuggestedRate.dataSources) {
+        historicalData = {
+          sampleSize: aiSuggestedRate.dataSources.historicalSamples || 0,
+          isHistoricalData: aiSuggestedRate.dataSources.historicalSamples > 0,
+          message:
+            aiSuggestedRate.dataSources.historicalSamples > 0
+              ? `Using historical data (${aiSuggestedRate.dataSources.historicalSamples} samples)`
+              : "Using AI-powered pricing estimation based on regional factors.",
+          confidence: aiSuggestedRate.confidence,
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching AI suggested rate:", error);
+      const basePricePerUnit = 150;
       const eventTypeMultiplier =
         eventType === "construction"
           ? 0.9
@@ -266,14 +278,13 @@ export const getVendorPricing = async ({
           ? 1.2
           : 1.0;
 
-      vendorBasePrice =
-        basePricePerUnit * locationMultiplier * eventTypeMultiplier;
+      vendorBasePrice = basePricePerUnit * eventTypeMultiplier;
       averagePrice = vendorBasePrice * quantity;
-    }
+      recommendedPrice = averagePrice + DEFAULT_MARGIN_AMOUNT;
 
-    // Calculate recommended price with fixed $50 margin
-    const marginAmount = DEFAULT_MARGIN_AMOUNT;
-    const recommendedPrice = averagePrice + marginAmount;
+      historicalData.message =
+        "Using fallback pricing (AI service unavailable)";
+    }
 
     const vendorsArray = Array.isArray(vendors) ? vendors : [];
 
@@ -288,24 +299,22 @@ export const getVendorPricing = async ({
         email: v.email,
       })),
       averagePrice: Math.round(averagePrice * 100) / 100,
-      vendorBasePrice: Math.round(vendorBasePrice * 100) / 100,
+      vendorBasePrice: vendorBasePrice
+        ? Math.round(vendorBasePrice * 100) / 100
+        : null,
       margin: DEFAULT_MARGIN_AMOUNT,
-      marginAmount: marginAmount,
+      marginAmount: DEFAULT_MARGIN_AMOUNT,
       recommendedPrice: Math.round(recommendedPrice * 100) / 100,
       quantity,
       message: `Found ${vendorsArray.length} vendor(s) serving this location`,
-      historicalData:
-        historicalPricing && historicalPricing.sampleSize > 0
-          ? {
-              sampleSize: historicalPricing.sampleSize,
-              isHistoricalData: true,
-            }
-          : {
-              sampleSize: 0,
-              isHistoricalData: false,
-              message:
-                "Using estimated pricing. Submit actual vendor quotes to improve accuracy.",
-            },
+      historicalData,
+      aiSuggestedRate: aiSuggestedRate
+        ? {
+            suggestedRatePerUnit: aiSuggestedRate.suggestedRatePerUnit,
+            confidence: aiSuggestedRate.confidence,
+            reasoning: aiSuggestedRate.reasoning,
+          }
+        : null,
     };
   } catch (error) {
     console.error("Error in getVendorPricing:", error);
@@ -407,7 +416,6 @@ export const submitVendorQuote = async (quoteData) => {
       aiSuggestedPrice,
     } = quoteData;
 
-    // Calculate price difference if AI suggested price was provided
     let priceDifference = null;
     let accuracyRating = null;
 

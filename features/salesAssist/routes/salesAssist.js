@@ -53,7 +53,7 @@ router.post("/analyze", async (req, res) => {
  */
 router.get("/pricing", async (req, res) => {
   try {
-    const { zipCode, city, state, eventType, quantity } = req.query;
+    const { zipCode, city, state, eventType, quantity, productItem } = req.query;
 
     if (!zipCode && !city) {
       return res.status(400).json({
@@ -69,6 +69,7 @@ router.get("/pricing", async (req, res) => {
       state,
       eventType,
       quantity: quantity ? parseInt(quantity) : undefined,
+      productItem,
     });
 
     res.status(200).json({
@@ -335,10 +336,6 @@ async function processVendorConversationForLearning(conversationId) {
     await vendorConversationLogRepository.markAsProcessed(
       conversationId,
       extractedLearnings
-    );
-
-    console.log(
-      `Processed vendor conversation ${conversationId} for learnings`
     );
   } catch (error) {
     console.error(
