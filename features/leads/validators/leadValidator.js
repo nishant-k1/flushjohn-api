@@ -34,10 +34,15 @@ export const validateCreateLead = [
     .trim()
     .notEmpty()
     .withMessage("Phone number is required")
-    .matches(/^[\d\s\-()]+$/)
-    .withMessage("Phone number contains invalid characters")
-    .isLength({ min: 10, max: 20 })
-    .withMessage("Phone number must be between 10 and 20 characters"),
+    .custom((value) => {
+      // Normalize: remove all non-digit characters
+      const digits = value.replace(/\D/g, "");
+      // Validate: must have 10 digits, or 11 digits starting with 1
+      if (digits.length === 10 || (digits.length === 11 && digits.startsWith("1"))) {
+        return true;
+      }
+      throw new Error("Phone number must be 10 digits (or 11 digits starting with 1)");
+    }),
 
   body("zip")
     .trim()
@@ -102,8 +107,16 @@ export const validateUpdateLead = [
   body("phone")
     .optional()
     .trim()
-    .matches(/^[\d\s\-()]+$/)
-    .withMessage("Phone number contains invalid characters"),
+    .custom((value) => {
+      if (!value) return true; // Optional field, skip if empty
+      // Normalize: remove all non-digit characters
+      const digits = value.replace(/\D/g, "");
+      // Validate: must have 10 digits, or 11 digits starting with 1
+      if (digits.length === 10 || (digits.length === 11 && digits.startsWith("1"))) {
+        return true;
+      }
+      throw new Error("Phone number must be 10 digits (or 11 digits starting with 1)");
+    }),
 
   body("zip")
     .optional()
