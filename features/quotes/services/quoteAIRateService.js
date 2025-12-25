@@ -1,5 +1,5 @@
 /**
- * Quote AI Pricing Service - AI-powered pricing suggestions and estimates for quotes
+ * Quote AI Rate Service - AI-powered rate suggestions for quotes
  */
 
 import OpenAI from "openai";
@@ -10,8 +10,8 @@ const openai = new OpenAI({
 });
 
 /**
- * Get AI suggested price for a product in a quote based on location and historical data
- * @param {Object} params - Pricing parameters
+ * Get AI suggested rate for a product in a quote based on location and historical data
+ * @param {Object} params - Rate parameters
  * @param {string} params.zipCode - Zip code
  * @param {string} params.city - City
  * @param {string} params.state - State
@@ -19,9 +19,9 @@ const openai = new OpenAI({
  * @param {string} params.productItem - Product/item name
  * @param {number} params.quantity - Quantity needed
  * @param {string} params.usageType - Usage type (construction, event, etc.) - optional
- * @returns {Object} - AI suggested price with confidence level
+ * @returns {Object} - AI suggested rate with confidence level
  */
-export const getAISuggestedPrice = async ({
+export const getAISuggestedRate = async ({
   zipCode,
   city,
   state,
@@ -263,17 +263,17 @@ export const getAISuggestedPrice = async ({
     }
 
     // Build AI prompt
-    const systemPrompt = `You are an AI pricing analyst for a porta potty rental business. Your task is to suggest a quote price for a rental item based on:
-1. Historical pricing data from the database
-2. Your general knowledge about regional pricing variations, market rates, cost of living, and supply/demand factors
+    const systemPrompt = `You are an AI rate analyst for a porta potty rental business. Your task is to suggest a quote rate (per unit) for a rental item based on:
+1. Historical rate data from the database
+2. Your general knowledge about regional rate variations, market rates, cost of living, and supply/demand factors
 
 CRITICAL BUSINESS RULE:
-- The quote price must be AT LEAST $50 above the vendor cost to ensure profit margin
-- Formula: Suggested Price = (Vendor Cost Estimate) + $50 minimum margin
+- The quote rate must be AT LEAST $50 above the vendor cost to ensure profit margin
+- Formula: Suggested Rate = (Vendor Cost Estimate) + $50 minimum margin
 
 Your response must be a JSON object with this exact structure:
 {
-  "suggestedPricePerUnit": number,
+  "suggestedRatePerUnit": number,
   "vendorCostEstimate": number,
   "margin": 50,
   "confidence": "high" | "medium" | "low",
@@ -304,12 +304,12 @@ ${
     ? `Average Vendor Cost from Historical Data: $${averageVendorCost.toFixed(
         2
       )} per unit`
-    : "No historical vendor cost data available - use your general knowledge about porta potty rental pricing in this region"
+    : "No historical vendor cost data available - use your general knowledge about porta potty rental rates in this region"
 }
 
-Calculate the AI suggested price per unit. Consider:
+Calculate the AI suggested rate per unit. Consider:
 1. Historical vendor costs (if available)
-2. Regional pricing factors (cost of living, market rates for ${
+2. Regional rate factors (cost of living, market rates for ${
       city || state || "this area"
     })
 3. Supply/demand dynamics
@@ -324,7 +324,7 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.3, // Lower temperature for more consistent pricing
+      temperature: 0.3, // Lower temperature for more consistent rates
       max_tokens: 500,
       response_format: { type: "json_object" },
     });
@@ -342,9 +342,9 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
     } catch (parseError) {
       console.error("Error parsing AI response:", parseError);
       // Fallback calculation
-      const fallbackVendorCost = averageVendorCost || 150; // Base price if no data
+      const fallbackVendorCost = averageVendorCost || 150; // Base rate if no data
       aiResponse = {
-        suggestedPricePerUnit:
+        suggestedRatePerUnit:
           Math.round((fallbackVendorCost + 50) * 100) / 100,
         vendorCostEstimate: Math.round(fallbackVendorCost * 100) / 100,
         margin: 50,
@@ -360,10 +360,10 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
 
     // Ensure minimum $50 margin
     if (aiResponse.vendorCostEstimate) {
-      const minSuggestedPrice = aiResponse.vendorCostEstimate + 50;
-      if (aiResponse.suggestedPricePerUnit < minSuggestedPrice) {
-        aiResponse.suggestedPricePerUnit =
-          Math.round(minSuggestedPrice * 100) / 100;
+      const minSuggestedRate = aiResponse.vendorCostEstimate + 50;
+      if (aiResponse.suggestedRatePerUnit < minSuggestedRate) {
+        aiResponse.suggestedRatePerUnit =
+          Math.round(minSuggestedRate * 100) / 100;
         aiResponse.reasoning +=
           " (adjusted to meet minimum $50 margin requirement)";
       }
@@ -375,8 +375,8 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
     }
 
     return {
-      suggestedPricePerUnit:
-        Math.round(aiResponse.suggestedPricePerUnit * 100) / 100,
+      suggestedRatePerUnit:
+        Math.round(aiResponse.suggestedRatePerUnit * 100) / 100,
       vendorCostEstimate: aiResponse.vendorCostEstimate
         ? Math.round(aiResponse.vendorCostEstimate * 100) / 100
         : null,
@@ -384,7 +384,7 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
       confidence: aiResponse.confidence || confidence,
       reasoning:
         aiResponse.reasoning ||
-        "Based on historical data and regional pricing factors",
+        "Based on historical data and regional rate factors",
       dataSources: {
         historicalSamples: totalSamples,
         hasVendorPricing: historicalData.vendorPricing.length > 0,

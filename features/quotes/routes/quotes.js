@@ -4,7 +4,7 @@
 
 import { Router } from "express";
 import * as quotesService from "../services/quotesService.js";
-import * as quoteAIPricingService from "../services/quoteAIPricingService.js";
+import * as quoteAIRateService from "../services/quoteAIRateService.js";
 import validateAndRecalculateProducts from "../../../middleware/validateProducts.js";
 
 const router = Router();
@@ -66,10 +66,10 @@ router.get("/", async function (req, res) {
 });
 
 /**
- * GET /api/quotes/ai-suggested-price
- * Get AI suggested price for a product based on location and historical data
+ * GET /api/quotes/ai-suggested-rate
+ * Get AI suggested rate for a product based on location and historical data
  */
-router.get("/ai-suggested-price", async function (req, res) {
+router.get("/ai-suggested-rate", async function (req, res) {
   try {
     const {
       zipCode,
@@ -97,7 +97,7 @@ router.get("/ai-suggested-price", async function (req, res) {
       });
     }
 
-    const suggestedPrice = await quoteAIPricingService.getAISuggestedPrice({
+    const suggestedRate = await quoteAIRateService.getAISuggestedRate({
       zipCode,
       city,
       state,
@@ -109,13 +109,13 @@ router.get("/ai-suggested-price", async function (req, res) {
 
     res.status(200).json({
       success: true,
-      data: suggestedPrice,
+      data: suggestedRate,
     });
   } catch (error) {
-    console.error("Error getting AI suggested price:", error);
+    console.error("Error getting AI suggested rate:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to get AI suggested price",
+      message: "Failed to get AI suggested rate",
       error: error.message,
     });
   }
