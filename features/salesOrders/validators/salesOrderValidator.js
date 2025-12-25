@@ -30,8 +30,15 @@ export const validateCreateSalesOrder = [
     .trim()
     .notEmpty()
     .withMessage("Phone number is required")
-    .matches(/^[\d\s\-()]+$/)
-    .withMessage("Phone number contains invalid characters"),
+    .custom((value) => {
+      // Normalize: remove all non-digit characters
+      const digits = value.replace(/\D/g, "");
+      // Validate: must have 10 digits, or 11 digits starting with 1
+      if (digits.length === 10 || (digits.length === 11 && digits.startsWith("1"))) {
+        return true;
+      }
+      throw new Error("Phone number must be 10 digits (or 11 digits starting with 1)");
+    }),
 
   body("streetAddress")
     .optional()

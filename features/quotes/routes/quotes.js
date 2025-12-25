@@ -4,6 +4,7 @@
 
 import { Router } from "express";
 import * as quotesService from "../services/quotesService.js";
+import * as quoteAIPricingService from "../services/quoteAIPricingService.js";
 import validateAndRecalculateProducts from "../../../middleware/validateProducts.js";
 
 const router = Router();
@@ -61,6 +62,62 @@ router.get("/", async function (req, res) {
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/quotes/ai-suggested-price
+ * Get AI suggested price for a product based on location and historical data
+ */
+router.get("/ai-suggested-price", async function (req, res) {
+  try {
+    const {
+      zipCode,
+      city,
+      state,
+      streetAddress,
+      productItem,
+      quantity,
+      usageType,
+    } = req.query;
+
+    if (!zipCode && !city) {
+      return res.status(400).json({
+        success: false,
+        message: "Location (zipCode or city) is required",
+        error: "INVALID_REQUEST",
+      });
+    }
+
+    if (!productItem) {
+      return res.status(400).json({
+        success: false,
+        message: "Product item is required",
+        error: "INVALID_REQUEST",
+      });
+    }
+
+    const suggestedPrice = await quoteAIPricingService.getAISuggestedPrice({
+      zipCode,
+      city,
+      state,
+      streetAddress,
+      productItem,
+      quantity: quantity ? parseInt(quantity, 10) : 1,
+      usageType,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: suggestedPrice,
+    });
+  } catch (error) {
+    console.error("Error getting AI suggested price:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get AI suggested price",
+      error: error.message,
+    });
   }
 });
 
