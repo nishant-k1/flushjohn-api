@@ -326,6 +326,69 @@ export const contentCalendar = {
       focus: "educational institution events and campus planning",
     },
   ],
+
+  caseStudies: [
+    {
+      title: "How We Provided Porta Potty Solutions for a 10,000-Person Music Festival in Austin",
+      category: "events",
+      keywords: {
+        primary: "Austin music festival porta potty case study",
+        secondary: "large event porta potty rental success",
+        longTail: "10,000 person festival porta potty rental case study",
+      },
+      templateType: "caseStudy",
+      season: "year-round",
+      focus: "Large-scale event management, festival logistics, and capacity planning",
+    },
+    {
+      title: "Construction Site Porta Potty Success: Dallas High-Rise Project",
+      category: "construction",
+      keywords: {
+        primary: "Dallas construction porta potty case study",
+        secondary: "construction site porta potty rental success",
+        longTail: "Dallas high-rise construction porta potty rental case study",
+      },
+      templateType: "caseStudy",
+      season: "year-round",
+      focus: "Long-term construction rentals, OSHA compliance, and site management",
+    },
+    {
+      title: "Luxury Wedding Porta Potty: Miami Beach Wedding Success Story",
+      category: "events",
+      keywords: {
+        primary: "Miami wedding porta potty case study",
+        secondary: "luxury wedding porta potty rental",
+        longTail: "Miami Beach luxury wedding portable toilet case study",
+      },
+      templateType: "caseStudy",
+      season: "year-round",
+      focus: "Upscale events, luxury restroom trailers, and guest satisfaction",
+    },
+    {
+      title: "Emergency Porta Potty Delivery: Los Angeles Event Crisis Solved",
+      category: "events",
+      keywords: {
+        primary: "Los Angeles emergency porta potty",
+        secondary: "same-day porta potty delivery case study",
+        longTail: "LA emergency portable toilet delivery success story",
+      },
+      templateType: "caseStudy",
+      season: "year-round",
+      focus: "Emergency response, same-day delivery, and crisis management",
+    },
+    {
+      title: "Multi-Site Construction Porta Potty Management: Chicago Success Story",
+      category: "construction",
+      keywords: {
+        primary: "Chicago construction porta potty case study",
+        secondary: "multi-site porta potty rental management",
+        longTail: "Chicago multi-site construction porta potty rental success",
+      },
+      templateType: "caseStudy",
+      season: "year-round",
+      focus: "Multi-location management, coordinated servicing, and efficiency",
+    },
+  ],
 };
 
 export function getCurrentSeason() {
@@ -375,7 +438,7 @@ export function getNextTopic(contentType = null, randomize = false) {
       ),
     ];
   } else {
-    const categoryRotation = weekNumber % 4;
+    const categoryRotation = weekNumber % 5;
 
     switch (categoryRotation) {
       case 0: // City-specific content
@@ -393,11 +456,17 @@ export function getNextTopic(contentType = null, randomize = false) {
           (topic) => topic.season === season || topic.season === "year-round"
         );
         break;
-      case 3: // Mixed content (random selection)
+      case 3: // Case studies
+        availableTopics = contentCalendar.caseStudies.filter(
+          (topic) => topic.season === "year-round" || topic.season === season
+        );
+        break;
+      case 4: // Mixed content (random selection)
         availableTopics = [
           ...contentCalendar.citySpecific,
           ...contentCalendar.industryGuides,
           ...contentCalendar.seasonal,
+          ...contentCalendar.caseStudies,
         ].filter(
           (topic) => topic.season === "year-round" || topic.season === season
         );
@@ -427,6 +496,9 @@ export function getTopicsForSeason(season) {
     ...contentCalendar.seasonal.filter(
       (topic) => topic.season === season || topic.season === "year-round"
     ),
+    ...contentCalendar.caseStudies.filter(
+      (topic) => topic.season === "year-round" || topic.season === season
+    ),
   ];
 }
 
@@ -441,6 +513,7 @@ export function getCalendarStats() {
     industryGuides: allTopics.filter((t) => t.templateType === "industryGuide")
       .length,
     seasonal: allTopics.filter((t) => t.templateType === "seasonal").length,
+    caseStudies: allTopics.filter((t) => t.templateType === "caseStudy").length,
     currentSeason: season,
     nextTopic: getNextTopic(),
   };

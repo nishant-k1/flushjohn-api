@@ -58,13 +58,25 @@ export async function generateAutomatedBlogPost(
     if (contentType) {
     }
 
+    // Normalize keywords format: convert array to object if needed
+    let keywordsObj = topic.keywords;
+    if (Array.isArray(topic.keywords)) {
+      keywordsObj = {
+        primary: topic.keywords[0] || "",
+        secondary: topic.keywords[1] || topic.keywords[0] || "",
+        longTail: topic.keywords[2] || topic.keywords[1] || topic.keywords[0] || "",
+      };
+    }
+
     const generatedContent = await blogGeneratorService.generateBlogContent(
       topic.templateType || "citySpecific",
       topic.templateType === "citySpecific"
-        ? [topic.title, topic.city, topic.state, topic.keywords]
+        ? [topic.title, topic.city, topic.state, keywordsObj]
         : topic.templateType === "industryGuide"
-        ? [topic.title, topic.keywords, topic.focus]
-        : [topic.title, topic.keywords, topic.season, topic.focus]
+        ? [topic.title, keywordsObj, topic.focus]
+        : topic.templateType === "caseStudy"
+        ? [topic.title, keywordsObj, topic.focus]
+        : [topic.title, keywordsObj, topic.season, topic.focus]
     );
 
     // Generate comprehensive AI metadata
@@ -73,12 +85,12 @@ export async function generateAutomatedBlogPost(
         blogGeneratorService.generateMetaDescription(
           topic.title,
           generatedContent,
-          topic.keywords
+          keywordsObj
         ),
         blogGeneratorService.generateComprehensiveBlogMetadata(
           topic.title,
           generatedContent,
-          topic.keywords,
+          keywordsObj,
           topic.category
         ),
         blogGeneratorService.generateCoverImageDescription(
@@ -104,6 +116,16 @@ export async function generateAutomatedBlogPost(
       contentWithLinks
     );
 
+    // Extract city and state from content if not already provided
+    // This helps event/construction posts that mention cities get geo-targeting
+    let extractedLocation = { city: null, state: null };
+    if (!topic.city || !topic.state) {
+      extractedLocation = blogGeneratorService.extractCityAndState(
+        topic.title,
+        contentWithLinks
+      );
+    }
+
     const blogData = {
       title: topic.title,
       slug: blogsService.generateSlug(topic.title),
@@ -113,13 +135,22 @@ export async function generateAutomatedBlogPost(
       tags: comprehensiveMetadata.tags,
       status: "published",
       category: topic.category,
+      // Store city and state: use topic data if available, otherwise extract from content
+      city: topic.city || extractedLocation.city || null,
+      state: topic.state || extractedLocation.state || null,
       coverImageUnsplash: {
         src: coverImageSrc,
         alt: comprehensiveMetadata.coverImageAlt,
       },
       publishedAt: new Date(),
       metaDescription: metaDescription.substring(0, 160),
-      metaKeywords: topic.keywords.slice(0, 15),
+      metaKeywords: Array.isArray(topic.keywords)
+        ? topic.keywords.slice(0, 15)
+        : [
+            topic.keywords.primary,
+            topic.keywords.secondary,
+            topic.keywords.longTail,
+          ].filter(Boolean),
       featured: comprehensiveMetadata.featured,
       priority: comprehensiveMetadata.priority,
       views: 0,

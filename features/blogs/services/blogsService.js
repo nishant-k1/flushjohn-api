@@ -2,7 +2,7 @@ import * as blogsRepository from "../repositories/blogsRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import OpenAI from "openai";
-import { generateComprehensiveBlogMetadata } from "./blogGeneratorService.js";
+import { generateComprehensiveBlogMetadata, extractCityAndState } from "./blogGeneratorService.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -381,6 +381,27 @@ export const createBlog = async (blogData) => {
     );
   }
 
+  // Extract city and state from content if not already provided
+  // This helps event/construction posts that mention cities get geo-targeting
+  if ((!blogData.city || !blogData.state) && blogData.content) {
+    try {
+      const extractedLocation = extractCityAndState(
+        blogData.title,
+        blogData.content
+      );
+      // Only set if not already provided and extraction was successful
+      if (!blogData.city && extractedLocation.city) {
+        blogData.city = extractedLocation.city;
+      }
+      if (!blogData.state && extractedLocation.state) {
+        blogData.state = extractedLocation.state;
+      }
+    } catch (error) {
+      console.error("Error extracting city/state from content:", error);
+      // Continue without city/state if extraction fails
+    }
+  }
+
   // Generate comprehensive metadata if not provided
   if (!blogData.tags || !blogData.author || !blogData.coverImage?.alt) {
     try {
@@ -409,6 +430,8 @@ export const createBlog = async (blogData) => {
 
   return await createBlogWithRetry(blogData);
 };
+<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
+grep
 
 export const getAllBlogs = async ({
   page = 1,
