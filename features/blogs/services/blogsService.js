@@ -2,7 +2,10 @@ import * as blogsRepository from "../repositories/blogsRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import OpenAI from "openai";
-import { generateComprehensiveBlogMetadata, extractCityAndState } from "./blogGeneratorService.js";
+import {
+  generateComprehensiveBlogMetadata,
+  extractCityAndState,
+} from "./blogGeneratorService.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
