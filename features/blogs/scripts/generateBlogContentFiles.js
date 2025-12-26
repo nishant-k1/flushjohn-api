@@ -20,6 +20,8 @@ async function generateBlogContent(postData, templateType = 'citySpecific') {
         ? [postData.title, postData.city, postData.state, postData.keywords]
         : templateType === 'industryGuide'
         ? [postData.title, postData.keywords, postData.focus]
+        : templateType === 'caseStudy'
+        ? [postData.title, postData.keywords, postData.focus]
         : [postData.title, postData.keywords, postData.season, postData.focus]
     );
 
@@ -46,6 +48,16 @@ async function generateBlogContent(postData, templateType = 'citySpecific') {
 
     const coverImageUrl = defaultCoverImages[postData.category] || defaultCoverImages.tips;
 
+    // Extract city and state from content if not already provided
+    // This helps event/construction posts that mention cities get geo-targeting
+    let extractedLocation = { city: null, state: null };
+    if (!postData.city || !postData.state) {
+      extractedLocation = blogGeneratorService.extractCityAndState(
+        postData.title,
+        content
+      );
+    }
+
     const blogPostData = {
       title: postData.title,
       slug: slug,
@@ -55,6 +67,9 @@ async function generateBlogContent(postData, templateType = 'citySpecific') {
       tags: tags,
       status: "published",
       category: postData.category,
+      // Store city and state: use postData if available, otherwise extract from content
+      city: postData.city || extractedLocation.city || null,
+      state: postData.state || extractedLocation.state || null,
       coverImage: {
         src: coverImageUrl,
         alt: coverImageAlt
@@ -86,7 +101,8 @@ async function generateAllBlogContent() {
   const allPosts = [
     ...blogContentData.citySpecific.map(post => ({ ...post, type: 'citySpecific' })),
     ...blogContentData.industryGuide.map(post => ({ ...post, type: 'industryGuide' })),
-    ...blogContentData.seasonal.map(post => ({ ...post, type: 'seasonal' }))
+    ...blogContentData.seasonal.map(post => ({ ...post, type: 'seasonal' })),
+    ...blogContentData.caseStudies.map(post => ({ ...post, type: 'caseStudy' }))
   ];
 
   

@@ -150,6 +150,17 @@ const BlogsSchema = new Schema(
         message: "Cannot have more than 15 meta keywords",
       },
     },
+    // Location fields for city-specific blog posts
+    city: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     wordCount: {
       type: Number,
       default: 0,

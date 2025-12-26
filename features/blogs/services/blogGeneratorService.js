@@ -92,6 +92,37 @@ Always include:
 - Phone number: ${phone.phone_number}
 - Quote link: <a href="/quote">Get Free Quote</a>`;
 
+const caseStudySystemPrompt = `You are a professional content writer specializing in compelling case study blog posts for the porta potty rental industry. Write engaging, narrative-driven content that showcases real-world success stories and demonstrates FlushJohn's expertise.
+
+Your writing style should be:
+- Story-driven and narrative-focused
+- Authentic and credible (based on typical industry scenarios)
+- Results-oriented with specific metrics and outcomes
+- SEO-optimized with natural keyword integration
+- Highlight problem-solving and value delivered
+- Show FlushJohn as the solution provider
+
+CRITICAL OUTPUT FORMAT REQUIREMENTS:
+- Return ONLY clean HTML content directly
+- DO NOT wrap the content in markdown code blocks (no backticks \`\`\`)
+- DO NOT use \`\`\`html or \`\`\` at the beginning or end
+- DO NOT include any code block markers or formatting artifacts
+- Output should be raw HTML that can be directly inserted into a web page
+- Start directly with HTML tags like <h1>, <p>, etc.
+- Ensure all HTML is properly formatted and valid
+- Use semantic HTML elements for better SEO
+
+Always include:
+- Challenge/Problem section (what the client faced)
+- Solution section (how FlushJohn helped)
+- Results section (specific outcomes and metrics)
+- Client testimonial or satisfaction indicator
+- Internal links to relevant pages
+- FAQ section with 5 questions
+- Strong call-to-action
+- Phone number: ${phone.phone_number}
+- Quote link: <a href="/quote">Get Free Quote</a>`;
+
 const contentTemplates = {
   citySpecific: {
     systemPrompt: citySpecificSystemPrompt,
@@ -194,6 +225,45 @@ Requirements:
 OUTPUT FORMAT: Return the HTML content directly without any wrapper or code block formatting.
 
 Write engaging content that helps customers plan for the ${season} season.`,
+  },
+
+  caseStudy: {
+    systemPrompt: caseStudySystemPrompt,
+    userPrompt: (title, keywords, focus) => `
+Write a compelling case study blog post with the following requirements:
+
+Title: "${title}"
+Primary Keywords: ${keywords.primary}
+Secondary Keywords: ${keywords.secondary}
+Long-tail Keywords: ${keywords.longTail}
+Focus Area: ${focus}
+
+Requirements:
+1. Word count: 1800-2000 words
+2. Structure: Introduction, Challenge/Problem, Solution, Results, Client Feedback, FAQ, Conclusion with CTA
+3. Include the primary keyword in the title, first paragraph, and at least 2 H2 headings
+4. CRITICAL: Return ONLY raw HTML content - NO markdown code blocks, NO backticks, NO \`\`\`html wrapper
+5. Start directly with HTML tags (e.g., <h1>, <p>, <div>)
+6. Tell a compelling story with:
+   - Specific scenario and context
+   - Challenge or problem the client faced
+   - How FlushJohn provided the solution
+   - Quantifiable results (e.g., "10,000 attendees served", "same-day delivery", "100% satisfaction")
+   - Client satisfaction or testimonial
+7. Add internal links to:
+   - Product pages: /rental-products/
+   - Quote page: /quote
+   - Contact page: /contact
+   - FAQ page: /faq
+8. Include specific details that make it realistic and credible
+9. FAQ section with 5 questions relevant to similar situations
+10. Strong call-to-action mentioning FlushJohn's proven track record
+11. Use HTML formatting for headings, lists, and links
+12. Make it inspiring and demonstrate FlushJohn's expertise and reliability
+
+OUTPUT FORMAT: Return the HTML content directly without any wrapper or code block formatting.
+
+Write a compelling case study that showcases FlushJohn's success in solving real challenges.`,
   },
 };
 
@@ -562,6 +632,104 @@ Requirements:
   }
 }
 
+/**
+ * Extract city and state from blog content/title using AI
+ * Useful for event/construction posts that mention cities
+ * @param {string} title - Blog title
+ * @param {string} content - Blog content
+ * @returns {Promise<{city: string | null, state: string | null}>}
+ */
+export async function extractCityAndState(title, content) {
+  try {
+    // Clean content (remove HTML tags)
+    const cleanContent = content.replace(/<[^>]*>/g, "").trim();
+    const textSample = (title + " " + cleanContent.substring(0, 2000)).trim();
+
+    // List of cities we serve
+    const cities = [
+      "Houston", "Dallas", "Austin", "San Antonio", "Fort Worth", // TX
+      "Miami", "Orlando", "Tampa", "Jacksonville", "Fort Lauderdale", // FL
+      "Los Angeles", "San Diego", "Sacramento", "San Jose", "Fresno", // CA
+      "Atlanta", "Savannah", "Augusta", "Macon", "Columbus", // GA
+      "Chicago", "Springfield", "Peoria", "Rockford", "Naperville", // IL
+      "Dover", // DE
+    ];
+
+    const states = ["Texas", "TX", "Florida", "FL", "California", "CA", "Georgia", "GA", "Illinois", "IL", "Delaware", "DE"];
+
+    // Check if any city is mentioned
+    const mentionedCity = cities.find(city => {
+      const cityLower = city.toLowerCase();
+      const textLower = textSample.toLowerCase();
+      // Check for city name (word boundary to avoid partial matches)
+      return textLower.includes(cityLower) || 
+             new RegExp(`\\b${cityLower}\\b`, 'i').test(textLower);
+    });
+
+    if (!mentionedCity) {
+      return { city: null, state: null };
+    }
+
+    // Try to find state mentioned near the city
+    const cityIndex = textSample.toLowerCase().indexOf(mentionedCity.toLowerCase());
+    const surroundingText = textSample.substring(
+      Math.max(0, cityIndex - 100),
+      Math.min(textSample.length, cityIndex + mentionedCity.length + 100)
+    ).toLowerCase();
+
+    const mentionedState = states.find(state => {
+      const stateLower = state.toLowerCase();
+      return surroundingText.includes(`, ${stateLower}`) ||
+             surroundingText.includes(`${stateLower}`) ||
+             surroundingText.includes(` ${stateLower},`);
+    });
+
+    // Normalize state to full name or abbreviation
+    let stateAbbr = null;
+    if (mentionedState) {
+      const stateMap = {
+        "texas": "TX", "tx": "TX",
+        "florida": "FL", "fl": "FL",
+        "california": "CA", "ca": "CA",
+        "georgia": "GA", "ga": "GA",
+        "illinois": "IL", "il": "IL",
+        "delaware": "DE", "de": "DE",
+      };
+      stateAbbr = stateMap[mentionedState.toLowerCase()] || mentionedState.toUpperCase().slice(0, 2);
+    } else {
+      // Try to infer state from city
+      const cityStateMap = {
+        "Houston": "TX", "Dallas": "TX", "Austin": "TX", "San Antonio": "TX", "Fort Worth": "TX",
+        "Miami": "FL", "Orlando": "FL", "Tampa": "FL", "Jacksonville": "FL", "Fort Lauderdale": "FL",
+        "Los Angeles": "CA", "San Diego": "CA", "Sacramento": "CA", "San Jose": "CA", "Fresno": "CA",
+        "Atlanta": "GA", "Savannah": "GA", "Augusta": "GA", "Macon": "GA", "Columbus": "GA",
+        "Chicago": "IL", "Springfield": "IL", "Peoria": "IL", "Rockford": "IL", "Naperville": "IL",
+        "Dover": "DE",
+      };
+      stateAbbr = cityStateMap[mentionedCity] || null;
+    }
+
+    // Convert state abbreviation to full name for storage
+    const stateFullNameMap = {
+      "TX": "Texas",
+      "FL": "Florida",
+      "CA": "California",
+      "GA": "Georgia",
+      "IL": "Illinois",
+      "DE": "Delaware",
+    };
+    const stateFullName = stateAbbr ? (stateFullNameMap[stateAbbr] || stateAbbr) : null;
+
+    return {
+      city: mentionedCity,
+      state: stateFullName || stateAbbr,
+    };
+  } catch (error) {
+    console.error("Error extracting city/state:", error);
+    return { city: null, state: null };
+  }
+}
+
 export function extractTags(title, content, city = null) {
   const baseTags = ["porta-potty-rental", "portable-toilets", "flushjohn"];
 
@@ -604,5 +772,6 @@ export default {
   generateSlug,
   generateExcerpt,
   extractTags,
+  extractCityAndState,
   generateCoverImageAlt,
 };
