@@ -430,8 +430,6 @@ export const createBlog = async (blogData) => {
 
   return await createBlogWithRetry(blogData);
 };
-<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
-grep
 
 export const getAllBlogs = async ({
   page = 1,
