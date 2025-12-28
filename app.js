@@ -31,6 +31,7 @@ import commonFeature from "./features/common/index.js";
 import notesFeature from "./features/notes/index.js";
 import contactsFeature from "./features/contacts/index.js";
 import salesAssistFeature from "./features/salesAssist/index.js";
+import notificationsFeature from "./features/notifications/index.js";
 import {
   authenticateToken,
   authorizeRoles,
@@ -55,6 +56,7 @@ const notesRouter = notesFeature.router;
 const contactsRouter = contactsFeature.routes;
 const salesAssistRouter = salesAssistFeature.routes.salesAssist;
 const speechRecognitionRouter = salesAssistFeature.routes.speechRecognition;
+const notificationsRouter = notificationsFeature.router;
 
 config({ path: "./.env" });
 
@@ -282,6 +284,7 @@ app.use(
 // ✅ PERFORMANCE: Add strict rate limiting to dashboard (expensive queries)
 app.use("/dashboard", authenticateToken, strictLimiter, dashboardRouter);
 app.use("/notes", authenticateToken, notesRouter);
+app.use("/notifications", authenticateToken, notificationsRouter);
 app.use("/contacts", authenticateToken, contactsRouter);
 app.use("/sales-assist", salesAssistRouter);
 app.use("/sales-assist", speechRecognitionRouter);

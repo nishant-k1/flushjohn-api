@@ -8,6 +8,8 @@
 import * as leadsRepository from "../repositories/leadsRepository.js";
 import alertService from "../../common/services/alertService.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
+import { createLeadNotification } from "../../notifications/services/notificationHelpers.js";
+import { deleteNotificationsByLeadId } from "../../notifications/services/notificationsService.js";
 
 /**
  * Transform products based on lead source
@@ -120,6 +122,11 @@ export const createLead = async (leadData) => {
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
   const lead = await leadsRepository.create(preparedData);
   sendLeadAlerts(lead, leadNo);
+  
+  // Create notifications for all active users (non-blocking)
+  createLeadNotification(lead).catch((error) => {
+    console.error("Error creating notifications:", error);
+  });
 
   return lead;
 };
@@ -293,6 +300,12 @@ export const deleteLead = async (id) => {
   }
 
   await leadsRepository.deleteById(id);
+  
+  // Delete all notifications related to this lead (non-blocking)
+  deleteNotificationsByLeadId(id).catch((error) => {
+    console.error("Error deleting notifications for lead:", error);
+  });
+
   return { _id: id };
 };
 
