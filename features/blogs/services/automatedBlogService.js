@@ -120,11 +120,17 @@ export async function generateAutomatedBlogPost(
     // This helps event/construction posts that mention cities get geo-targeting
     let extractedLocation = { city: null, state: null };
     if (!topic.city || !topic.state) {
-      extractedLocation = blogGeneratorService.extractCityAndState(
+      extractedLocation = await blogGeneratorService.extractCityAndState(
         topic.title,
         contentWithLinks
       );
     }
+
+    // Generate FAQ schema for better search visibility
+    const faqSchema = blogGeneratorService.generateFAQSchema(
+      contentWithLinks,
+      topic.title
+    );
 
     const blogData = {
       title: topic.title,
@@ -158,6 +164,8 @@ export async function generateAutomatedBlogPost(
       comments: [],
       automated: true,
       automationDate: new Date(),
+      // Add FAQ schema for better search visibility
+      faqSchema: faqSchema,
     };
 
     return blogData;
