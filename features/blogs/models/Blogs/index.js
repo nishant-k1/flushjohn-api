@@ -202,6 +202,25 @@ const BlogsSchema = new Schema(
         },
       },
     ],
+    // FAQ Schema for SEO (structured data)
+    faqSchema: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+    // Automation tracking
+    automated: {
+      type: Boolean,
+      default: false,
+    },
+    automationDate: {
+      type: Date,
+      default: null,
+    },
+    priority: {
+      type: String,
+      enum: ["high", "medium", "low"],
+      default: "medium",
+    },
   },
   {
     timestamps: true,
