@@ -13,18 +13,32 @@ export const generateVendorNumber = async () => {
 
 export const createVendor = async (vendorData) => {
   if (vendorData.representatives && Array.isArray(vendorData.representatives)) {
+    const vendorEmail = vendorData.email || "";
+    const isEmailOptional = vendorEmail.trim() !== "";
+    
     for (const rep of vendorData.representatives) {
-      if (!rep.name || !rep.email) {
-        const error = new Error("Each representative must have a name and email");
+      // Name is always required
+      if (!rep.name || rep.name.trim() === "") {
+        const error = new Error("Each representative must have a name");
         error.name = "ValidationError";
         throw error;
       }
       
-      const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-      if (!emailRegex.test(rep.email)) {
-        const error = new Error("Invalid email format for representative");
+      // Email is required only if vendor email doesn't exist
+      if (!isEmailOptional && (!rep.email || rep.email.trim() === "")) {
+        const error = new Error("Each representative must have an email when vendor email is not provided");
         error.name = "ValidationError";
         throw error;
+      }
+      
+      // If email is provided, validate its format
+      if (rep.email && rep.email.trim() !== "") {
+        const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+        if (!emailRegex.test(rep.email)) {
+          const error = new Error("Invalid email format for representative");
+          error.name = "ValidationError";
+          throw error;
+        }
       }
     }
   }
@@ -100,18 +114,34 @@ export const getVendorById = async (id) => {
 
 export const updateVendor = async (id, updateData) => {
   if (updateData.representatives && Array.isArray(updateData.representatives)) {
+    // Get existing vendor to check if it has an email
+    const existingVendor = await vendorsRepository.findById(id);
+    const vendorEmail = updateData.email || (existingVendor && existingVendor.email) || "";
+    const isEmailOptional = vendorEmail.trim() !== "";
+    
     for (const rep of updateData.representatives) {
-      if (!rep.name || !rep.email) {
-        const error = new Error("Each representative must have a name and email");
+      // Name is always required
+      if (!rep.name || rep.name.trim() === "") {
+        const error = new Error("Each representative must have a name");
         error.name = "ValidationError";
         throw error;
       }
       
-      const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-      if (!emailRegex.test(rep.email)) {
-        const error = new Error("Invalid email format for representative");
+      // Email is required only if vendor email doesn't exist
+      if (!isEmailOptional && (!rep.email || rep.email.trim() === "")) {
+        const error = new Error("Each representative must have an email when vendor email is not provided");
         error.name = "ValidationError";
         throw error;
+      }
+      
+      // If email is provided, validate its format
+      if (rep.email && rep.email.trim() !== "") {
+        const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+        if (!emailRegex.test(rep.email)) {
+          const error = new Error("Invalid email format for representative");
+          error.name = "ValidationError";
+          throw error;
+        }
       }
     }
   }
