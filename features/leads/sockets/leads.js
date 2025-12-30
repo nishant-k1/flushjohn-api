@@ -111,7 +111,11 @@ export function leadSocketHandler(leadsNamespace, socket) {
 
   socket.on("getLeads", async () => {
     try {
-      const leadsList = await Leads.find().sort({ _id: -1 });
+      // OPTIMIZATION: Add limit to prevent fetching entire collection
+      const leadsList = await Leads.find()
+        .sort({ _id: -1 })
+        .limit(100)
+        .lean();
       socket.emit("leadList", leadsList);
     } catch (error) {}
   });
@@ -135,8 +139,8 @@ export function leadSocketHandler(leadsNamespace, socket) {
   socket.on("deleteLead", async (leadId) => {
     try {
       await Leads.findByIdAndDelete(leadId);
-      const leadsList = await Leads.find().sort({ _id: -1 });
-      socket.emit("leadDeleted", leadsList);
+      // OPTIMIZATION: Emit deleted lead ID instead of fetching all leads
+      socket.emit("leadDeleted", { leadId, action: "delete" });
     } catch (error) {}
   });
 

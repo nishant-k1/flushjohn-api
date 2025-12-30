@@ -164,7 +164,13 @@ async function addIndexes() {
     // Text index for search
     await createIndexSafe(
       db.collection("leads"),
-      { fName: "text", lName: "text", email: "text", phone: "text", cName: "text" },
+      {
+        fName: "text",
+        lName: "text",
+        email: "text",
+        phone: "text",
+        cName: "text",
+      },
       "leads_text_search"
     );
     console.log("✅ Leads indexes added\n");
@@ -176,16 +182,8 @@ async function addIndexes() {
       { createdAt: -1 },
       "createdAt_-1"
     );
-    await createIndexSafe(
-      db.collection("customers"),
-      { email: 1 },
-      "email_1"
-    );
-    await createIndexSafe(
-      db.collection("customers"),
-      { phone: 1 },
-      "phone_1"
-    );
+    await createIndexSafe(db.collection("customers"), { email: 1 }, "email_1");
+    await createIndexSafe(db.collection("customers"), { phone: 1 }, "phone_1");
     await createIndexSafe(
       db.collection("customers"),
       { customerNo: 1 },
