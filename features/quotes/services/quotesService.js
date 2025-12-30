@@ -245,7 +245,15 @@ export const updateQuote = async (id, updateData) => {
     throw error;
   }
 
-  let leadId = updateData.lead || updateData.leadId;
+  // Get the existing quote to access the lead reference
+  const existingQuote = await quotesRepository.findById(id);
+  if (!existingQuote) {
+    const error = new Error("Quote not found");
+    error.name = "NotFoundError";
+    throw error;
+  }
+
+  let leadId = updateData.lead || updateData.leadId || existingQuote.lead;
   if (!leadId && updateData.leadNo) {
     const Leads = (await import("../../leads/models/Leads/index.js")).default;
     let leadNo = updateData.leadNo;
@@ -264,8 +272,57 @@ export const updateQuote = async (id, updateData) => {
     }
   }
 
+  // ✅ Separate fields that belong to Lead vs Quote
+  const leadFields = {
+    fName: updateData.fName,
+    lName: updateData.lName,
+    cName: updateData.cName,
+    email: updateData.email,
+    phone: updateData.phone,
+    fax: updateData.fax,
+    streetAddress: updateData.streetAddress,
+    city: updateData.city,
+    state: updateData.state,
+    zip: updateData.zip,
+    country: updateData.country,
+    usageType: updateData.usageType,
+  };
+
+  // Remove undefined fields from leadFields
+  Object.keys(leadFields).forEach(
+    (key) => leadFields[key] === undefined && delete leadFields[key]
+  );
+
+  // ✅ Update the associated Lead if it exists and there are lead fields to update
+  if (leadId && Object.keys(leadFields).length > 0) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    await Leads.findByIdAndUpdate(
+      leadId,
+      { $set: leadFields },
+      { new: true, runValidators: true }
+    );
+  }
+
+  // ✅ Quote-specific fields (exclude lead-related customer info)
+  const quoteFields = {
+    products: updateData.products,
+    deliveryDate: updateData.deliveryDate,
+    pickupDate: updateData.pickupDate,
+    contactPersonName: updateData.contactPersonName,
+    contactPersonPhone: updateData.contactPersonPhone,
+    instructions: updateData.instructions,
+    note: updateData.note,
+    emailStatus: updateData.emailStatus,
+  };
+
+  // Remove undefined fields from quoteFields
+  Object.keys(quoteFields).forEach(
+    (key) => quoteFields[key] === undefined && delete quoteFields[key]
+  );
+
+  // ✅ Update the Quote with only quote-specific fields
   const quote = await quotesRepository.updateById(id, {
-    ...updateData,
+    ...quoteFields,
     ...(leadId && { lead: leadId }),
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),

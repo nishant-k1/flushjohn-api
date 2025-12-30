@@ -181,8 +181,8 @@ const htmlTemplate = (jobOrderData) => {
           </li>
         </ul>
           ${itemRows(jobOrderData.products)}
-        <div>
-          <h4>Total Amount ${safeCurrency(
+        <div class='total-amount-container'>
+          <h4>Total Amount: ${safeCurrency(
             totalAmount(jobOrderData.products)
           )}</h4>
         </div>

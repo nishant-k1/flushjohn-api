@@ -176,8 +176,69 @@ export const getSalesOrderById = async (id) => {
 };
 
 export const updateSalesOrder = async (id, updateData) => {
+  // Get the existing sales order to access the lead reference
+  const existingSalesOrder = await salesOrdersRepository.findById(id);
+  if (!existingSalesOrder) {
+    const error = new Error("Sales Order not found");
+    error.name = "NotFoundError";
+    throw error;
+  }
+
+  let leadId = updateData.lead || existingSalesOrder.lead;
+
+  // ✅ Separate fields that belong to Lead vs SalesOrder
+  const leadFields = {
+    fName: updateData.fName,
+    lName: updateData.lName,
+    cName: updateData.cName,
+    email: updateData.email,
+    phone: updateData.phone,
+    fax: updateData.fax,
+    streetAddress: updateData.streetAddress,
+    city: updateData.city,
+    state: updateData.state,
+    zip: updateData.zip,
+    country: updateData.country,
+    usageType: updateData.usageType,
+  };
+
+  // Remove undefined fields from leadFields
+  Object.keys(leadFields).forEach(
+    (key) => leadFields[key] === undefined && delete leadFields[key]
+  );
+
+  // ✅ Update the associated Lead if it exists and there are lead fields to update
+  if (leadId && Object.keys(leadFields).length > 0) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    await Leads.findByIdAndUpdate(
+      leadId,
+      { $set: leadFields },
+      { new: true, runValidators: true }
+    );
+  }
+
+  // ✅ SalesOrder-specific fields (exclude lead-related customer info)
+  const salesOrderFields = {
+    products: updateData.products,
+    deliveryDate: updateData.deliveryDate,
+    pickupDate: updateData.pickupDate,
+    contactPersonName: updateData.contactPersonName,
+    contactPersonPhone: updateData.contactPersonPhone,
+    instructions: updateData.instructions,
+    note: updateData.note,
+    emailStatus: updateData.emailStatus,
+    billingCycles: updateData.billingCycles,
+  };
+
+  // Remove undefined fields from salesOrderFields
+  Object.keys(salesOrderFields).forEach(
+    (key) => salesOrderFields[key] === undefined && delete salesOrderFields[key]
+  );
+
+  // ✅ Update the SalesOrder with only sales-order-specific fields
   const salesOrder = await salesOrdersRepository.updateById(id, {
-    ...updateData,
+    ...salesOrderFields,
+    ...(leadId && { lead: leadId }),
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),
   });

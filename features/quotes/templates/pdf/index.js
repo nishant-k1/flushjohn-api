@@ -173,9 +173,9 @@ const htmlTemplate = (quoteData) => {
             </li>
           </ul>
             ${quoteData.products ? itemRows(quoteData.products) : ""}
-          <div>
-            <h4>Total Amount $${
-              quoteData.products ? totalAmount(quoteData.products) : ""
+          <div class='total-amount-container'>
+            <h4>Total Amount: $${
+              quoteData.products ? totalAmount(quoteData.products).toFixed(2) : "0.00"
             }</h4>
           </div>
         </div>

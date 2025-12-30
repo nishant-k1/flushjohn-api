@@ -131,21 +131,21 @@ const styles = `html,
     padding-left: .5rem;
   }
 
-  .section-3 div{
-    justify-self: right;
-    list-style: none;
+  .section-3 .total-amount-container{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
     padding: 1rem 0;
     margin: 0;
-    display: grid;
-    align-items: center;
-    justify-content: right;
-    column-gap: 0;
-    grid-template-columns: repeat(2, max-content)
+    width: 100%;
   }
 
-  .section-3 div h4{
+  .section-3 .total-amount-container h4{
     font-size: medium;
     color: red;
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
   }
 
   .items-heading{
