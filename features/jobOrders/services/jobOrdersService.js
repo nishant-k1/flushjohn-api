@@ -251,8 +251,72 @@ export const getJobOrderById = async (id) => {
 };
 
 export const updateJobOrder = async (id, updateData) => {
+  // Get the existing job order to access the lead reference
+  const existingJobOrder = await jobOrdersRepository.findById(id);
+  if (!existingJobOrder) {
+    const error = new Error("Job Order not found");
+    error.name = "NotFoundError";
+    throw error;
+  }
+
+  let leadId = updateData.lead || existingJobOrder.lead;
+
+  // ✅ Separate fields that belong to Lead vs JobOrder
+  const leadFields = {
+    fName: updateData.fName,
+    lName: updateData.lName,
+    cName: updateData.cName,
+    email: updateData.email,
+    phone: updateData.phone,
+    fax: updateData.fax,
+    streetAddress: updateData.streetAddress,
+    city: updateData.city,
+    state: updateData.state,
+    zip: updateData.zip,
+    country: updateData.country,
+    usageType: updateData.usageType,
+  };
+
+  // Remove undefined fields from leadFields
+  Object.keys(leadFields).forEach(
+    (key) => leadFields[key] === undefined && delete leadFields[key]
+  );
+
+  // ✅ Update the associated Lead if it exists and there are lead fields to update
+  if (leadId && Object.keys(leadFields).length > 0) {
+    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    await Leads.findByIdAndUpdate(
+      leadId,
+      { $set: leadFields },
+      { new: true, runValidators: true }
+    );
+  }
+
+  // ✅ JobOrder-specific fields (exclude lead-related customer info)
+  const jobOrderFields = {
+    products: updateData.products,
+    deliveryDate: updateData.deliveryDate,
+    pickupDate: updateData.pickupDate,
+    contactPersonName: updateData.contactPersonName,
+    contactPersonPhone: updateData.contactPersonPhone,
+    instructions: updateData.instructions,
+    note: updateData.note,
+    emailStatus: updateData.emailStatus,
+    billingCycles: updateData.billingCycles,
+    vendor: updateData.vendor,
+    vendorAcceptanceStatus: updateData.vendorAcceptanceStatus,
+    vendorHistory: updateData.vendorHistory,
+  };
+
+  // Remove undefined fields from jobOrderFields
+  Object.keys(jobOrderFields).forEach(
+    (key) => jobOrderFields[key] === undefined && delete jobOrderFields[key]
+  );
+
+  // ✅ Update the JobOrder with only job-order-specific fields
   const jobOrder = await jobOrdersRepository.updateById(id, {
-    ...updateData,
+    ...jobOrderFields,
+    ...(leadId && { lead: leadId }),
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),
   });
