@@ -74,6 +74,9 @@ const VendorsSchema = new mongoose.Schema({
   note: {
     type: String,
   },
+  products: {
+    type: Array,
+  },
 });
 
 export default mongoose.models.Vendors ||
