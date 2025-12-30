@@ -128,6 +128,101 @@ async function addIndexes() {
     );
     console.log("✅ JobOrders indexes added\n");
 
+    // Add indexes to Leads collection
+    console.log("📊 Adding indexes to Leads collection...");
+    await createIndexSafe(
+      db.collection("leads"),
+      { createdAt: -1 },
+      "createdAt_-1"
+    );
+    await createIndexSafe(db.collection("leads"), { email: 1 }, "email_1");
+    await createIndexSafe(db.collection("leads"), { phone: 1 }, "phone_1");
+    await createIndexSafe(db.collection("leads"), { leadNo: -1 }, "leadNo_-1");
+    await createIndexSafe(
+      db.collection("leads"),
+      { leadStatus: 1 },
+      "leadStatus_1"
+    );
+    await createIndexSafe(
+      db.collection("leads"),
+      { leadSource: 1 },
+      "leadSource_1"
+    );
+    await createIndexSafe(
+      db.collection("leads"),
+      { usageType: 1 },
+      "usageType_1"
+    );
+    await createIndexSafe(db.collection("leads"), { zip: 1 }, "zip_1");
+    await createIndexSafe(db.collection("leads"), { state: 1 }, "state_1");
+    // Compound index for common queries
+    await createIndexSafe(
+      db.collection("leads"),
+      { createdAt: -1, leadStatus: 1 },
+      "createdAt_-1_leadStatus_1"
+    );
+    // Text index for search
+    await createIndexSafe(
+      db.collection("leads"),
+      { fName: "text", lName: "text", email: "text", phone: "text", cName: "text" },
+      "leads_text_search"
+    );
+    console.log("✅ Leads indexes added\n");
+
+    // Add indexes to Customers collection
+    console.log("📊 Adding indexes to Customers collection...");
+    await createIndexSafe(
+      db.collection("customers"),
+      { createdAt: -1 },
+      "createdAt_-1"
+    );
+    await createIndexSafe(
+      db.collection("customers"),
+      { email: 1 },
+      "email_1"
+    );
+    await createIndexSafe(
+      db.collection("customers"),
+      { phone: 1 },
+      "phone_1"
+    );
+    await createIndexSafe(
+      db.collection("customers"),
+      { customerNo: 1 },
+      "customerNo_1"
+    );
+    await createIndexSafe(db.collection("customers"), { lead: 1 }, "lead_1");
+    console.log("✅ Customers indexes added\n");
+
+    // Add indexes to Vendors collection
+    console.log("📊 Adding indexes to Vendors collection...");
+    await createIndexSafe(
+      db.collection("vendors"),
+      { createdAt: -1 },
+      "createdAt_-1"
+    );
+    await createIndexSafe(db.collection("vendors"), { email: 1 }, "email_1");
+    await createIndexSafe(db.collection("vendors"), { name: 1 }, "name_1");
+    await createIndexSafe(db.collection("vendors"), { state: 1 }, "state_1");
+    await createIndexSafe(db.collection("vendors"), { zip: 1 }, "zip_1");
+    console.log("✅ Vendors indexes added\n");
+
+    // Add indexes to Blogs collection
+    console.log("📊 Adding indexes to Blogs collection...");
+    await createIndexSafe(
+      db.collection("blogs"),
+      { createdAt: -1 },
+      "createdAt_-1"
+    );
+    await createIndexSafe(db.collection("blogs"), { slug: 1 }, "slug_1");
+    await createIndexSafe(db.collection("blogs"), { status: 1 }, "status_1");
+    await createIndexSafe(
+      db.collection("blogs"),
+      { createdAt: -1, status: 1 },
+      "createdAt_-1_status_1"
+    );
+    console.log("✅ Blogs indexes added\n");
+
     console.log("🎉 All indexes added successfully!");
     console.log("\n📈 Your database queries will now be faster!");
 

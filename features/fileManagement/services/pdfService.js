@@ -139,12 +139,12 @@ export const closeBrowserPool = async () => {
 
 /**
  * Generate PDF using Playwright/Puppeteer with browser pooling and upload to S3
- * 
+ *
  * OPTIMIZATION: Uses browser pool to reuse browser instance across PDF generations
  * - Browser launch takes 2-4 seconds, reusing saves this time
  * - Each PDF gets a fresh context/page with fresh data (no stale content)
  * - Browser auto-closes after 5 minutes of inactivity
- * 
+ *
  * @param {Object} documentData - Document data from request body
  * @param {string} documentType - 'quote', 'salesOrder', or 'jobOrder'
  * @param {string} documentId - Document ID
@@ -321,11 +321,9 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
         };
       } else {
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   } else {
   }
 
   return generatePDF(jobOrderData, "jobOrder", jobOrderId);
 };
-
