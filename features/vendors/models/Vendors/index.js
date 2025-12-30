@@ -51,7 +51,7 @@ const VendorsSchema = new mongoose.Schema({
       },
       email: {
         type: String,
-        required: true,
+        required: false, // Optional if vendor email exists (validated in service layer)
       },
       phone: {
         type: String,
