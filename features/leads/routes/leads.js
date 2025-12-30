@@ -42,11 +42,11 @@ router.post(
     try {
       const lead = await leadsService.createLead(req.body);
 
+      // OPTIMIZATION: Emit only the new lead instead of fetching all leads
       if (global.leadsNamespace) {
         try {
-          const { default: Leads } = await import("../models/Leads/index.js");
-          const leadsList = await Leads.find().sort({ _id: -1 });
-          global.leadsNamespace.emit("leadCreated", leadsList);
+          const payload = { lead: lead.toObject ? lead.toObject() : lead, action: "add" };
+          global.leadsNamespace.emit("leadCreated", payload);
           console.log("📢 Emitted leadCreated event to socket clients");
         } catch (emitError) {
           console.error("❌ Error emitting leadCreated event:", emitError);

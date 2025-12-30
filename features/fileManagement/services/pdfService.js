@@ -19,19 +19,143 @@ try {
   }
 }
 
+// ============================================
+// BROWSER POOL FOR FASTER PDF GENERATION
+// ============================================
+// Reuses browser instance instead of launching new one each time
+// Each PDF still gets fresh context/page with fresh data
+
+let browserPool = null;
+let browserPoolPromise = null;
+const BROWSER_IDLE_TIMEOUT = 5 * 60 * 1000; // Close browser after 5 min of inactivity
+let browserIdleTimer = null;
+
 /**
- * Generate PDF using Playwright and upload to S3
+ * Get or create a pooled browser instance
+ * @returns {Promise<Browser>} Browser instance
+ */
+const getPooledBrowser = async () => {
+  // Reset idle timer on each use
+  if (browserIdleTimer) {
+    clearTimeout(browserIdleTimer);
+    browserIdleTimer = null;
+  }
+
+  // Return existing browser if connected
+  if (browserPool) {
+    try {
+      // Check if browser is still connected
+      if (usePuppeteer) {
+        if (browserPool.isConnected()) {
+          scheduleBrowserClose();
+          return browserPool;
+        }
+      } else {
+        // Playwright - check if browser is connected
+        if (browserPool.isConnected()) {
+          scheduleBrowserClose();
+          return browserPool;
+        }
+      }
+    } catch (e) {
+      // Browser disconnected, will create new one
+      browserPool = null;
+    }
+  }
+
+  // Prevent multiple simultaneous launches
+  if (browserPoolPromise) {
+    return browserPoolPromise;
+  }
+
+  // Launch new browser
+  browserPoolPromise = (async () => {
+    try {
+      const launchOptions = {
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+        ],
+      };
+
+      // Puppeteer needs single-process arg
+      if (usePuppeteer) {
+        launchOptions.args.push("--single-process");
+      }
+
+      browserPool = await browserLib.launch(launchOptions);
+      scheduleBrowserClose();
+      return browserPool;
+    } finally {
+      browserPoolPromise = null;
+    }
+  })();
+
+  return browserPoolPromise;
+};
+
+/**
+ * Schedule browser close after idle timeout
+ */
+const scheduleBrowserClose = () => {
+  if (browserIdleTimer) {
+    clearTimeout(browserIdleTimer);
+  }
+  browserIdleTimer = setTimeout(async () => {
+    if (browserPool) {
+      try {
+        await browserPool.close();
+      } catch (e) {
+        // Ignore close errors
+      }
+      browserPool = null;
+    }
+  }, BROWSER_IDLE_TIMEOUT);
+};
+
+/**
+ * Graceful shutdown - close browser pool
+ */
+export const closeBrowserPool = async () => {
+  if (browserIdleTimer) {
+    clearTimeout(browserIdleTimer);
+    browserIdleTimer = null;
+  }
+  if (browserPool) {
+    try {
+      await browserPool.close();
+    } catch (e) {
+      // Ignore close errors
+    }
+    browserPool = null;
+  }
+};
+
+/**
+ * Generate PDF using Playwright/Puppeteer with browser pooling and upload to S3
+ * 
+ * OPTIMIZATION: Uses browser pool to reuse browser instance across PDF generations
+ * - Browser launch takes 2-4 seconds, reusing saves this time
+ * - Each PDF gets a fresh context/page with fresh data (no stale content)
+ * - Browser auto-closes after 5 minutes of inactivity
+ * 
  * @param {Object} documentData - Document data from request body
  * @param {string} documentType - 'quote', 'salesOrder', or 'jobOrder'
  * @param {string} documentId - Document ID
  * @returns {Promise<string>} - S3 URL of generated PDF
  */
 export const generatePDF = async (documentData, documentType, documentId) => {
-  let browser = null;
   let context = null;
   let page = null;
 
   try {
+    // Generate fresh HTML content from current data
     let htmlContent;
     switch (documentType) {
       case "quote":
@@ -51,136 +175,100 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       throw new Error(`Failed to generate HTML template for ${documentType}`);
     }
 
+    // Get pooled browser (reuses existing or launches new)
+    const browser = await getPooledBrowser();
     let pdfBuffer;
 
     if (usePuppeteer) {
-      browser = await browserLib.launch({
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--single-process",
-          "--disable-gpu",
-        ],
-      });
-
+      // Puppeteer: use incognito context for isolation
       try {
-      page = await browser.newPage();
-      await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+        context = await browser.createBrowserContext();
+        page = await context.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
 
-      pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: {
-          top: "0.5in",
-          right: "0.5in",
-          bottom: "0.5in",
-          left: "0.5in",
-        },
-      });
+        pdfBuffer = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          margin: {
+            top: "0.5in",
+            right: "0.5in",
+            bottom: "0.5in",
+            left: "0.5in",
+          },
+        });
       } finally {
+        // Close page and context, but NOT the browser (it's pooled)
         if (page) {
           try {
             await page.close();
           } catch (closeError) {
-            console.error("Error closing page:", closeError);
-          }
-        }
-        if (browser) {
-          try {
-            await browser.close();
-          } catch (closeError) {
-            console.error("Error closing browser:", closeError);
-          }
-        }
-      }
-    } else {
-      browser = await browserLib.launch({
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-gpu",
-        ],
-      });
-
-      try {
-        context = await browser.newContext();
-      page = await context.newPage();
-
-      await page.setContent(htmlContent, { waitUntil: "networkidle" });
-
-      pdfBuffer = await page.pdf({
-        format: "A4",
-        printBackground: true,
-        margin: {
-          top: "0.5in",
-          right: "0.5in",
-          bottom: "0.5in",
-          left: "0.5in",
-        },
-      });
-      } finally {
-        if (page) {
-          try {
-            await page.close();
-          } catch (closeError) {
-            console.error("Error closing page:", closeError);
+            // Ignore - page may already be closed
           }
         }
         if (context) {
           try {
             await context.close();
           } catch (closeError) {
-            console.error("Error closing context:", closeError);
+            // Ignore - context may already be closed
           }
         }
-        if (browser) {
+      }
+    } else {
+      // Playwright: use context for isolation
       try {
-            await browser.close();
+        context = await browser.newContext();
+        page = await context.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle" });
+
+        pdfBuffer = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          margin: {
+            top: "0.5in",
+            right: "0.5in",
+            bottom: "0.5in",
+            left: "0.5in",
+          },
+        });
+      } finally {
+        // Close page and context, but NOT the browser (it's pooled)
+        if (page) {
+          try {
+            await page.close();
           } catch (closeError) {
-            console.error("Error closing browser:", closeError);
+            // Ignore - page may already be closed
+          }
+        }
+        if (context) {
+          try {
+            await context.close();
+          } catch (closeError) {
+            // Ignore - context may already be closed
           }
         }
       }
     }
 
-    // Always upload to S3 - no local file storage
-        const s3Result = await uploadPDFToS3(
-          pdfBuffer,
-          documentType,
-          documentId
-        );
+    // Upload fresh PDF to S3
+    const s3Result = await uploadPDFToS3(pdfBuffer, documentType, documentId);
 
-        return {
-          pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
-        };
+    return {
+      pdfUrl: s3Result.cdnUrl, // CloudFront CDN URL (or S3 direct)
+    };
   } catch (error) {
-    // Ensure browser is closed even if error occurs
+    // Clean up context/page on error (browser stays in pool)
     if (page) {
       try {
         await page.close();
       } catch (closeError) {
-        console.error("Error closing page during error handling:", closeError);
-    }
+        // Ignore
+      }
     }
     if (context) {
       try {
         await context.close();
       } catch (closeError) {
-        console.error("Error closing context during error handling:", closeError);
-    }
-    }
-    if (browser) {
-      try {
-        await browser.close();
-      } catch (closeError) {
-        console.error("Error closing browser during error handling:", closeError);
+        // Ignore
       }
     }
     throw error;
