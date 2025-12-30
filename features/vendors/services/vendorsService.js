@@ -12,6 +12,13 @@ export const generateVendorNumber = async () => {
 };
 
 export const createVendor = async (vendorData) => {
+  // Validate vendor name is required
+  if (!vendorData.name || vendorData.name.trim() === "") {
+    const error = new Error("Vendor name is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
   if (vendorData.representatives && Array.isArray(vendorData.representatives)) {
     const vendorEmail = vendorData.email || "";
     const isEmailOptional = vendorEmail.trim() !== "";
@@ -113,6 +120,13 @@ export const getVendorById = async (id) => {
 };
 
 export const updateVendor = async (id, updateData) => {
+  // Validate vendor name is required if it's being updated
+  if (updateData.name !== undefined && (!updateData.name || updateData.name.trim() === "")) {
+    const error = new Error("Vendor name is required");
+    error.name = "ValidationError";
+    throw error;
+  }
+
   if (updateData.representatives && Array.isArray(updateData.representatives)) {
     // Get existing vendor to check if it has an email
     const existingVendor = await vendorsRepository.findById(id);
