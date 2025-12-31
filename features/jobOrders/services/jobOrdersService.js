@@ -201,12 +201,22 @@ export const getAllJobOrders = async ({
 
   let query = {};
   if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     query = {
       $or: [
-        { vendorName: { $regex: search, $options: "i" } },
-        { vendorPhone: { $regex: search, $options: "i" } },
-        { vendorEmail: { $regex: search, $options: "i" } },
-        { jobLocation: { $regex: search, $options: "i" } },
+        { jobOrderNo: { $regex: escapedSearch, $options: "i" } },
+        { customerNo: { $regex: escapedSearch, $options: "i" } },
+        { "vendor.name": { $regex: escapedSearch, $options: "i" } },
+        { "lead.fName": { $regex: escapedSearch, $options: "i" } },
+        { "lead.lName": { $regex: escapedSearch, $options: "i" } },
+        { "lead.cName": { $regex: escapedSearch, $options: "i" } },
+        { "lead.email": { $regex: escapedSearch, $options: "i" } },
+        { "lead.phone": { $regex: escapedSearch, $options: "i" } },
+        { "lead.usageType": { $regex: escapedSearch, $options: "i" } },
+        { jobLocation: { $regex: escapedSearch, $options: "i" } },
+        { deliveryDate: { $regex: escapedSearch, $options: "i" } },
+        { pickupDate: { $regex: escapedSearch, $options: "i" } },
+        { emailStatus: { $regex: escapedSearch, $options: "i" } },
       ],
     };
   }

@@ -124,12 +124,25 @@ export const getAllSalesOrders = async ({
 
   let query = {};
   if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     query = {
       $or: [
-        { customerName: { $regex: search, $options: "i" } },
-        { customerEmail: { $regex: search, $options: "i" } },
-        { customerPhone: { $regex: search, $options: "i" } },
-        { eventLocation: { $regex: search, $options: "i" } },
+        { salesOrderNo: { $regex: escapedSearch, $options: "i" } },
+        { customerNo: { $regex: escapedSearch, $options: "i" } },
+        { leadNo: { $regex: escapedSearch, $options: "i" } },
+        { "lead.fName": { $regex: escapedSearch, $options: "i" } },
+        { "lead.lName": { $regex: escapedSearch, $options: "i" } },
+        { "lead.cName": { $regex: escapedSearch, $options: "i" } },
+        { "lead.email": { $regex: escapedSearch, $options: "i" } },
+        { "lead.phone": { $regex: escapedSearch, $options: "i" } },
+        { "lead.usageType": { $regex: escapedSearch, $options: "i" } },
+        { customerName: { $regex: escapedSearch, $options: "i" } },
+        { customerEmail: { $regex: escapedSearch, $options: "i" } },
+        { customerPhone: { $regex: escapedSearch, $options: "i" } },
+        { eventLocation: { $regex: escapedSearch, $options: "i" } },
+        { deliveryDate: { $regex: escapedSearch, $options: "i" } },
+        { pickupDate: { $regex: escapedSearch, $options: "i" } },
+        { emailStatus: { $regex: escapedSearch, $options: "i" } },
       ],
     };
   }

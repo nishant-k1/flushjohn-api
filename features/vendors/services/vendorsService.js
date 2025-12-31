@@ -5,6 +5,9 @@
 import * as vendorsRepository from "../repositories/vendorsRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 
+const escapeRegExp = (value = "") =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export const generateVendorNumber = async () => {
   const latestVendor = await vendorsRepository.findOne({}, "vendorNo");
   const latestVendorNo = latestVendor ? latestVendor.vendorNo : 999;
@@ -22,7 +25,7 @@ export const createVendor = async (vendorData) => {
   if (vendorData.representatives && Array.isArray(vendorData.representatives)) {
     const vendorEmail = vendorData.email || "";
     const isEmailOptional = vendorEmail.trim() !== "";
-    
+
     for (const rep of vendorData.representatives) {
       // Name is always required
       if (!rep.name || rep.name.trim() === "") {
@@ -30,14 +33,16 @@ export const createVendor = async (vendorData) => {
         error.name = "ValidationError";
         throw error;
       }
-      
+
       // Email is required only if vendor email doesn't exist
       if (!isEmailOptional && (!rep.email || rep.email.trim() === "")) {
-        const error = new Error("Each representative must have an email when vendor email is not provided");
+        const error = new Error(
+          "Each representative must have an email when vendor email is not provided"
+        );
         error.name = "ValidationError";
         throw error;
       }
-      
+
       // If email is provided, validate its format
       if (rep.email && rep.email.trim() !== "") {
         const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -73,14 +78,32 @@ export const getAllVendors = async ({
 
   let query = {};
   if (search) {
+    const normalizedSearch = String(search).trim();
+    const safeSearch = escapeRegExp(normalizedSearch);
+    const numericSearch = Number.isFinite(Number(normalizedSearch))
+      ? Number(normalizedSearch)
+      : null;
+
     query = {
       $or: [
-        { name: { $regex: search, $options: "i" } },
-        { cName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-        { "representatives.name": { $regex: search, $options: "i" } },
-        { "representatives.email": { $regex: search, $options: "i" } },
+        ...(numericSearch !== null ? [{ vendorNo: numericSearch }] : []),
+        { name: { $regex: safeSearch, $options: "i" } },
+        { cName: { $regex: safeSearch, $options: "i" } },
+        { email: { $regex: safeSearch, $options: "i" } },
+        { phone: { $regex: safeSearch, $options: "i" } },
+        { fax: { $regex: safeSearch, $options: "i" } },
+        { streetAddress: { $regex: safeSearch, $options: "i" } },
+        { city: { $regex: safeSearch, $options: "i" } },
+        { state: { $regex: safeSearch, $options: "i" } },
+        { zip: { $regex: safeSearch, $options: "i" } },
+        { country: { $regex: safeSearch, $options: "i" } },
+        { serviceCities: { $regex: safeSearch, $options: "i" } },
+        { serviceStates: { $regex: safeSearch, $options: "i" } },
+        { serviceZipCodes: { $regex: safeSearch, $options: "i" } },
+        { note: { $regex: safeSearch, $options: "i" } },
+        { "representatives.name": { $regex: safeSearch, $options: "i" } },
+        { "representatives.email": { $regex: safeSearch, $options: "i" } },
+        { "representatives.phone": { $regex: safeSearch, $options: "i" } },
       ],
     };
   }
@@ -121,7 +144,10 @@ export const getVendorById = async (id) => {
 
 export const updateVendor = async (id, updateData) => {
   // Validate vendor name is required if it's being updated
-  if (updateData.name !== undefined && (!updateData.name || updateData.name.trim() === "")) {
+  if (
+    updateData.name !== undefined &&
+    (!updateData.name || updateData.name.trim() === "")
+  ) {
     const error = new Error("Vendor name is required");
     error.name = "ValidationError";
     throw error;
@@ -130,9 +156,10 @@ export const updateVendor = async (id, updateData) => {
   if (updateData.representatives && Array.isArray(updateData.representatives)) {
     // Get existing vendor to check if it has an email
     const existingVendor = await vendorsRepository.findById(id);
-    const vendorEmail = updateData.email || (existingVendor && existingVendor.email) || "";
+    const vendorEmail =
+      updateData.email || (existingVendor && existingVendor.email) || "";
     const isEmailOptional = vendorEmail.trim() !== "";
-    
+
     for (const rep of updateData.representatives) {
       // Name is always required
       if (!rep.name || rep.name.trim() === "") {
@@ -140,14 +167,16 @@ export const updateVendor = async (id, updateData) => {
         error.name = "ValidationError";
         throw error;
       }
-      
+
       // Email is required only if vendor email doesn't exist
       if (!isEmailOptional && (!rep.email || rep.email.trim() === "")) {
-        const error = new Error("Each representative must have an email when vendor email is not provided");
+        const error = new Error(
+          "Each representative must have an email when vendor email is not provided"
+        );
         error.name = "ValidationError";
         throw error;
       }
-      
+
       // If email is provided, validate its format
       if (rep.email && rep.email.trim() !== "") {
         const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
