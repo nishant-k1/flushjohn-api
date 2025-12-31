@@ -126,6 +126,36 @@ const SalesOrdersSchema = new mongoose.Schema({
       ],
     },
   ],
+
+  // Payment fields
+  paymentStatus: {
+    type: String,
+    enum: ["Unpaid", "Partially Paid", "Paid", "Refunded"],
+    default: "Unpaid",
+    index: true,
+  },
+  orderTotal: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  paidAmount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  balanceDue: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  dueDate: {
+    type: Date,
+  },
+  stripeCustomerId: {
+    type: String,
+    index: true,
+  },
 });
 
 // Add indexes for faster queries
@@ -136,6 +166,8 @@ SalesOrdersSchema.index({ lead: 1 }); // Find by lead reference
 SalesOrdersSchema.index({ quote: 1 }); // Find by quote reference
 SalesOrdersSchema.index({ emailStatus: 1 }); // Filter by status
 SalesOrdersSchema.index({ customerNo: 1 }); // Legacy customer number
+SalesOrdersSchema.index({ paymentStatus: 1 }); // Filter by payment status
+SalesOrdersSchema.index({ stripeCustomerId: 1 }); // Find by Stripe customer
 
 export default mongoose.models.SalesOrders ||
   mongoose.model("SalesOrders", SalesOrdersSchema);

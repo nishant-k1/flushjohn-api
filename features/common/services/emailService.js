@@ -4,6 +4,7 @@ import { flushjohn, quengenesis } from "../../../constants/index.js";
 import quoteEmailTemplate from "../../quotes/templates/email/index.js";
 import salesOrderEmailTemplate from "../../salesOrders/templates/email/index.js";
 import jobOrderEmailTemplate from "../../jobOrders/templates/email/index.js";
+import salesReceiptEmailTemplate from "../../payments/templates/email/index.js";
 
 // ============================================
 // SMTP CONNECTION POOL FOR FASTER EMAIL SENDING
@@ -276,15 +277,22 @@ export const sendQuoteEmail = async (quoteData, quoteId, s3PdfUrl) => {
  * @param {Object} salesOrderData - Sales Order data
  * @param {string} salesOrderId - Sales Order ID
  * @param {string} s3PdfUrl - S3 URL of the PDF
+ * @param {string} paymentLinkUrl - Optional payment link URL
  * @returns {Promise<boolean>} - Success status
  */
 export const sendSalesOrderEmail = async (
   salesOrderData,
   salesOrderId,
-  s3PdfUrl
+  s3PdfUrl,
+  paymentLinkUrl = null
 ) => {
+  // Add payment link to sales order data if provided
+  const emailDataWithPaymentLink = paymentLinkUrl
+    ? { ...salesOrderData, paymentLinkUrl }
+    : salesOrderData;
+  
   return sendEmailWithS3PDF(
-    salesOrderData,
+    emailDataWithPaymentLink,
     "salesOrder",
     salesOrderId,
     s3PdfUrl
