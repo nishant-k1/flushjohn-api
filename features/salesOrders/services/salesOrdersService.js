@@ -71,12 +71,46 @@ export const createSalesOrder = async (salesOrderData) => {
   const salesOrderNo = await generateSalesOrderNumber();
 
   let customerNo = null;
-  const existingCustomer = await customersRepository.findOne({
-    email: salesOrderData.email,
-  });
 
-  if (existingCustomer) {
-    customerNo = existingCustomer.customerNo;
+  // Helper function to normalize phone numbers (remove non-digits, get last 10 digits)
+  const normalizePhone = (phone) => {
+    if (!phone) return null;
+    const digits = phone.replace(/\D/g, "");
+    // Return last 10 digits (handles numbers with country code like +1 or 1 prefix)
+    return digits.slice(-10);
+  };
+
+  // Build query to find customer by email OR phone
+  const customerQuery = {
+    $or: [],
+  };
+
+  // Always check by email if provided
+  if (salesOrderData.email) {
+    customerQuery.$or.push({ email: salesOrderData.email });
+  }
+
+  // Add phone number search if phone is provided
+  if (salesOrderData.phone) {
+    const normalizedPhone = normalizePhone(salesOrderData.phone);
+    if (normalizedPhone && normalizedPhone.length === 10) {
+      // Create a regex pattern that matches the 10 digits in sequence
+      // This handles various phone formats like "(123) 456-7890", "123-456-7890", "1234567890", etc.
+      // The pattern looks for the digits in order, allowing for non-digit characters between them
+      const phonePattern = normalizedPhone.split("").join("\\D*");
+      customerQuery.$or.push({
+        phone: { $regex: phonePattern },
+      });
+    }
+  }
+
+  // Only execute query if we have at least one search criteria
+  if (customerQuery.$or.length > 0) {
+    const existingCustomer = await customersRepository.findOne(customerQuery);
+
+    if (existingCustomer) {
+      customerNo = existingCustomer.customerNo;
+    }
   }
 
   const newSalesOrderData = {
@@ -268,6 +302,53 @@ export const updateSalesOrder = async (id, updateData) => {
     updatedSalesOrder || salesOrder,
     updatedSalesOrder?.lead
   );
+};
+
+export const cancelSalesOrder = async (id) => {
+  const existingSalesOrder = await salesOrdersRepository.findById(id);
+
+  if (!existingSalesOrder) {
+    const error = new Error("Sales Order not found");
+    error.name = "NotFoundError";
+    throw error;
+  }
+
+  // Check if already cancelled
+  if (existingSalesOrder.status === "cancelled") {
+    const error = new Error("Sales Order is already cancelled");
+    error.name = "AlreadyCancelledError";
+    throw error;
+  }
+
+  // Check if there are any payments that haven't been fully refunded
+  const Payments = (await import("../../payments/models/Payments/index.js"))
+    .default;
+
+  const payments = await Payments.find({
+    salesOrder: id,
+    status: { $in: ["succeeded", "partially_refunded"] },
+  });
+
+  // Check if any payment has outstanding refund amount
+  const hasUnrefundedPayments = payments.some((payment) => {
+    const refundedAmount = payment.refundedAmount || 0;
+    return payment.amount > refundedAmount;
+  });
+
+  if (hasUnrefundedPayments) {
+    const error = new Error(
+      "Cannot cancel sales order. Please refund all payments before cancelling."
+    );
+    error.name = "UnrefundedPaymentsError";
+    throw error;
+  }
+
+  // Update sales order status to cancelled
+  const updatedSalesOrder = await salesOrdersRepository.updateById(id, {
+    status: "cancelled",
+  });
+
+  return updatedSalesOrder;
 };
 
 export const deleteSalesOrder = async (id) => {

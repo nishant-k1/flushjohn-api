@@ -37,6 +37,12 @@ const SalesOrdersSchema = new mongoose.Schema({
   },
 
   // Sales order specific fields
+  status: {
+    type: String,
+    enum: ["active", "cancelled"],
+    default: "active",
+    index: true,
+  },
   emailStatus: {
     type: String,
     default: "Pending",
@@ -164,7 +170,8 @@ SalesOrdersSchema.index({ createdAt: -1 }); // Sort by date
 SalesOrdersSchema.index({ customer: 1 }); // Find by customer reference
 SalesOrdersSchema.index({ lead: 1 }); // Find by lead reference
 SalesOrdersSchema.index({ quote: 1 }); // Find by quote reference
-SalesOrdersSchema.index({ emailStatus: 1 }); // Filter by status
+SalesOrdersSchema.index({ status: 1 }); // Filter by order status
+SalesOrdersSchema.index({ emailStatus: 1 }); // Filter by email status
 SalesOrdersSchema.index({ customerNo: 1 }); // Legacy customer number
 SalesOrdersSchema.index({ paymentStatus: 1 }); // Filter by payment status
 SalesOrdersSchema.index({ stripeCustomerId: 1 }); // Find by Stripe customer
