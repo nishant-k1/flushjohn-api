@@ -98,6 +98,50 @@ router.get("/:id", async function (req, res) {
   }
 });
 
+router.post("/:id/cancel", async function (req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!salesOrdersService.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid sales order ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    const cancelledSalesOrder = await salesOrdersService.cancelSalesOrder(id);
+    res.status(200).json({
+      success: true,
+      message: "Sales Order cancelled successfully",
+      data: cancelledSalesOrder,
+    });
+  } catch (error) {
+    if (error.name === "NotFoundError") {
+      return res.status(404).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    if (error.name === "AlreadyCancelledError") {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    if (error.name === "UnrefundedPaymentsError") {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const { id } = req.params;

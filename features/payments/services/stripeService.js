@@ -175,6 +175,26 @@ export const attachPaymentMethodToCustomer = async (
   customerId
 ) => {
   try {
+    // First, check if the payment method is already attached to this customer
+    try {
+      const existingMethods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: "card",
+      });
+      const isAlreadyAttached = existingMethods.data.some(
+        (pm) => pm.id === paymentMethodId
+      );
+      
+      if (isAlreadyAttached) {
+        // Payment method is already attached, return it without re-attaching
+        const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+        return paymentMethod;
+      }
+    } catch (checkError) {
+      // If check fails, proceed with attach (will error if already attached)
+      console.warn("Failed to check existing payment methods:", checkError);
+    }
+
     const paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {
       customer: customerId,
     });
@@ -191,6 +211,20 @@ export const attachPaymentMethodToCustomer = async (
 
     return paymentMethod;
   } catch (error) {
+    // If error is "already attached", that's okay - just return the existing payment method
+    if (
+      error.type === "StripeInvalidRequestError" &&
+      (error.code === "resource_already_exists" ||
+        error.message?.includes("already attached"))
+    ) {
+      try {
+        const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+        return paymentMethod;
+      } catch (retrieveError) {
+        console.error("Error retrieving payment method after duplicate attach:", retrieveError);
+        throw new Error(`Payment method is already attached`);
+      }
+    }
     console.error("Error attaching payment method:", error);
     throw new Error(`Failed to attach payment method: ${error.message}`);
   }
