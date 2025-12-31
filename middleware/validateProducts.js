@@ -46,11 +46,13 @@ const validateAndRecalculateProducts = (req, res, next) => {
       }
 
       // Return product with server-calculated amount
+      // Explicitly preserve all product fields including usageType
       return {
         ...product,
         qty,
         rate,
         amount: serverAmountRounded,
+        usageType: product.usageType || "", // Explicitly preserve usageType
       };
     });
 

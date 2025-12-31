@@ -32,6 +32,7 @@ import notesFeature from "./features/notes/index.js";
 import contactsFeature from "./features/contacts/index.js";
 import salesAssistFeature from "./features/salesAssist/index.js";
 import notificationsFeature from "./features/notifications/index.js";
+import paymentsFeature from "./features/payments/index.js";
 import {
   authenticateToken,
   authorizeRoles,
@@ -57,6 +58,7 @@ const contactsRouter = contactsFeature.routes;
 const salesAssistRouter = salesAssistFeature.routes.salesAssist;
 const speechRecognitionRouter = salesAssistFeature.routes.speechRecognition;
 const notificationsRouter = notificationsFeature.router;
+const paymentsRouter = paymentsFeature.routes.payments;
 
 config({ path: "./.env" });
 
@@ -185,6 +187,22 @@ app.use((req, res, next) => {
 
 app.use("/logos", express.static("public/logos"));
 
+// Stripe webhook needs raw body - register BEFORE json() middleware affects it
+// We need to use express.raw() for this specific route
+app.use(
+  "/payments/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res, next) => {
+    try {
+      const paymentsFeature = await import("./features/payments/index.js");
+      const webhookRouter = paymentsFeature.default.routes.webhook;
+      return webhookRouter(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 app.use("/pdf", pdfAccessRouter);
 app.use("/", indexRouter);
 app.use("/auth", authRouter);
@@ -273,6 +291,7 @@ app.use("/customers", authenticateToken, customersRouter);
 app.use("/quotes", authenticateToken, quotesRouter);
 app.use("/salesOrders", authenticateToken, salesOrdersRouter);
 app.use("/jobOrders", authenticateToken, jobOrdersRouter);
+app.use("/payments", authenticateToken, paymentsRouter);
 app.use(
   "/blog-automation",
   authenticateToken,

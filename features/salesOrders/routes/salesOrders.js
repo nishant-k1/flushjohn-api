@@ -274,6 +274,20 @@ router.post(
         createdAt: req.body.createdAt || salesOrder.createdAt,
       };
 
+      // Generate payment link if requested (paymentLinkUrl in request body)
+      let paymentLinkUrl = req.body.paymentLinkUrl || null;
+      if (!paymentLinkUrl && req.body.includePaymentLink) {
+        try {
+          const paymentsService = await import("../../payments/services/paymentsService.js");
+          const paymentLinkData = await paymentsService.createSalesOrderPaymentLink(id);
+          paymentLinkUrl = paymentLinkData.url;
+          emailData.paymentLinkUrl = paymentLinkUrl;
+        } catch (paymentLinkError) {
+          // Log error but continue with email without payment link
+          console.error("Failed to create payment link:", paymentLinkError);
+        }
+      }
+
       const { generateSalesOrderPDF } = await import(
         "../../fileManagement/services/pdfService.js"
       );
@@ -284,7 +298,7 @@ router.post(
       let pdfUrls;
       try {
         pdfUrls = await generateSalesOrderPDF(emailData, id);
-        await sendSalesOrderEmail(emailData, id, pdfUrls.pdfUrl);
+        await sendSalesOrderEmail(emailData, id, pdfUrls.pdfUrl, paymentLinkUrl);
       } catch (pdfError) {
         throw pdfError;
       }
