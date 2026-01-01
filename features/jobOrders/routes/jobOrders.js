@@ -352,8 +352,15 @@ router.post(
         vendorAcceptanceStatus: "Accepted",
       });
 
-      // Create customer NOW (both sales order and job order emails are sent)
-      await jobOrdersService.createOrLinkCustomerFromJobOrder(updatedJobOrder);
+      // Link job order to existing customer (customer is created when sales order is created)
+      try {
+        await jobOrdersService.createOrLinkCustomerFromJobOrder(
+          updatedJobOrder
+        );
+      } catch (error) {
+        // Log but don't fail the job order email
+        console.error("Error linking job order to customer:", error);
+      }
 
       res.status(200).json({
         success: true,

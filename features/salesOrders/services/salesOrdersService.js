@@ -144,6 +144,17 @@ export const createSalesOrder = async (salesOrderData) => {
     }
   }
 
+  // Create or link customer when sales order is created
+  try {
+    await createOrLinkCustomerFromSalesOrder(createdSalesOrder);
+  } catch (error) {
+    // Log but don't fail the sales order creation
+    console.error(
+      "Error creating/linking customer on SalesOrder creation:",
+      error
+    );
+  }
+
   return createdSalesOrder;
 };
 
@@ -412,4 +423,86 @@ export const linkSalesOrderToCustomer = async (salesOrder, leadId = null) => {
   }
 
   return null;
+};
+
+export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
+  if (!salesOrder.lead) {
+    return;
+  }
+
+  const Leads = (await import("../../leads/models/Leads/index.js")).default;
+  const lead = await Leads.findById(salesOrder.lead);
+
+  if (!lead) {
+    return;
+  }
+
+  const customerData = {
+    fName: lead.fName,
+    lName: lead.lName,
+    cName: lead.cName,
+    email: lead.email,
+    phone: lead.phone,
+    fax: lead.fax,
+    streetAddress: lead.streetAddress,
+    city: lead.city,
+    state: lead.state,
+    zip: lead.zip,
+    country: lead.country || "USA",
+  };
+
+  const Customers = (await import("../../customers/models/Customers/index.js"))
+    .default;
+
+  let customer = await Customers.findOne({
+    email: customerData.email,
+  });
+
+  if (!customer) {
+    const latestCustomer = await Customers.findOne({}, "customerNo");
+    const customerNo = latestCustomer?.customerNo
+      ? latestCustomer.customerNo + 1
+      : 1000;
+
+    customer = await Customers.create({
+      ...customerData,
+      customerNo,
+      salesOrders: [salesOrder._id],
+      ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
+    });
+
+    await Leads.findByIdAndUpdate(lead._id, {
+      customer: customer._id,
+    });
+
+    if (salesOrder.quote) {
+      const Quotes = (await import("../../quotes/models/Quotes/index.js"))
+        .default;
+      await Quotes.findByIdAndUpdate(salesOrder.quote, {
+        customer: customer._id,
+      });
+    }
+  } else {
+    await Customers.findByIdAndUpdate(customer._id, {
+      $addToSet: {
+        salesOrders: salesOrder._id,
+        ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
+      },
+    });
+
+    if (salesOrder.quote) {
+      const Quotes = (await import("../../quotes/models/Quotes/index.js"))
+        .default;
+      await Quotes.findByIdAndUpdate(salesOrder.quote, {
+        customer: customer._id,
+      });
+    }
+  }
+
+  await salesOrdersRepository.updateById(salesOrder._id, {
+    customerNo: customer.customerNo,
+    customer: customer._id,
+  });
+
+  return customer;
 };
