@@ -310,12 +310,32 @@ router.post(
       }
 
       const salesOrder = await salesOrdersService.getSalesOrderById(id);
+      
+      // Flatten lead fields for email template (template expects fName, lName, email at top level)
+      const leadData = salesOrder.lead || {};
+      const salesOrderObj = salesOrder.toObject ? salesOrder.toObject() : salesOrder;
+      
       const emailData = {
-        ...salesOrder.toObject(), // Start with sales order data from DB
+        ...salesOrderObj, // Start with sales order data from DB
+        // Flatten lead fields to top level for email template
+        fName: req.body.fName || leadData.fName || salesOrderObj.fName,
+        lName: req.body.lName || leadData.lName || salesOrderObj.lName,
+        cName: req.body.cName || leadData.cName || salesOrderObj.cName,
+        email: req.body.email || leadData.email || salesOrderObj.email,
+        phone: req.body.phone || leadData.phone || salesOrderObj.phone,
+        fax: req.body.fax || leadData.fax || salesOrderObj.fax,
+        streetAddress: req.body.streetAddress || leadData.streetAddress || salesOrderObj.streetAddress,
+        city: req.body.city || leadData.city || salesOrderObj.city,
+        state: req.body.state || leadData.state || salesOrderObj.state,
+        zip: req.body.zip || leadData.zip || salesOrderObj.zip,
+        country: req.body.country || leadData.country || salesOrderObj.country,
+        usageType: req.body.usageType || leadData.usageType || salesOrderObj.usageType,
         ...req.body, // Override with request body data
         _id: id,
-        salesOrderNo: req.body.salesOrderNo || salesOrder.salesOrderNo,
-        createdAt: req.body.createdAt || salesOrder.createdAt,
+        salesOrderNo: req.body.salesOrderNo || salesOrderObj.salesOrderNo,
+        createdAt: req.body.createdAt || salesOrderObj.createdAt,
+        // Keep lead object for backward compatibility
+        lead: salesOrderObj.lead,
       };
 
       // Generate payment link if requested (paymentLinkUrl in request body)
@@ -325,24 +345,34 @@ router.post(
           const paymentsService = await import("../../payments/services/paymentsService.js");
           const paymentLinkData = await paymentsService.createSalesOrderPaymentLink(id);
           paymentLinkUrl = paymentLinkData.url;
-          emailData.paymentLinkUrl = paymentLinkUrl;
         } catch (paymentLinkError) {
           // Log error but continue with email without payment link
           console.error("Failed to create payment link:", paymentLinkError);
         }
       }
+      
+      // Set paymentLinkUrl in emailData if it was provided or created
+      if (paymentLinkUrl) {
+        emailData.paymentLinkUrl = paymentLinkUrl;
+      }
 
       const { generateSalesOrderPDF } = await import(
         "../../fileManagement/services/pdfService.js"
       );
-      const { sendSalesOrderEmail } = await import(
+      const { sendSalesOrderEmail, sendInvoiceEmail } = await import(
         "../../common/services/emailService.js"
       );
 
       let pdfUrls;
       try {
         pdfUrls = await generateSalesOrderPDF(emailData, id);
-        await sendSalesOrderEmail(emailData, id, pdfUrls.pdfUrl, paymentLinkUrl);
+        
+        // Use invoice template if payment link is provided, otherwise use sales order template
+        if (paymentLinkUrl) {
+          await sendInvoiceEmail(emailData, id, pdfUrls.pdfUrl, paymentLinkUrl);
+        } else {
+          await sendSalesOrderEmail(emailData, id, pdfUrls.pdfUrl, null);
+        }
       } catch (pdfError) {
         throw pdfError;
       }

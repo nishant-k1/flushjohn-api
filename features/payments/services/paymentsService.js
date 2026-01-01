@@ -1,6 +1,5 @@
 import * as paymentsRepository from "../repositories/paymentsRepository.js";
 import * as salesOrdersRepository from "../../salesOrders/repositories/salesOrdersRepository.js";
-import * as salesOrdersService from "../../salesOrders/services/salesOrdersService.js";
 import {
   createPaymentLink,
   createPaymentIntent,
@@ -9,9 +8,9 @@ import {
   retrievePaymentIntent,
   retrievePaymentMethod,
   processRefund,
-  retrieveCharge,
   calculateOrderTotal,
   listCustomerPaymentMethods,
+  retrievePaymentLink,
 } from "./stripeService.js";
 
 /**
@@ -74,12 +73,25 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
   }
 
   // Update sales order
-  await salesOrdersRepository.updateById(salesOrderId, {
-    orderTotal,
-    paidAmount: netPaidAmount,
-    balanceDue,
-    paymentStatus,
-  });
+  const updatedSalesOrder = await salesOrdersRepository.updateById(
+    salesOrderId,
+    {
+      orderTotal,
+      paidAmount: netPaidAmount,
+      balanceDue,
+      paymentStatus,
+    }
+  );
+
+  // Emit socket event for sales order update
+  try {
+    const { emitSalesOrderUpdated } = await import(
+      "../../salesOrders/sockets/salesOrders.js"
+    );
+    emitSalesOrderUpdated(salesOrderId, updatedSalesOrder);
+  } catch (error) {
+    console.error("Failed to emit salesOrderUpdated event:", error);
+  }
 
   return {
     orderTotal,
@@ -90,7 +102,7 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
 };
 
 /**
- * Create payment link for sales order
+ * Create payment link for sales order (reuses existing pending payment link if available)
  */
 export const createSalesOrderPaymentLink = async (salesOrderId, returnUrl) => {
   const salesOrder = await salesOrdersRepository.findById(salesOrderId);
@@ -102,6 +114,46 @@ export const createSalesOrderPaymentLink = async (salesOrderId, returnUrl) => {
   const orderTotal = calculateOrderTotal(salesOrder.products);
   if (orderTotal <= 0) {
     throw new Error("Order total must be greater than 0");
+  }
+
+  // Check for existing pending payment link for this sales order
+  const existingPayments = await paymentsRepository.findAll({
+    query: {
+      salesOrder: salesOrderId,
+      paymentMethod: "payment_link",
+      status: "pending",
+      stripePaymentLinkId: { $exists: true, $ne: null },
+    },
+    sort: { createdAt: -1 },
+    skip: 0,
+    limit: 1,
+  });
+
+  // If an existing pending payment link exists, reuse it (if amount matches)
+  if (existingPayments.length > 0) {
+    const existingPayment = existingPayments[0];
+    if (existingPayment.stripePaymentLinkId) {
+      // Only reuse if the amount matches (order total hasn't changed)
+      if (existingPayment.amount === orderTotal) {
+        try {
+          // Retrieve the payment link URL from Stripe
+          const paymentLink = await retrievePaymentLink(
+            existingPayment.stripePaymentLinkId
+          );
+
+          // Only reuse if the payment link is still active
+          if (paymentLink.active) {
+            return {
+              paymentId: existingPayment._id.toString(),
+              paymentLinkId: existingPayment.stripePaymentLinkId,
+              url: paymentLink.url,
+            };
+          }
+        } catch (error) {
+          // If retrieval fails (link might be expired/invalid), create a new one
+        }
+      }
+    }
   }
 
   // Get customer email from lead
@@ -117,7 +169,7 @@ export const createSalesOrderPaymentLink = async (salesOrderId, returnUrl) => {
     }
   }
 
-  // Create payment link
+  // Create new payment link
   const { paymentLinkId, url } = await createPaymentLink({
     amount: orderTotal,
     description: `Payment for Sales Order #${salesOrder.salesOrderNo}`,
@@ -185,7 +237,8 @@ export const chargeSalesOrder = async (
   // If there's a very recent payment (within last 5 seconds), prevent duplicate
   if (existingPayments.length > 0) {
     const recentPayment = existingPayments[0];
-    const timeSinceCreation = Date.now() - new Date(recentPayment.createdAt).getTime();
+    const timeSinceCreation =
+      Date.now() - new Date(recentPayment.createdAt).getTime();
     if (timeSinceCreation < 5000) {
       // Very recent payment, likely a duplicate request
       throw new Error(
@@ -303,6 +356,16 @@ export const chargeSalesOrder = async (
     },
   });
 
+  // Emit socket event for payment creation
+  try {
+    const { emitPaymentCreated } = await import(
+      "../../salesOrders/sockets/salesOrders.js"
+    );
+    emitPaymentCreated(salesOrderId, payment);
+  } catch (error) {
+    console.error("Failed to emit paymentCreated event:", error);
+  }
+
   // If payment succeeded immediately, the webhook will handle the rest
   // We only update sales order totals here, and let the webhook handle email sending
   // This prevents duplicate processing when both immediate response and webhook fire
@@ -352,20 +415,20 @@ export const refundPayment = async (
 
   // Get charge ID from payment record, or retrieve from Stripe if missing
   let chargeId = payment.stripeChargeId;
-  
+
   if (!chargeId && payment.stripePaymentIntentId) {
     // Try to get charge ID from payment intent
     try {
       const paymentIntent = await retrievePaymentIntent(
         payment.stripePaymentIntentId
       );
-      
+
       if (
         paymentIntent.status === "succeeded" &&
         paymentIntent.charges?.data?.[0]?.id
       ) {
         chargeId = paymentIntent.charges.data[0].id;
-        
+
         // Update payment record with charge ID for future use
         await paymentsRepository.updateById(paymentId, {
           stripeChargeId: chargeId,
@@ -428,10 +491,20 @@ export const refundPayment = async (
   const newStatus =
     newRefundedAmount >= payment.amount ? "refunded" : "partially_refunded";
 
-  await paymentsRepository.updateById(paymentId, {
+  const updatedPayment = await paymentsRepository.updateById(paymentId, {
     refundedAmount: newRefundedAmount,
     status: newStatus,
   });
+
+  // Emit socket event for payment update
+  try {
+    const { emitPaymentUpdated } = await import(
+      "../../salesOrders/sockets/salesOrders.js"
+    );
+    emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
+  } catch (error) {
+    console.error("Failed to emit paymentUpdated event:", error);
+  }
 
   // Update sales order payment totals
   await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
@@ -564,10 +637,301 @@ export const getPaymentsBySalesOrder = async (salesOrderId) => {
 };
 
 /**
+ * Sync payment link status from Stripe
+ * Checks Stripe directly to see if payment link has been paid and updates status
+ */
+export const syncPaymentLinkStatus = async (paymentId) => {
+  const payment = await paymentsRepository.findById(paymentId);
+
+  if (!payment) {
+    throw new Error("Payment not found");
+  }
+
+  if (payment.paymentMethod !== "payment_link") {
+    throw new Error("Only payment link payments can be synced");
+  }
+
+  if (!payment.stripePaymentLinkId) {
+    throw new Error("Payment link ID not found");
+  }
+
+  // If already succeeded, skip
+  if (payment.status === "succeeded") {
+    return { success: true, message: "Payment already marked as succeeded" };
+  }
+
+  try {
+    const stripeService = await import("./stripeService.js");
+    const { stripe } = stripeService;
+
+    // List checkout sessions for this payment link
+    const sessions = await stripe.checkout.sessions.list({
+      payment_link: payment.stripePaymentLinkId,
+      limit: 100,
+    });
+
+    // Find a completed session with paid status
+    const paidSession = sessions.data.find(
+      (session) =>
+        session.payment_status === "paid" && session.status === "complete"
+    );
+
+    if (paidSession) {
+      // Update payment record
+      let chargeId = null;
+      let cardLast4 = null;
+      let cardBrand = null;
+
+      if (paidSession.payment_intent) {
+        try {
+          const { retrievePaymentIntent } = await import("./stripeService.js");
+          const paymentIntent = await retrievePaymentIntent(
+            paidSession.payment_intent
+          );
+
+          const charges = paymentIntent.charges?.data || [];
+          chargeId = charges.length > 0 ? charges[0].id : null;
+
+          if (charges.length > 0 && charges[0].payment_method_details?.card) {
+            const card = charges[0].payment_method_details.card;
+            cardLast4 = card.last4;
+            cardBrand = card.brand;
+          }
+        } catch (error) {
+          console.error("Error retrieving payment intent:", error);
+        }
+      }
+
+      const updatedPayment = await paymentsRepository.updateById(payment._id, {
+        status: "succeeded",
+        stripeChargeId: chargeId,
+        stripePaymentIntentId: paidSession.payment_intent || null,
+        cardLast4,
+        cardBrand,
+      });
+
+      // Get sales order ID
+      const salesOrderIdForUpdate =
+        typeof payment.salesOrder === "object" && payment.salesOrder?._id
+          ? payment.salesOrder._id
+          : payment.salesOrder;
+
+      // Emit socket event for payment update
+      try {
+        const { emitPaymentUpdated } = await import(
+          "../../salesOrders/sockets/salesOrders.js"
+        );
+        emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
+      } catch (error) {
+        console.error("Failed to emit paymentUpdated event:", error);
+      }
+
+      await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
+
+      return { success: true, message: "Payment status updated to succeeded" };
+    }
+
+    return {
+      success: true,
+      message: "No paid session found, payment still pending",
+    };
+  } catch (error) {
+    console.error("Error syncing payment link status:", error);
+    throw new Error(`Failed to sync payment link status: ${error.message}`);
+  }
+};
+
+/**
+ * Cancel a pending payment link
+ * Only cancels payment links (not card payments)
+ */
+export const cancelPaymentLink = async (paymentId) => {
+  const payment = await paymentsRepository.findById(paymentId);
+
+  if (!payment) {
+    throw new Error("Payment not found");
+  }
+
+  // Only allow canceling payment links that are pending
+  if (payment.paymentMethod !== "payment_link") {
+    throw new Error("Only payment links can be cancelled");
+  }
+
+  if (payment.status !== "pending") {
+    throw new Error(`Cannot cancel payment with status: ${payment.status}`);
+  }
+
+  // Update payment status to cancelled
+  const updatedPayment = await paymentsRepository.updateById(paymentId, {
+    status: "cancelled",
+    errorMessage: "Payment link cancelled by user",
+  });
+
+  // Get sales order ID for socket event
+  const salesOrderId =
+    typeof payment.salesOrder === "object" && payment.salesOrder?._id
+      ? payment.salesOrder._id
+      : payment.salesOrder;
+
+  // Emit socket event for payment update
+  try {
+    const { emitPaymentUpdated } = await import(
+      "../../salesOrders/sockets/salesOrders.js"
+    );
+    emitPaymentUpdated(salesOrderId, updatedPayment);
+  } catch (error) {
+    console.error("Failed to emit paymentUpdated event:", error);
+  }
+
+  return { success: true };
+};
+
+/**
  * Handle Stripe webhook event
  */
 export const handleStripeWebhook = async (event) => {
   switch (event.type) {
+    case "checkout.session.completed": {
+      // Handle payment link payments
+      const session = event.data.object;
+
+      // Only process if payment_status is "paid"
+      if (session.payment_status !== "paid") {
+        break;
+      }
+
+      // Primary method: Find payment by sales order ID from metadata
+      // This is the most reliable way since we always include salesOrderId in metadata
+      let payment = null;
+
+      if (session.metadata?.salesOrderId) {
+        const salesOrderId = session.metadata.salesOrderId;
+        const amountInCents = session.amount_total || 0;
+        const amountInDollars = amountInCents / 100;
+
+        // Find pending payment link payments for this sales order
+        // Match by amount (with small tolerance for floating point issues)
+        const payments = await paymentsRepository.findAll({
+          query: {
+            salesOrder: salesOrderId,
+            paymentMethod: "payment_link",
+            status: "pending",
+          },
+          sort: { createdAt: -1 },
+          limit: 10,
+        });
+
+        // Find the payment that matches the amount (within 0.01 tolerance)
+        payment = payments.find(
+          (p) => Math.abs(p.amount - amountInDollars) < 0.01
+        );
+
+        if (!payment && payments.length > 0) {
+          // If no exact match, use the most recent one (amount might have changed)
+          payment = payments[0];
+        }
+      }
+
+      // Secondary method: Try to find by payment link ID if we have it
+      if (!payment) {
+        // Get payment link ID from session
+        // session.payment_link can be a string ID or an object
+        let paymentLinkId = null;
+
+        if (typeof session.payment_link === "string") {
+          paymentLinkId = session.payment_link;
+        } else if (session.payment_link?.id) {
+          paymentLinkId = session.payment_link.id;
+        } else if (session.metadata?.paymentLinkId) {
+          paymentLinkId = session.metadata.paymentLinkId;
+        }
+
+        if (paymentLinkId) {
+          payment = await paymentsRepository.findByStripePaymentLinkId(
+            paymentLinkId
+          );
+        }
+      }
+
+      if (!payment) {
+        break;
+      }
+
+      // Only process if payment is not already succeeded (prevent duplicate processing)
+      if (payment.status === "succeeded") {
+        break;
+      }
+
+      // Get charge ID from payment intent if available
+      let chargeId = null;
+      let cardLast4 = null;
+      let cardBrand = null;
+
+      if (session.payment_intent) {
+        try {
+          const { retrievePaymentIntent } = await import("./stripeService.js");
+          const paymentIntent = await retrievePaymentIntent(
+            session.payment_intent
+          );
+
+          const charges = paymentIntent.charges?.data || [];
+          chargeId = charges.length > 0 ? charges[0].id : null;
+
+          if (charges.length > 0 && charges[0].payment_method_details?.card) {
+            const card = charges[0].payment_method_details.card;
+            cardLast4 = card.last4;
+            cardBrand = card.brand;
+          }
+        } catch (error) {
+          console.error(
+            "Error retrieving payment intent for checkout session:",
+            error
+          );
+        }
+      }
+
+      // Update payment record
+      const updatedPayment = await paymentsRepository.updateById(payment._id, {
+        status: "succeeded",
+        stripeChargeId: chargeId,
+        stripePaymentIntentId: session.payment_intent || null,
+        cardLast4,
+        cardBrand,
+      });
+
+      // Get sales order ID (handle both populated and unpopulated cases)
+      const salesOrderIdForUpdate =
+        typeof payment.salesOrder === "object" && payment.salesOrder?._id
+          ? payment.salesOrder._id
+          : payment.salesOrder;
+
+      // Emit socket event for payment update (webhook)
+      try {
+        const { emitPaymentUpdated } = await import(
+          "../../salesOrders/sockets/salesOrders.js"
+        );
+        emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
+      } catch (error) {
+        console.error("Failed to emit paymentUpdated event:", error);
+      }
+
+      await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
+
+      // Send sales receipt email (only once via webhook)
+      try {
+        const { sendSalesReceiptEmail } = await import("./sendReceiptEmail.js");
+        const updatedPayment = await paymentsRepository.findById(payment._id);
+        const salesOrder = await salesOrdersRepository.findById(
+          salesOrderIdForUpdate
+        );
+        await sendSalesReceiptEmail(updatedPayment, salesOrder);
+      } catch (emailError) {
+        console.error("Error sending receipt email:", emailError);
+        // Don't throw - email failure shouldn't break webhook processing
+      }
+      break;
+    }
+
     case "payment_intent.succeeded": {
       const paymentIntent = event.data.object;
       const payment = await paymentsRepository.findByStripePaymentIntentId(
@@ -577,9 +941,6 @@ export const handleStripeWebhook = async (event) => {
       if (payment) {
         // Only process if payment is not already succeeded (prevent duplicate processing)
         if (payment.status === "succeeded") {
-          console.log(
-            `Payment ${payment._id} already marked as succeeded, skipping webhook processing`
-          );
           break;
         }
 
@@ -596,18 +957,31 @@ export const handleStripeWebhook = async (event) => {
           cardBrand = card.brand;
         }
 
-        await paymentsRepository.updateById(payment._id, {
-          status: "succeeded",
-          stripeChargeId: chargeId,
-          cardLast4,
-          cardBrand,
-        });
+        const updatedPayment = await paymentsRepository.updateById(
+          payment._id,
+          {
+            status: "succeeded",
+            stripeChargeId: chargeId,
+            cardLast4,
+            cardBrand,
+          }
+        );
 
         // Get sales order ID (handle both populated and unpopulated cases)
         const salesOrderIdForUpdate =
           typeof payment.salesOrder === "object" && payment.salesOrder?._id
             ? payment.salesOrder._id
             : payment.salesOrder;
+
+        // Emit socket event for payment update (webhook)
+        try {
+          const { emitPaymentUpdated } = await import(
+            "../../salesOrders/sockets/salesOrders.js"
+          );
+          emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
+        } catch (error) {
+          console.error("Failed to emit paymentUpdated event:", error);
+        }
 
         await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
 

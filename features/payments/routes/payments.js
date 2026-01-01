@@ -336,6 +336,105 @@ router.get("/:paymentId", async function (req, res) {
 });
 
 /**
+ * Cancel pending payment link
+ * POST /api/payments/:paymentId/cancel
+ */
+router.post("/:paymentId/cancel", async function (req, res) {
+  try {
+    const { cancelPaymentLink } = await import(
+      "../services/paymentsService.js"
+    );
+    const { paymentId } = req.params;
+
+    if (!isValidObjectId(paymentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    await cancelPaymentLink(paymentId);
+
+    res.json({
+      success: true,
+      message: "Payment link cancelled successfully",
+    });
+  } catch (error) {
+    console.error("Error cancelling payment link:", error);
+
+    if (error.message === "Payment not found") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+        error: "PAYMENT_NOT_FOUND",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to cancel payment link",
+      error: "CANCEL_PAYMENT_LINK_FAILED",
+    });
+  }
+});
+
+/**
+ * Sync payment link status from Stripe
+ * POST /api/payments/:paymentId/sync
+ */
+router.post("/:paymentId/sync", async function (req, res) {
+  try {
+    const { paymentId } = req.params;
+
+    if (!isValidObjectId(paymentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    const { syncPaymentLinkStatus } = await import(
+      "../services/paymentsService.js"
+    );
+    const result = await syncPaymentLinkStatus(paymentId);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result,
+    });
+  } catch (error) {
+    if (error.message === "Payment not found") {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+        error: "PAYMENT_NOT_FOUND",
+      });
+    }
+
+    if (
+      error.message.includes("Only payment link payments") ||
+      error.message.includes("Payment link ID not found")
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+        error: "INVALID_PAYMENT_TYPE",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to sync payment status",
+      error: "SYNC_FAILED",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+});
+
+/**
  * Process refund for payment
  * POST /api/payments/:paymentId/refund
  */

@@ -140,6 +140,23 @@ app.options("*", cors(corsOptions));
 app.use(compression());
 
 app.use(logger("dev"));
+
+// Stripe webhook needs raw body - register BEFORE json() middleware affects it
+// We need to use express.raw() for this specific route
+app.use(
+  "/payments/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res, next) => {
+    try {
+      const paymentsFeature = await import("./features/payments/index.js");
+      const webhookRouter = paymentsFeature.default.routes.webhook;
+      return webhookRouter(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 app.use(json({ limit: "10mb" }));
 app.use(urlencoded({ extended: false, limit: "10mb" }));
 app.use(cookieParser());
@@ -186,22 +203,6 @@ app.use((req, res, next) => {
 });
 
 app.use("/logos", express.static("public/logos"));
-
-// Stripe webhook needs raw body - register BEFORE json() middleware affects it
-// We need to use express.raw() for this specific route
-app.use(
-  "/payments/webhook",
-  express.raw({ type: "application/json" }),
-  async (req, res, next) => {
-    try {
-      const paymentsFeature = await import("./features/payments/index.js");
-      const webhookRouter = paymentsFeature.default.routes.webhook;
-      return webhookRouter(req, res, next);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 app.use("/pdf", pdfAccessRouter);
 app.use("/", indexRouter);

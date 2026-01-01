@@ -68,6 +68,23 @@ export const createOrGetStripeCustomer = async (email, name, metadata = {}) => {
 };
 
 /**
+ * Retrieve Payment Link from Stripe
+ */
+export const retrievePaymentLink = async (paymentLinkId) => {
+  try {
+    const paymentLink = await stripe.paymentLinks.retrieve(paymentLinkId);
+    return {
+      paymentLinkId: paymentLink.id,
+      url: paymentLink.url,
+      active: paymentLink.active,
+    };
+  } catch (error) {
+    console.error("Error retrieving payment link:", error);
+    throw new Error(`Failed to retrieve payment link: ${error.message}`);
+  }
+};
+
+/**
  * Create Payment Link for invoice
  */
 export const createPaymentLink = async ({

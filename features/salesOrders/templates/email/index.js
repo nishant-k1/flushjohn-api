@@ -2,7 +2,7 @@ import { flushjohn } from "../../../../constants/index.js";
 
 const template = (salesOrderData) => {
   const { email_signature } = flushjohn;
-  
+
   // Calculate order total if not provided
   const orderTotal = salesOrderData.orderTotal || 
     (salesOrderData.products && salesOrderData.products.length > 0
