@@ -84,27 +84,48 @@ export const getAllVendors = async ({
       ? Number(normalizedSearch)
       : null;
 
+    const searchConditions = [
+      ...(numericSearch !== null ? [{ vendorNo: numericSearch }] : []),
+      { name: { $regex: safeSearch, $options: "i" } },
+      { cName: { $regex: safeSearch, $options: "i" } },
+      { email: { $regex: safeSearch, $options: "i" } },
+      { phone: { $regex: safeSearch, $options: "i" } },
+      { fax: { $regex: safeSearch, $options: "i" } },
+      { streetAddress: { $regex: safeSearch, $options: "i" } },
+      { city: { $regex: safeSearch, $options: "i" } },
+      { state: { $regex: safeSearch, $options: "i" } },
+      { zip: { $regex: safeSearch, $options: "i" } },
+      { country: { $regex: safeSearch, $options: "i" } },
+      { serviceCities: { $regex: safeSearch, $options: "i" } },
+      { serviceStates: { $regex: safeSearch, $options: "i" } },
+      { serviceZipCodes: { $regex: safeSearch, $options: "i" } },
+      { note: { $regex: safeSearch, $options: "i" } },
+      { "representatives.name": { $regex: safeSearch, $options: "i" } },
+      { "representatives.email": { $regex: safeSearch, $options: "i" } },
+      { "representatives.phone": { $regex: safeSearch, $options: "i" } },
+    ];
+
+    // Try to parse as date and search createdAt
+    try {
+      const searchDate = new Date(normalizedSearch);
+      if (!isNaN(searchDate.getTime())) {
+        const startOfDay = new Date(searchDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(searchDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        searchConditions.push({
+          createdAt: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
+        });
+      }
+    } catch (e) {
+      // Ignore date parsing errors
+    }
+
     query = {
-      $or: [
-        ...(numericSearch !== null ? [{ vendorNo: numericSearch }] : []),
-        { name: { $regex: safeSearch, $options: "i" } },
-        { cName: { $regex: safeSearch, $options: "i" } },
-        { email: { $regex: safeSearch, $options: "i" } },
-        { phone: { $regex: safeSearch, $options: "i" } },
-        { fax: { $regex: safeSearch, $options: "i" } },
-        { streetAddress: { $regex: safeSearch, $options: "i" } },
-        { city: { $regex: safeSearch, $options: "i" } },
-        { state: { $regex: safeSearch, $options: "i" } },
-        { zip: { $regex: safeSearch, $options: "i" } },
-        { country: { $regex: safeSearch, $options: "i" } },
-        { serviceCities: { $regex: safeSearch, $options: "i" } },
-        { serviceStates: { $regex: safeSearch, $options: "i" } },
-        { serviceZipCodes: { $regex: safeSearch, $options: "i" } },
-        { note: { $regex: safeSearch, $options: "i" } },
-        { "representatives.name": { $regex: safeSearch, $options: "i" } },
-        { "representatives.email": { $regex: safeSearch, $options: "i" } },
-        { "representatives.phone": { $regex: safeSearch, $options: "i" } },
-      ],
+      $or: searchConditions,
     };
   }
 

@@ -31,13 +31,52 @@ export const getAllContacts = async ({
   if (status) query.status = status;
 
   if (search) {
-    query.$or = [
-      { firstName: { $regex: search, $options: "i" } },
-      { lastName: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
-      { phone: { $regex: search, $options: "i" } },
-      { message: { $regex: search, $options: "i" } },
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchConditions = [
+      { firstName: { $regex: escapedSearch, $options: "i" } },
+      { lastName: { $regex: escapedSearch, $options: "i" } },
+      { email: { $regex: escapedSearch, $options: "i" } },
+      { phone: { $regex: escapedSearch, $options: "i" } },
+      { message: { $regex: escapedSearch, $options: "i" } },
+      { subject: { $regex: escapedSearch, $options: "i" } },
+      { company: { $regex: escapedSearch, $options: "i" } },
+      { status: { $regex: escapedSearch, $options: "i" } },
     ];
+
+    // Try to parse as date and search createdAt, readAt, repliedAt
+    try {
+      const searchDate = new Date(search);
+      if (!isNaN(searchDate.getTime())) {
+        const startOfDay = new Date(searchDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(searchDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        searchConditions.push(
+          {
+            createdAt: {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            },
+          },
+          {
+            readAt: {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            },
+          },
+          {
+            repliedAt: {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            },
+          }
+        );
+      }
+    } catch (e) {
+      // Ignore date parsing errors
+    }
+
+    query.$or = searchConditions;
   }
 
   const sort = {};

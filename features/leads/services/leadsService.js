@@ -151,13 +151,57 @@ export const getAllLeads = async ({
   if (leadSource) query.leadSource = leadSource;
 
   if (search) {
-    query.$or = [
-      { fName: { $regex: search, $options: "i" } },
-      { lName: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
-      { phone: { $regex: search, $options: "i" } },
-      { companyName: { $regex: search, $options: "i" } },
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchConditions = [
+      { fName: { $regex: escapedSearch, $options: "i" } },
+      { lName: { $regex: escapedSearch, $options: "i" } },
+      { cName: { $regex: escapedSearch, $options: "i" } },
+      { email: { $regex: escapedSearch, $options: "i" } },
+      { phone: { $regex: escapedSearch, $options: "i" } },
+      { fax: { $regex: escapedSearch, $options: "i" } },
+      { contactPersonName: { $regex: escapedSearch, $options: "i" } },
+      { contactPersonPhone: { $regex: escapedSearch, $options: "i" } },
+      { streetAddress: { $regex: escapedSearch, $options: "i" } },
+      { city: { $regex: escapedSearch, $options: "i" } },
+      { state: { $regex: escapedSearch, $options: "i" } },
+      { zip: { $regex: escapedSearch, $options: "i" } },
+      { country: { $regex: escapedSearch, $options: "i" } },
+      { deliveryDate: { $regex: escapedSearch, $options: "i" } },
+      { pickupDate: { $regex: escapedSearch, $options: "i" } },
+      { usageType: { $regex: escapedSearch, $options: "i" } },
+      { leadStatus: { $regex: escapedSearch, $options: "i" } },
+      { leadSource: { $regex: escapedSearch, $options: "i" } },
+      { assignedTo: { $regex: escapedSearch, $options: "i" } },
+      { instructions: { $regex: escapedSearch, $options: "i" } },
     ];
+
+    // Search leadNo if search term is numeric
+    const numericSearch = Number.isFinite(Number(search)) ? Number(search) : null;
+    if (numericSearch !== null) {
+      searchConditions.push({ leadNo: numericSearch });
+    }
+
+    // Try to parse as date and search createdAt
+    try {
+      const searchDate = new Date(search);
+      if (!isNaN(searchDate.getTime())) {
+        // Search for dates within the same day
+        const startOfDay = new Date(searchDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(searchDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        searchConditions.push({
+          createdAt: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
+        });
+      }
+    } catch (e) {
+      // Ignore date parsing errors
+    }
+
+    query.$or = searchConditions;
   }
 
   const validSortFields = [
