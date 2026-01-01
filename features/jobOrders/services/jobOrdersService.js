@@ -216,22 +216,59 @@ export const getAllJobOrders = async ({
   
   if (search) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchConditions = [
+      { jobOrderNo: { $regex: escapedSearch, $options: "i" } },
+      { customerNo: { $regex: escapedSearch, $options: "i" } },
+      { salesOrderNo: { $regex: escapedSearch, $options: "i" } },
+      { "vendor.name": { $regex: escapedSearch, $options: "i" } },
+      { "lead.fName": { $regex: escapedSearch, $options: "i" } },
+      { "lead.lName": { $regex: escapedSearch, $options: "i" } },
+      { "lead.cName": { $regex: escapedSearch, $options: "i" } },
+      { "lead.email": { $regex: escapedSearch, $options: "i" } },
+      { "lead.phone": { $regex: escapedSearch, $options: "i" } },
+      { "lead.usageType": { $regex: escapedSearch, $options: "i" } },
+      { jobLocation: { $regex: escapedSearch, $options: "i" } },
+      { deliveryDate: { $regex: escapedSearch, $options: "i" } },
+      { pickupDate: { $regex: escapedSearch, $options: "i" } },
+      { emailStatus: { $regex: escapedSearch, $options: "i" } },
+      { vendorAcceptanceStatus: { $regex: escapedSearch, $options: "i" } },
+      { contactPersonName: { $regex: escapedSearch, $options: "i" } },
+      { contactPersonPhone: { $regex: escapedSearch, $options: "i" } },
+      { instructions: { $regex: escapedSearch, $options: "i" } },
+      { note: { $regex: escapedSearch, $options: "i" } },
+    ];
+
+    // Search numeric fields if search term is numeric
+    const numericSearch = Number.isFinite(Number(search)) ? Number(search) : null;
+    if (numericSearch !== null) {
+      searchConditions.push(
+        { jobOrderNo: numericSearch },
+        { customerNo: numericSearch },
+        { salesOrderNo: numericSearch }
+      );
+    }
+
+    // Try to parse as date and search createdAt
+    try {
+      const searchDate = new Date(search);
+      if (!isNaN(searchDate.getTime())) {
+        const startOfDay = new Date(searchDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(searchDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        searchConditions.push({
+          createdAt: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
+        });
+      }
+    } catch (e) {
+      // Ignore date parsing errors
+    }
+
     const searchQuery = {
-      $or: [
-        { jobOrderNo: { $regex: escapedSearch, $options: "i" } },
-        { customerNo: { $regex: escapedSearch, $options: "i" } },
-        { "vendor.name": { $regex: escapedSearch, $options: "i" } },
-        { "lead.fName": { $regex: escapedSearch, $options: "i" } },
-        { "lead.lName": { $regex: escapedSearch, $options: "i" } },
-        { "lead.cName": { $regex: escapedSearch, $options: "i" } },
-        { "lead.email": { $regex: escapedSearch, $options: "i" } },
-        { "lead.phone": { $regex: escapedSearch, $options: "i" } },
-        { "lead.usageType": { $regex: escapedSearch, $options: "i" } },
-        { jobLocation: { $regex: escapedSearch, $options: "i" } },
-        { deliveryDate: { $regex: escapedSearch, $options: "i" } },
-        { pickupDate: { $regex: escapedSearch, $options: "i" } },
-        { emailStatus: { $regex: escapedSearch, $options: "i" } },
-      ],
+      $or: searchConditions,
     };
     
     // Combine date filter with search query

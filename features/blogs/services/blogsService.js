@@ -450,14 +450,54 @@ export const getAllBlogs = async ({
   if (slug) {
     query.slug = slug;
   } else if (search) {
-    query = {
-      $or: [
-        { title: { $regex: search, $options: "i" } },
-        { content: { $regex: search, $options: "i" } },
-        { excerpt: { $regex: search, $options: "i" } },
-        { author: { $regex: search, $options: "i" } },
-      ],
-    };
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const searchConditions = [
+      { title: { $regex: escapedSearch, $options: "i" } },
+      { content: { $regex: escapedSearch, $options: "i" } },
+      { excerpt: { $regex: escapedSearch, $options: "i" } },
+      { author: { $regex: escapedSearch, $options: "i" } },
+      { category: { $regex: escapedSearch, $options: "i" } },
+      { tags: { $regex: escapedSearch, $options: "i" } },
+      { city: { $regex: escapedSearch, $options: "i" } },
+      { state: { $regex: escapedSearch, $options: "i" } },
+      { slug: { $regex: escapedSearch, $options: "i" } },
+      { status: { $regex: escapedSearch, $options: "i" } },
+    ];
+
+    // Try to parse as date and search createdAt, publishedAt, updatedAt
+    try {
+      const searchDate = new Date(search);
+      if (!isNaN(searchDate.getTime())) {
+        const startOfDay = new Date(searchDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(searchDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        searchConditions.push(
+          {
+            createdAt: {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            },
+          },
+          {
+            publishedAt: {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            },
+          },
+          {
+            updatedAt: {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            },
+          }
+        );
+      }
+    } catch (e) {
+      // Ignore date parsing errors
+    }
+
+    query.$or = searchConditions;
   }
 
   if (status) {
