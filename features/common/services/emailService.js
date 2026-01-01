@@ -3,8 +3,8 @@ import { flushjohn, quengenesis } from "../../../constants/index.js";
 
 import quoteEmailTemplate from "../../quotes/templates/email/index.js";
 import salesOrderEmailTemplate from "../../salesOrders/templates/email/index.js";
+import invoiceEmailTemplate from "../../salesOrders/templates/invoice/index.js";
 import jobOrderEmailTemplate from "../../jobOrders/templates/email/index.js";
-import salesReceiptEmailTemplate from "../../payments/templates/email/index.js";
 
 // ============================================
 // SMTP CONNECTION POOL FOR FASTER EMAIL SENDING
@@ -161,7 +161,7 @@ export const closeEmailPool = () => {
  * - Subsequent emails reuse connection (50%+ faster)
  * 
  * @param {Object} documentData - Document data
- * @param {string} documentType - 'quote', 'salesOrder', or 'jobOrder'
+ * @param {string} documentType - 'quote', 'salesOrder', 'invoice', or 'jobOrder'
  * @param {string} documentId - Document ID
  * @param {string} s3PdfUrl - S3 URL of the PDF
  * @returns {Promise<boolean>} - Success status
@@ -193,6 +193,16 @@ export const sendEmailWithS3PDF = async (
         };
         emailTemplate = salesOrderEmailTemplate;
         subject = `${flushjohn.cName}: Sales Order Confirmation`;
+        companyName = flushjohn.cName;
+        break;
+
+      case "invoice":
+        emailConfig = {
+          user: process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID,
+          pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
+        };
+        emailTemplate = invoiceEmailTemplate;
+        subject = `${flushjohn.cName}: Invoice #${documentData.salesOrderNo || "N/A"}`;
         companyName = flushjohn.cName;
         break;
 
@@ -308,4 +318,36 @@ export const sendSalesOrderEmail = async (
  */
 export const sendJobOrderEmail = async (jobOrderData, jobOrderId, s3PdfUrl) => {
   return sendEmailWithS3PDF(jobOrderData, "jobOrder", jobOrderId, s3PdfUrl);
+};
+
+/**
+ * Send Invoice Email (with payment link)
+ * @param {Object} invoiceData - Invoice/Sales Order data
+ * @param {string} salesOrderId - Sales Order ID
+ * @param {string} s3PdfUrl - S3 URL of the PDF
+ * @param {string} paymentLinkUrl - Payment link URL (required for invoice)
+ * @returns {Promise<boolean>} - Success status
+ */
+export const sendInvoiceEmail = async (
+  invoiceData,
+  salesOrderId,
+  s3PdfUrl,
+  paymentLinkUrl
+) => {
+  if (!paymentLinkUrl) {
+    throw new Error("Payment link URL is required for invoice emails");
+  }
+
+  // Add payment link to invoice data
+  const emailDataWithPaymentLink = {
+    ...invoiceData,
+    paymentLinkUrl,
+  };
+  
+  return sendEmailWithS3PDF(
+    emailDataWithPaymentLink,
+    "invoice",
+    salesOrderId,
+    s3PdfUrl
+  );
 };

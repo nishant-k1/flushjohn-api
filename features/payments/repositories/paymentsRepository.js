@@ -68,3 +68,7 @@ export const findBySalesOrder = async (salesOrderId) => {
 export const findByStripePaymentIntentId = async (paymentIntentId) => {
   return Payments.findOne({ stripePaymentIntentId: paymentIntentId });
 };
+
+export const findByStripePaymentLinkId = async (paymentLinkId) => {
+  return Payments.findOne({ stripePaymentLinkId: paymentLinkId });
+};
