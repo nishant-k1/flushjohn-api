@@ -1059,7 +1059,117 @@ export const handleStripeWebhook = async (event) => {
 
     case "charge.refunded": {
       const charge = event.data.object;
-      // Handle refund webhook - payment status is updated via refundPayment function
+      
+      // Find payment by charge ID
+      const payment = await paymentsRepository.findByStripeChargeId(charge.id);
+      
+      if (!payment) {
+        // Payment not found - might have been refunded outside of our system
+        // or charge ID doesn't match. Try to find by payment intent if available.
+        if (charge.payment_intent) {
+          const paymentByIntent = await paymentsRepository.findByStripePaymentIntentId(
+            charge.payment_intent
+          );
+          
+          if (paymentByIntent) {
+            // Update charge ID if missing and process refund
+            if (!paymentByIntent.stripeChargeId) {
+              await paymentsRepository.updateById(paymentByIntent._id, {
+                stripeChargeId: charge.id,
+              });
+            }
+            
+            // Process refund for this payment
+            const amountRefundedInDollars = (charge.amount_refunded || 0) / 100;
+            const paymentAmount = paymentByIntent.amount;
+            
+            // Update payment record
+            const newRefundedAmount = Math.min(amountRefundedInDollars, paymentAmount);
+            const newStatus =
+              newRefundedAmount >= paymentAmount ? "refunded" : "partially_refunded";
+            
+            await paymentsRepository.updateById(paymentByIntent._id, {
+              refundedAmount: newRefundedAmount,
+              status: newStatus,
+            });
+            
+            // Get the updated payment with populated fields
+            const updatedPayment = await paymentsRepository.findById(
+              paymentByIntent._id
+            );
+            
+            // Get sales order ID
+            const salesOrderIdForUpdate =
+              typeof updatedPayment.salesOrder === "object" &&
+              updatedPayment.salesOrder?._id
+                ? updatedPayment.salesOrder._id
+                : updatedPayment.salesOrder;
+            
+            if (salesOrderIdForUpdate) {
+              // Emit socket event for payment update
+              try {
+                const { emitPaymentUpdated } = await import(
+                  "../../salesOrders/sockets/salesOrders.js"
+                );
+                emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
+              } catch (error) {
+                console.error("Failed to emit paymentUpdated event:", error);
+              }
+              
+              // Update sales order payment totals
+              await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
+            }
+          }
+        }
+        break;
+      }
+      
+      // Payment found by charge ID - process refund update
+      const amountRefundedInDollars = (charge.amount_refunded || 0) / 100;
+      const paymentAmount = payment.amount;
+      
+      // Only update if the refunded amount has changed (prevent duplicate processing)
+      const currentRefundedAmount = payment.refundedAmount || 0;
+      if (Math.abs(amountRefundedInDollars - currentRefundedAmount) < 0.01) {
+        // Refund amount hasn't changed, likely already processed
+        break;
+      }
+      
+      // Update payment record
+      const newRefundedAmount = Math.min(amountRefundedInDollars, paymentAmount);
+      const newStatus =
+        newRefundedAmount >= paymentAmount ? "refunded" : "partially_refunded";
+      
+      await paymentsRepository.updateById(payment._id, {
+        refundedAmount: newRefundedAmount,
+        status: newStatus,
+      });
+      
+      // Get the updated payment with populated fields
+      const updatedPayment = await paymentsRepository.findById(payment._id);
+      
+      // Get sales order ID
+      const salesOrderIdForUpdate =
+        typeof updatedPayment.salesOrder === "object" &&
+        updatedPayment.salesOrder?._id
+          ? updatedPayment.salesOrder._id
+          : updatedPayment.salesOrder;
+      
+      if (salesOrderIdForUpdate) {
+        // Emit socket event for payment update
+        try {
+          const { emitPaymentUpdated } = await import(
+            "../../salesOrders/sockets/salesOrders.js"
+          );
+          emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
+        } catch (error) {
+          console.error("Failed to emit paymentUpdated event:", error);
+        }
+        
+        // Update sales order payment totals
+        await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
+      }
+      
       break;
     }
 

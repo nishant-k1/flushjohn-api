@@ -72,3 +72,7 @@ export const findByStripePaymentIntentId = async (paymentIntentId) => {
 export const findByStripePaymentLinkId = async (paymentLinkId) => {
   return Payments.findOne({ stripePaymentLinkId: paymentLinkId });
 };
+
+export const findByStripeChargeId = async (chargeId) => {
+  return Payments.findOne({ stripeChargeId: chargeId });
+};
