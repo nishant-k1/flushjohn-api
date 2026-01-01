@@ -178,7 +178,9 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
         success: false,
         message: "Validation failed",
         error: "VALIDATION_ERROR",
-        details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
+        details: error.errors
+          ? Object.values(error.errors).map((err) => err.message)
+          : [error.message],
       });
     }
 
@@ -310,11 +312,13 @@ router.post(
       }
 
       const salesOrder = await salesOrdersService.getSalesOrderById(id);
-      
+
       // Flatten lead fields for email template (template expects fName, lName, email at top level)
       const leadData = salesOrder.lead || {};
-      const salesOrderObj = salesOrder.toObject ? salesOrder.toObject() : salesOrder;
-      
+      const salesOrderObj = salesOrder.toObject
+        ? salesOrder.toObject()
+        : salesOrder;
+
       const emailData = {
         ...salesOrderObj, // Start with sales order data from DB
         // Flatten lead fields to top level for email template
@@ -324,12 +328,16 @@ router.post(
         email: req.body.email || leadData.email || salesOrderObj.email,
         phone: req.body.phone || leadData.phone || salesOrderObj.phone,
         fax: req.body.fax || leadData.fax || salesOrderObj.fax,
-        streetAddress: req.body.streetAddress || leadData.streetAddress || salesOrderObj.streetAddress,
+        streetAddress:
+          req.body.streetAddress ||
+          leadData.streetAddress ||
+          salesOrderObj.streetAddress,
         city: req.body.city || leadData.city || salesOrderObj.city,
         state: req.body.state || leadData.state || salesOrderObj.state,
         zip: req.body.zip || leadData.zip || salesOrderObj.zip,
         country: req.body.country || leadData.country || salesOrderObj.country,
-        usageType: req.body.usageType || leadData.usageType || salesOrderObj.usageType,
+        usageType:
+          req.body.usageType || leadData.usageType || salesOrderObj.usageType,
         ...req.body, // Override with request body data
         _id: id,
         salesOrderNo: req.body.salesOrderNo || salesOrderObj.salesOrderNo,
@@ -342,15 +350,18 @@ router.post(
       let paymentLinkUrl = req.body.paymentLinkUrl || null;
       if (!paymentLinkUrl && req.body.includePaymentLink) {
         try {
-          const paymentsService = await import("../../payments/services/paymentsService.js");
-          const paymentLinkData = await paymentsService.createSalesOrderPaymentLink(id);
+          const paymentsService = await import(
+            "../../payments/services/paymentsService.js"
+          );
+          const paymentLinkData =
+            await paymentsService.createSalesOrderPaymentLink(id);
           paymentLinkUrl = paymentLinkData.url;
         } catch (paymentLinkError) {
           // Log error but continue with email without payment link
           console.error("Failed to create payment link:", paymentLinkError);
         }
       }
-      
+
       // Set paymentLinkUrl in emailData if it was provided or created
       if (paymentLinkUrl) {
         emailData.paymentLinkUrl = paymentLinkUrl;
@@ -366,7 +377,7 @@ router.post(
       let pdfUrls;
       try {
         pdfUrls = await generateSalesOrderPDF(emailData, id);
-        
+
         // Use invoice template if payment link is provided, otherwise use sales order template
         if (paymentLinkUrl) {
           await sendInvoiceEmail(emailData, id, pdfUrls.pdfUrl, paymentLinkUrl);
@@ -383,7 +394,7 @@ router.post(
       });
 
       // Link sales order to customer if customer exists
-      // Customer will be created when job order email is sent
+      // Customer is created when sales order is created
       await salesOrdersService.linkSalesOrderToCustomer(
         updatedSalesOrder,
         updatedSalesOrder.lead?.toString() || null
