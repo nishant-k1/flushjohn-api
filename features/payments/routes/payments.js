@@ -480,4 +480,56 @@ router.post("/:paymentId/refund", async function (req, res) {
   }
 });
 
+/**
+ * Send payment receipt email manually
+ * POST /api/payments/:paymentId/send-receipt
+ */
+router.post("/:paymentId/send-receipt", async function (req, res) {
+  try {
+    const { paymentId } = req.params;
+
+    if (!isValidObjectId(paymentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    const result = await paymentsService.sendPaymentReceipt(paymentId);
+
+    res.status(200).json({
+      success: true,
+      message: "Payment receipt sent successfully",
+      data: result,
+    });
+  } catch (error) {
+    if (
+      error.message === "Payment not found" ||
+      error.message === "Sales order not found"
+    ) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+        error: "NOT_FOUND",
+      });
+    }
+
+    if (error.message === "Can only send receipt for successful payments") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+        error: "INVALID_PAYMENT_STATUS",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to send payment receipt",
+      error: "SEND_RECEIPT_FAILED",
+      ...(process.env.NODE_ENV === "development" && { details: error.message }),
+    });
+  }
+});
+
 export default router;

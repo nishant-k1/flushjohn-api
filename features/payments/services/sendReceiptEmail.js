@@ -60,8 +60,7 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
       from: `${flushjohn.cName} <${emailConfig.user}>`,
       to: customerEmail,
       subject: subject,
-      text: emailContent,
-      html: emailContent.replace(/\n/g, "<br>"),
+      html: emailContent,
     });
 
     return true;
