@@ -1,38 +1,63 @@
 import express from "express";
-import { getDashboardAnalytics } from "../services/dashboardService.js";
-import { cacheMiddleware } from "../../../middleware/cache.js";
+import { calculateRevenue } from "../services/revenueService.js";
 
 const router = express.Router();
 
 /**
- * GET /dashboard/analytics - Get comprehensive dashboard analytics
- * ✅ PERFORMANCE: Cached for 5 minutes to reduce database load
+ * POST /dashboard/revenue/calculate - Calculate revenue for a date range
+ * All calculation logic happens on the backend
  */
-router.get(
-  "/analytics",
-  cacheMiddleware(5 * 60 * 1000), // Cache for 5 minutes
-  async (req, res) => {
+router.post("/revenue/calculate", async (req, res) => {
   try {
-    const { dateRange, month, year } = req.query;
-    const yearNumber = year ? parseInt(year, 10) : null;
-      const analytics = await getDashboardAnalytics(
-        dateRange,
-        month,
-        yearNumber
-      );
+    const {
+      startDate,
+      endDate,
+      vendorTransactionCharges = 0,
+      vendorTransactionChargesMode = "percentage",
+      googleAdsSpending = 0,
+      facebookAdsSpending = 0,
+      instagramAdsSpending = 0,
+      linkedInAdsSpending = 0,
+      othersExpenses = 0,
+    } = req.body;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Start date and end date are required",
+      });
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      return res.status(400).json({
+        success: false,
+        message: "Start date must be before end date",
+      });
+    }
+
+    const result = await calculateRevenue({
+      startDate,
+      endDate,
+      vendorTransactionCharges: parseFloat(vendorTransactionCharges || 0),
+      vendorTransactionChargesMode,
+      googleAdsSpending: parseFloat(googleAdsSpending || 0),
+      facebookAdsSpending: parseFloat(facebookAdsSpending || 0),
+      instagramAdsSpending: parseFloat(instagramAdsSpending || 0),
+      linkedInAdsSpending: parseFloat(linkedInAdsSpending || 0),
+      othersExpenses: parseFloat(othersExpenses || 0),
+    });
 
     res.status(200).json({
       success: true,
-      data: analytics,
+      data: result,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch dashboard analytics",
+      message: "Failed to calculate revenue",
       error: error.message,
     });
   }
-  }
-);
+});
 
 export default router;

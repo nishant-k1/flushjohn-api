@@ -45,6 +45,8 @@ router.get("/", async function (req, res) {
       sortOrder = "desc",
       search = "",
       searchQuery = "",
+      startDate = null,
+      endDate = null,
     } = req.query;
 
     const pageNum = parseInt(page);
@@ -72,6 +74,8 @@ router.get("/", async function (req, res) {
       sortBy,
       sortOrder,
       search: search || searchQuery,
+      startDate: startDate || null,
+      endDate: endDate || null,
     });
 
     res.status(200).json({

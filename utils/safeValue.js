@@ -72,21 +72,27 @@ export const safeDate = (dateValue, options = {}) => {
 };
 
 /**
- * Safely format currency
+ * Safely format currency with US format (thousand separators)
  * @param {number|string} amount - Amount to format
- * @returns {string} - Formatted currency or $0
+ * @returns {string} - Formatted currency with US format (e.g., $1,234.56) or $0
  */
 export const safeCurrency = (amount) => {
   if (amount === null || amount === undefined || amount === "") {
-    return "$0";
+    return "$0.00";
   }
 
   const numAmount = parseFloat(amount);
   if (isNaN(numAmount)) {
-    return "$0";
+    return "$0.00";
   }
 
-  return `$${numAmount.toFixed(2)}`;
+  // Format with US locale (comma for thousands, period for decimals)
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numAmount);
 };
 
 /**

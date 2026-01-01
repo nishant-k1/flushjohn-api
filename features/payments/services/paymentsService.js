@@ -76,10 +76,10 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
   const updatedSalesOrder = await salesOrdersRepository.updateById(
     salesOrderId,
     {
-      orderTotal,
-      paidAmount: netPaidAmount,
-      balanceDue,
-      paymentStatus,
+    orderTotal,
+    paidAmount: netPaidAmount,
+    balanceDue,
+    paymentStatus,
     }
   );
 
@@ -642,7 +642,7 @@ export const getPaymentsBySalesOrder = async (salesOrderId) => {
  */
 export const sendPaymentReceipt = async (paymentId) => {
   const payment = await paymentsRepository.findById(paymentId);
-
+  
   if (!payment) {
     throw new Error("Payment not found");
   }
@@ -654,11 +654,11 @@ export const sendPaymentReceipt = async (paymentId) => {
   // Get sales order
   const salesOrderId =
     typeof payment.salesOrder === "object" && payment.salesOrder?._id
-      ? payment.salesOrder._id
-      : payment.salesOrder;
-
+    ? payment.salesOrder._id
+    : payment.salesOrder;
+  
   const salesOrder = await salesOrdersRepository.findById(salesOrderId);
-
+  
   if (!salesOrder) {
     throw new Error("Sales order not found");
   }
@@ -666,7 +666,7 @@ export const sendPaymentReceipt = async (paymentId) => {
   // Send receipt email
   const { sendSalesReceiptEmail } = await import("./sendReceiptEmail.js");
   const success = await sendSalesReceiptEmail(payment, salesOrder);
-
+  
   if (!success) {
     throw new Error("Failed to send receipt email");
   }
@@ -701,7 +701,7 @@ export const syncPaymentLinkStatus = async (paymentId) => {
   try {
     const stripeService = await import("./stripeService.js");
     const { stripe } = stripeService;
-
+    
     // List checkout sessions for this payment link
     const sessions = await stripe.checkout.sessions.list({
       payment_link: payment.stripePaymentLinkId,
@@ -841,7 +841,7 @@ export const handleStripeWebhook = async (event) => {
       // Primary method: Find payment by sales order ID from metadata
       // This is the most reliable way since we always include salesOrderId in metadata
       let payment = null;
-
+      
       if (session.metadata?.salesOrderId) {
         const salesOrderId = session.metadata.salesOrderId;
         const amountInCents = session.amount_total || 0;
@@ -875,7 +875,7 @@ export const handleStripeWebhook = async (event) => {
         // Get payment link ID from session
         // session.payment_link can be a string ID or an object
         let paymentLinkId = null;
-
+        
         if (typeof session.payment_link === "string") {
           paymentLinkId = session.payment_link;
         } else if (session.payment_link?.id) {
@@ -998,10 +998,10 @@ export const handleStripeWebhook = async (event) => {
         const updatedPayment = await paymentsRepository.updateById(
           payment._id,
           {
-            status: "succeeded",
-            stripeChargeId: chargeId,
-            cardLast4,
-            cardBrand,
+          status: "succeeded",
+          stripeChargeId: chargeId,
+          cardLast4,
+          cardBrand,
           }
         );
 
