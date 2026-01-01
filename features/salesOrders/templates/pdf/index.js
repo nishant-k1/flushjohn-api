@@ -191,7 +191,7 @@ const htmlTemplate = (salesOrderData) => {
           </ul>
             ${itemRows(salesOrderData.products)}
           <div class='total-amount-container'>
-            <h4>Total Amount: $${totalAmount(salesOrderData.products).toFixed(2)}</h4>
+            <h4>Total Amount: ${safeCurrency(totalAmount(salesOrderData.products))}</h4>
           </div>
         </div>
         <hr/>

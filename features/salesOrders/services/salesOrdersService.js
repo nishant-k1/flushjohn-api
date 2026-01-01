@@ -164,13 +164,27 @@ export const getAllSalesOrders = async ({
   sortBy = "createdAt",
   sortOrder = "desc",
   search = "",
+  startDate = null,
+  endDate = null,
 }) => {
   const skip = (page - 1) * limit;
 
   let query = {};
+  
+  // Add date range filter
+  if (startDate || endDate) {
+    query.createdAt = {};
+    if (startDate) {
+      query.createdAt.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      query.createdAt.$lte = new Date(endDate);
+    }
+  }
+  
   if (search) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    query = {
+    const searchQuery = {
       $or: [
         { salesOrderNo: { $regex: escapedSearch, $options: "i" } },
         { customerNo: { $regex: escapedSearch, $options: "i" } },
@@ -190,6 +204,13 @@ export const getAllSalesOrders = async ({
         { emailStatus: { $regex: escapedSearch, $options: "i" } },
       ],
     };
+    
+    // Combine date filter with search query
+    if (Object.keys(query).length > 0 && Object.keys(query).includes('createdAt')) {
+      query = { $and: [query, searchQuery] };
+    } else {
+      query = { ...query, ...searchQuery };
+    }
   }
 
   const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
