@@ -233,7 +233,7 @@ BlogsSchema.index({ title: "text", content: "text", excerpt: "text" });
 BlogsSchema.index({ status: 1, publishedAt: -1 });
 BlogsSchema.index({ category: 1, status: 1 });
 BlogsSchema.index({ tags: 1 });
-BlogsSchema.index({ slug: 1 });
+// slug: unique: true already creates an index automatically
 
 BlogsSchema.virtual("estimatedReadingTime").get(function () {
   if (this.wordCount > 0) {

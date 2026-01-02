@@ -12,7 +12,6 @@ router.post("/", async function (req, res) {
     const customer = await customersService.createCustomer(req.body);
     res.status(201).json({ success: true, data: customer });
   } catch (error) {
-
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -26,6 +25,11 @@ router.get("/", async function (req, res) {
       sortOrder = "desc",
       search = "",
       searchQuery = "",
+      page: _page,
+      limit: _limit,
+      sortBy: _sortBy,
+      sortOrder: _sortOrder,
+      ...columnFilters
     } = req.query;
 
     const pageNum = parseInt(page);
@@ -53,6 +57,7 @@ router.get("/", async function (req, res) {
       sortBy,
       sortOrder,
       search: search || searchQuery,
+      ...columnFilters,
     });
 
     res.status(200).json({
@@ -60,7 +65,6 @@ router.get("/", async function (req, res) {
       ...result,
     });
   } catch (error) {
-
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -128,7 +132,9 @@ router.put("/:id", async function (req, res) {
         success: false,
         message: "Validation failed",
         error: "VALIDATION_ERROR",
-        details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
+        details: error.errors
+          ? Object.values(error.errors).map((err) => err.message)
+          : [error.message],
       });
     }
 

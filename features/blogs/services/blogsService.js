@@ -441,15 +441,128 @@ export const getAllBlogs = async ({
   sortOrder = "desc",
   slug = null,
   search = "",
-  status = null, // ✅ NEW: Add status parameter
+  status = null,
+  ...columnFilters
 }) => {
   const skip = (page - 1) * limit;
 
   let query = {};
+  const exprConditions = [];
+  const dayjs = (await import("../../../lib/dayjs/index.js")).dayjs;
 
+  // Legacy filters
   if (slug) {
     query.slug = slug;
-  } else if (search) {
+  }
+  if (status) {
+    query.status = status;
+  }
+
+  // Handle column-specific filters
+  const allowedColumnFilters = [
+    "title",
+    "content",
+    "excerpt",
+    "author",
+    "category",
+    "tags",
+    "city",
+    "state",
+    "slug",
+    "status",
+    "createdAt",
+    "publishedAt",
+    "updatedAt",
+  ];
+
+  Object.keys(columnFilters).forEach((key) => {
+    if (allowedColumnFilters.includes(key) && columnFilters[key]) {
+      const filterValue = String(columnFilters[key]).trim();
+      if (filterValue) {
+        // For date fields
+        if (
+          key === "createdAt" ||
+          key === "publishedAt" ||
+          key === "updatedAt"
+        ) {
+          const hasYear = /\d{4}/.test(filterValue);
+          let parsedDate = null;
+
+          if (hasYear) {
+            const dateFormats = [
+              "MMMM D, YYYY",
+              "MMMM D YYYY",
+              "MMM D, YYYY",
+              "MMM D YYYY",
+              "MM/DD/YYYY",
+              "MM-DD-YYYY",
+              "YYYY-MM-DD",
+              "M/D/YYYY",
+              "M-D-YYYY",
+              "D MMMM YYYY",
+              "D MMM YYYY",
+            ];
+
+            for (const format of dateFormats) {
+              const testDate = dayjs(filterValue, format, true);
+              if (testDate.isValid()) {
+                parsedDate = testDate;
+                break;
+              }
+            }
+
+            if (!parsedDate || !parsedDate.isValid()) {
+              const standardDate = new Date(filterValue);
+              if (!isNaN(standardDate.getTime())) {
+                parsedDate = dayjs(standardDate);
+              }
+            }
+          }
+
+          if (parsedDate && parsedDate.isValid() && hasYear) {
+            const startOfDay = parsedDate.startOf("day").toDate();
+            const endOfDay = parsedDate.endOf("day").toDate();
+            query[key] = { $gte: startOfDay, $lte: endOfDay };
+          } else {
+            const escapedValue = filterValue.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            exprConditions.push({
+              $regexMatch: {
+                input: {
+                  $dateToString: {
+                    format: "%B %d, %Y, %H:%M",
+                    date: `$${key}`,
+                  },
+                },
+                regex: escapedValue,
+                options: "i",
+              },
+            });
+          }
+        } else {
+          const escapedValue = filterValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          query[key] = { $regex: escapedValue, $options: "i" };
+        }
+      }
+    }
+  });
+
+  // Combine $expr conditions if any exist
+  if (exprConditions.length > 0) {
+    if (exprConditions.length === 1) {
+      query.$expr = exprConditions[0];
+    } else {
+      query.$expr = { $and: exprConditions };
+    }
+  }
+
+  // Handle global search
+  if (search && !slug) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const searchConditions = [
       { title: { $regex: escapedSearch, $options: "i" } },
@@ -464,44 +577,75 @@ export const getAllBlogs = async ({
       { status: { $regex: escapedSearch, $options: "i" } },
     ];
 
-    // Try to parse as date and search createdAt, publishedAt, updatedAt
-    try {
-      const searchDate = new Date(search);
-      if (!isNaN(searchDate.getTime())) {
-        const startOfDay = new Date(searchDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(searchDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        searchConditions.push(
-          {
-            createdAt: {
-              $gte: startOfDay,
-              $lte: endOfDay,
+    // Search date fields with partial matching
+    searchConditions.push(
+      {
+        $expr: {
+          $regexMatch: {
+            input: {
+              $dateToString: {
+                format: "%B %d, %Y, %H:%M",
+                date: "$createdAt",
+              },
             },
+            regex: escapedSearch,
+            options: "i",
           },
-          {
-            publishedAt: {
-              $gte: startOfDay,
-              $lte: endOfDay,
+        },
+      },
+      {
+        $expr: {
+          $regexMatch: {
+            input: {
+              $dateToString: {
+                format: "%B %d, %Y, %H:%M",
+                date: "$publishedAt",
+              },
             },
+            regex: escapedSearch,
+            options: "i",
           },
-          {
-            updatedAt: {
-              $gte: startOfDay,
-              $lte: endOfDay,
+        },
+      },
+      {
+        $expr: {
+          $regexMatch: {
+            input: {
+              $dateToString: {
+                format: "%B %d, %Y, %H:%M",
+                date: "$updatedAt",
+              },
             },
-          }
-        );
+            regex: escapedSearch,
+            options: "i",
+          },
+        },
       }
-    } catch (e) {
-      // Ignore date parsing errors
+    );
+
+    // Combine search with existing filters
+    const hasOtherFilters = Object.keys(query).some(
+      (key) => key !== "$or" && key !== "$and" && key !== "$expr"
+    );
+    const hasExpr = query.$expr;
+
+    if (hasOtherFilters || hasExpr) {
+      const andConditions = [{ $or: searchConditions }];
+
+      Object.keys(query).forEach((key) => {
+        if (key !== "$or" && key !== "$and" && key !== "$expr") {
+          andConditions.push({ [key]: query[key] });
+        }
+      });
+
+      if (hasExpr) {
+        andConditions.push({ $expr: query.$expr });
+      }
+
+      query = { $and: andConditions };
+    } else {
+      query = { $or: searchConditions };
     }
-
-    query.$or = searchConditions;
-  }
-
-  if (status) {
-    query.status = status;
   }
 
   const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };

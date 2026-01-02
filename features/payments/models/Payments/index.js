@@ -108,10 +108,11 @@ const PaymentsSchema = new mongoose.Schema({
 });
 
 // Indexes
+// salesOrder, customer, createdAt, stripePaymentIntentId, stripeChargeId, stripeCustomerId, status: index: true already creates indexes
+// Only compound indexes need to be explicitly defined
 PaymentsSchema.index({ salesOrder: 1, createdAt: -1 });
 PaymentsSchema.index({ customer: 1, createdAt: -1 });
 PaymentsSchema.index({ status: 1, createdAt: -1 });
-PaymentsSchema.index({ stripePaymentIntentId: 1 });
 
 // Update updatedAt before save
 PaymentsSchema.pre("save", function (next) {

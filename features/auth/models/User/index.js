@@ -157,8 +157,7 @@ UserSchema.virtual("fullName").get(function () {
   return `${this.fName} ${this.lName}`;
 });
 
-UserSchema.index({ userId: 1 });
-UserSchema.index({ email: 1 });
+// userId and email: unique: true already creates indexes automatically
 UserSchema.index({ isActive: 1 });
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);

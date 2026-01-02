@@ -35,6 +35,11 @@ router.get("/", async function (req, res) {
       searchQuery = "",
       startDate = null,
       endDate = null,
+      page: _page,
+      limit: _limit,
+      sortBy: _sortBy,
+      sortOrder: _sortOrder,
+      ...columnFilters
     } = req.query;
 
     const pageNum = parseInt(page);
@@ -64,6 +69,7 @@ router.get("/", async function (req, res) {
       search: search || searchQuery,
       startDate: startDate || null,
       endDate: endDate || null,
+      ...columnFilters,
     });
 
     res.status(200).json({
@@ -316,13 +322,13 @@ router.post(
       }
 
       const salesOrder = await salesOrdersService.getSalesOrderById(id);
-      
+
       // Flatten lead fields for email template (template expects fName, lName, email at top level)
       const leadData = salesOrder.lead || {};
       const salesOrderObj = salesOrder.toObject
         ? salesOrder.toObject()
         : salesOrder;
-      
+
       const emailData = {
         ...salesOrderObj, // Start with sales order data from DB
         // Flatten lead fields to top level for email template
@@ -365,7 +371,7 @@ router.post(
           console.error("Failed to create payment link:", paymentLinkError);
         }
       }
-      
+
       // Set paymentLinkUrl in emailData if it was provided or created
       if (paymentLinkUrl) {
         emailData.paymentLinkUrl = paymentLinkUrl;
@@ -381,7 +387,7 @@ router.post(
       let pdfUrls;
       try {
         pdfUrls = await generateSalesOrderPDF(emailData, id);
-        
+
         // Use invoice template if payment link is provided, otherwise use sales order template
         if (paymentLinkUrl) {
           await sendInvoiceEmail(emailData, id, pdfUrls.pdfUrl, paymentLinkUrl);

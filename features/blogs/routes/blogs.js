@@ -44,6 +44,11 @@ router.get("/", async function (req, res) {
       search = "",
       searchQuery = "",
       status = null, // ✅ NEW: Add status parameter
+      page: _page,
+      limit: _limit,
+      sortBy: _sortBy,
+      sortOrder: _sortOrder,
+      ...columnFilters
     } = req.query;
 
     const pageNum = parseInt(page);
@@ -72,7 +77,8 @@ router.get("/", async function (req, res) {
       sortOrder,
       slug,
       search: search || searchQuery,
-      status, // ✅ NEW: Pass status to service
+      status,
+      ...columnFilters,
     });
 
     res.status(200).json({

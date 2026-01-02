@@ -1,5 +1,5 @@
 import * as quotesRepository from "../repositories/quotesRepository.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, dayjs } from "../../../lib/dayjs/index.js";
 
 export const generateQuoteNumber = async () => {
   const maxRetries = 5;
@@ -22,7 +22,7 @@ export const generateQuoteNumber = async () => {
       // If duplicate found, wait a bit and retry
       attempts++;
       await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
-    } catch (error) {
+    } catch {
       attempts++;
       if (attempts >= maxRetries) {
         throw new Error("Failed to generate unique quote number after retries");
@@ -101,70 +101,548 @@ export const createQuote = async (quoteData) => {
   return formatQuoteResponse(populatedQuote, populatedQuote.lead);
 };
 
+/**
+ * Get all quotes using aggregation pipeline with $lookup for lead data
+ * This enables searching by lead fields (fName, lName, cName, email, phone, usageType)
+ */
+const getAllQuotesWithAggregation = async ({
+  page,
+  limit,
+  sortBy,
+  sortOrder,
+  search,
+  columnFilters,
+}) => {
+  const skip = (page - 1) * limit;
+  const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Import Quotes model
+  const Quotes = (await import("../models/Quotes/index.js")).default;
+
+  // Build aggregation pipeline
+  const pipeline = [];
+
+  // Step 1: JOIN leads collection FIRST (before any filtering)
+  pipeline.push({
+    $lookup: {
+      from: "leads",
+      localField: "lead",
+      foreignField: "_id",
+      as: "leadData",
+    },
+  });
+
+  // Step 2: Flatten leadData array
+  pipeline.push({
+    $unwind: {
+      path: "$leadData",
+      preserveNullAndEmptyArrays: true,
+    },
+  });
+
+  // Step 3: Build match conditions for column filters
+  const columnFilterConditions = {};
+  const columnFilterExpr = [];
+
+  // Fields directly in quotes collection
+  const quoteFieldFilters = [
+    "quoteNo",
+    "leadNo",
+    "emailStatus",
+    "deliveryDate",
+    "pickupDate",
+    "contactPersonName",
+    "contactPersonPhone",
+    "instructions",
+    "note",
+    "createdAt",
+  ];
+
+  // Lead fields (now available via $lookup as leadData)
+  const leadFieldFilters = [
+    "fName",
+    "lName",
+    "cName",
+    "email",
+    "phone",
+    "usageType",
+  ];
+
+  const allowedColumnFilters = [...quoteFieldFilters, ...leadFieldFilters];
+
+  Object.keys(columnFilters).forEach((key) => {
+    if (allowedColumnFilters.includes(key) && columnFilters[key]) {
+      const filterValue = String(columnFilters[key]).trim();
+      if (filterValue) {
+        // Determine the field path (quotes fields vs lead fields)
+        const isLeadField = leadFieldFilters.includes(key);
+        const fieldPath = isLeadField ? `leadData.${key}` : key;
+        // For date fields, try to parse with multiple formats
+        if (
+          key === "createdAt" ||
+          key === "deliveryDate" ||
+          key === "pickupDate"
+        ) {
+          const hasYear = /\d{4}/.test(filterValue);
+          let parsedDate = null;
+
+          if (hasYear) {
+            const dateFormats = [
+              "MMMM D, YYYY",
+              "MMMM D YYYY",
+              "MMM D, YYYY",
+              "MMM D YYYY",
+              "MM/DD/YYYY",
+              "MM-DD-YYYY",
+              "YYYY-MM-DD",
+              "M/D/YYYY",
+              "M-D-YYYY",
+              "D MMMM YYYY",
+              "D MMM YYYY",
+            ];
+
+            for (const format of dateFormats) {
+              const testDate = dayjs(filterValue, format, true);
+              if (testDate.isValid()) {
+                parsedDate = testDate;
+                break;
+              }
+            }
+
+            if (!parsedDate || !parsedDate.isValid()) {
+              const standardDate = new Date(filterValue);
+              if (!isNaN(standardDate.getTime())) {
+                parsedDate = dayjs(standardDate);
+              }
+            }
+          }
+
+          if (parsedDate && parsedDate.isValid() && hasYear) {
+            const startOfDay = parsedDate.startOf("day").toDate();
+            const endOfDay = parsedDate.endOf("day").toDate();
+            columnFilterConditions[fieldPath] = {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            };
+          } else {
+            // Partial date matching
+            if (key === "createdAt") {
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              columnFilterExpr.push({
+                $regexMatch: {
+                  input: {
+                    $dateToString: {
+                      format: "%B %d, %Y, %H:%M",
+                      date: `$${fieldPath}`,
+                    },
+                  },
+                  regex: escapedValue,
+                  options: "i",
+                },
+              });
+            } else {
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              columnFilterConditions[fieldPath] = {
+                $regex: escapedValue,
+                $options: "i",
+              };
+            }
+          }
+        } else if (key === "quoteNo" || key === "leadNo") {
+          // Numeric fields
+          const numericValue =
+            Number.isFinite(Number(filterValue)) &&
+            !isNaN(Number(filterValue)) &&
+            String(Number(filterValue)) === filterValue.trim()
+              ? Number(filterValue)
+              : null;
+
+          if (numericValue !== null) {
+            columnFilterConditions[fieldPath] = numericValue;
+          } else {
+            const escapedValue = filterValue.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            columnFilterExpr.push({
+              $regexMatch: {
+                input: { $toString: `$${fieldPath}` },
+                regex: escapedValue,
+                options: "i",
+              },
+            });
+          }
+        } else {
+          // Text fields (includes lead fields like fName, lName, etc.)
+          const escapedValue = filterValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          columnFilterConditions[fieldPath] = {
+            $regex: escapedValue,
+            $options: "i",
+          };
+        }
+      }
+    }
+  });
+
+  // Step 4: Build match conditions for global search (only if search is provided)
+  const searchConditions = [];
+
+  if (search && search.trim()) {
+    // Search in quote fields (direct fields)
+    searchConditions.push(
+      { emailStatus: { $regex: escapedSearch, $options: "i" } },
+      { customerName: { $regex: escapedSearch, $options: "i" } },
+      { customerEmail: { $regex: escapedSearch, $options: "i" } },
+      { customerPhone: { $regex: escapedSearch, $options: "i" } },
+      { deliveryDate: { $regex: escapedSearch, $options: "i" } },
+      { pickupDate: { $regex: escapedSearch, $options: "i" } },
+      { eventLocation: { $regex: escapedSearch, $options: "i" } },
+      { eventCity: { $regex: escapedSearch, $options: "i" } },
+      { eventState: { $regex: escapedSearch, $options: "i" } },
+      { contactPersonName: { $regex: escapedSearch, $options: "i" } },
+      { contactPersonPhone: { $regex: escapedSearch, $options: "i" } },
+      { instructions: { $regex: escapedSearch, $options: "i" } },
+      { note: { $regex: escapedSearch, $options: "i" } }
+    );
+
+    // ✅ Search in lead fields (NOW AVAILABLE via $lookup!)
+    searchConditions.push(
+      { "leadData.fName": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.lName": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.cName": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.email": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.phone": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.usageType": { $regex: escapedSearch, $options: "i" } }
+    );
+
+    // Search numeric fields using $expr
+    searchConditions.push(
+      {
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$quoteNo" },
+            regex: escapedSearch,
+            options: "i",
+          },
+        },
+      },
+      {
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$leadNo" },
+            regex: escapedSearch,
+            options: "i",
+          },
+        },
+      }
+    );
+
+    // Search createdAt date field
+    searchConditions.push({
+      $expr: {
+        $regexMatch: {
+          input: {
+            $dateToString: {
+              format: "%B %d, %Y, %H:%M",
+              date: "$createdAt",
+            },
+          },
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    });
+  }
+
+  // Step 5: Combine search and column filters
+  const matchConditions = [];
+
+  // Add global search conditions (only if search was provided)
+  if (searchConditions.length > 0) {
+    matchConditions.push({ $or: searchConditions });
+  }
+
+  // Add column filter conditions
+  if (Object.keys(columnFilterConditions).length > 0) {
+    Object.keys(columnFilterConditions).forEach((key) => {
+      matchConditions.push({ [key]: columnFilterConditions[key] });
+    });
+  }
+
+  // Add column filter $expr conditions
+  if (columnFilterExpr.length > 0) {
+    if (columnFilterExpr.length === 1) {
+      matchConditions.push({ $expr: columnFilterExpr[0] });
+    } else {
+      matchConditions.push({ $expr: { $and: columnFilterExpr } });
+    }
+  }
+
+  // Add $match stage if we have conditions
+  if (matchConditions.length > 0) {
+    if (matchConditions.length === 1) {
+      pipeline.push({ $match: matchConditions[0] });
+    } else {
+      pipeline.push({ $match: { $and: matchConditions } });
+    }
+  }
+
+  // Step 6: Count total documents (before pagination)
+  const countPipeline = [...pipeline, { $count: "total" }];
+
+  // Step 7: Sort
+  const sortField = sortBy === "createdAt" ? "createdAt" : sortBy;
+  pipeline.push({ $sort: { [sortField]: sortOrder === "desc" ? -1 : 1 } });
+
+  // Step 8: Pagination
+  pipeline.push({ $skip: skip }, { $limit: limit });
+
+  // Step 9: Reshape result to match original structure
+  pipeline.push({
+    $addFields: {
+      lead: "$leadData",
+    },
+  });
+
+  pipeline.push({
+    $project: {
+      leadData: 0, // Remove temporary leadData field
+    },
+  });
+
+  // Execute both pipelines
+  const [results, countResult] = await Promise.all([
+    Quotes.aggregate(pipeline),
+    Quotes.aggregate(countPipeline),
+  ]);
+
+  const total = countResult[0]?.total || 0;
+
+  return {
+    data: results,
+    pagination: {
+      page,
+      limit,
+      totalItems: total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
 export const getAllQuotes = async ({
   page = 1,
   limit = 10,
   sortBy = "createdAt",
   sortOrder = "desc",
   search = "",
+  ...columnFilters
 }) => {
   const skip = (page - 1) * limit;
 
+  // Lead fields that require $lookup aggregation
+  const leadFields = ["fName", "lName", "cName", "email", "phone", "usageType"];
+
+  // Check if any lead field is being filtered
+  const hasLeadFieldFilter = Object.keys(columnFilters).some(
+    (key) => leadFields.includes(key) && columnFilters[key]
+  );
+
+  // If global search OR lead field filtering is requested, use aggregation with $lookup
+  if ((search && search.trim()) || hasLeadFieldFilter) {
+    return await getAllQuotesWithAggregation({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      search: search ? search.trim() : "",
+      columnFilters,
+    });
+  }
+
+  // Otherwise, use regular query for column filters only (faster for non-lead fields)
   let query = {};
-  if (search) {
-    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const searchConditions = [
-      { quoteNo: { $regex: escapedSearch, $options: "i" } },
-      { leadNo: { $regex: escapedSearch, $options: "i" } },
-      { "lead.fName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.lName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.cName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.email": { $regex: escapedSearch, $options: "i" } },
-      { "lead.phone": { $regex: escapedSearch, $options: "i" } },
-      { "lead.usageType": { $regex: escapedSearch, $options: "i" } },
-      { customerName: { $regex: escapedSearch, $options: "i" } },
-      { customerEmail: { $regex: escapedSearch, $options: "i" } },
-      { customerPhone: { $regex: escapedSearch, $options: "i" } },
-      { eventLocation: { $regex: escapedSearch, $options: "i" } },
-      { eventCity: { $regex: escapedSearch, $options: "i" } },
-      { eventState: { $regex: escapedSearch, $options: "i" } },
-      { deliveryDate: { $regex: escapedSearch, $options: "i" } },
-      { pickupDate: { $regex: escapedSearch, $options: "i" } },
-      { emailStatus: { $regex: escapedSearch, $options: "i" } },
-      { contactPersonName: { $regex: escapedSearch, $options: "i" } },
-      { contactPersonPhone: { $regex: escapedSearch, $options: "i" } },
-      { instructions: { $regex: escapedSearch, $options: "i" } },
-      { note: { $regex: escapedSearch, $options: "i" } },
-    ];
+  const exprConditions = []; // Collect $expr conditions for numeric field regex searches
 
-    // Search numeric fields if search term is numeric
-    const numericSearch = Number.isFinite(Number(search)) ? Number(search) : null;
-    if (numericSearch !== null) {
-      searchConditions.push({ quoteNo: numericSearch });
-    }
+  // Handle column-specific filters
+  // NOTE: Only include fields that exist directly on the quotes collection
+  const allowedColumnFilters = [
+    "quoteNo",
+    "leadNo",
+    "emailStatus",
+    "deliveryDate",
+    "pickupDate",
+    "contactPersonName",
+    "contactPersonPhone",
+    "instructions",
+    "note",
+    "createdAt",
+  ];
 
-    // Try to parse as date and search createdAt
-    try {
-      const searchDate = new Date(search);
-      if (!isNaN(searchDate.getTime())) {
-        const startOfDay = new Date(searchDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(searchDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        searchConditions.push({
-          createdAt: {
-            $gte: startOfDay,
-            $lte: endOfDay,
-          },
-        });
+  Object.keys(columnFilters).forEach((key) => {
+    if (allowedColumnFilters.includes(key) && columnFilters[key]) {
+      const filterValue = String(columnFilters[key]).trim();
+      if (filterValue) {
+        // For date fields, try to parse with multiple formats
+        if (
+          key === "createdAt" ||
+          key === "deliveryDate" ||
+          key === "pickupDate"
+        ) {
+          try {
+            // Only use exact date matching if the input includes a year (4 digits)
+            const hasYear = /\d{4}/.test(filterValue);
+
+            let parsedDate = null;
+            if (hasYear) {
+              const dateFormats = [
+                "MMMM D, YYYY",
+                "MMMM D YYYY",
+                "MMM D, YYYY",
+                "MMM D YYYY",
+                "MM/DD/YYYY",
+                "MM-DD-YYYY",
+                "YYYY-MM-DD",
+                "M/D/YYYY",
+                "M-D-YYYY",
+                "D MMMM YYYY",
+                "D MMM YYYY",
+              ];
+
+              for (const format of dateFormats) {
+                const testDate = dayjs(filterValue, format, true);
+                if (testDate.isValid()) {
+                  parsedDate = testDate;
+                  break;
+                }
+              }
+
+              if (!parsedDate || !parsedDate.isValid()) {
+                const standardDate = new Date(filterValue);
+                if (!isNaN(standardDate.getTime())) {
+                  parsedDate = dayjs(standardDate);
+                }
+              }
+            }
+
+            if (parsedDate && parsedDate.isValid() && hasYear) {
+              // Exact date range matching (only when year is specified)
+              const startOfDay = parsedDate.startOf("day").toDate();
+              const endOfDay = parsedDate.endOf("day").toDate();
+              query[key] = { $gte: startOfDay, $lte: endOfDay };
+            } else {
+              // For createdAt (Date field), use $expr with $dateToString for partial matching
+              // For deliveryDate/pickupDate (String fields), use regex
+              if (key === "createdAt") {
+                // Use $expr to convert Date to formatted string for partial matching
+                const escapedValue = filterValue.replace(
+                  /[.*+?^${}()|[\]\\]/g,
+                  "\\$&"
+                );
+                exprConditions.push({
+                  $regexMatch: {
+                    input: {
+                      $dateToString: {
+                        format: "%B %d, %Y, %H:%M",
+                        date: `$${key}`,
+                      },
+                    },
+                    regex: escapedValue,
+                    options: "i",
+                  },
+                });
+              } else {
+                // Fallback to regex search for String date fields (deliveryDate, pickupDate)
+                const escapedValue = filterValue.replace(
+                  /[.*+?^${}()|[\]\\]/g,
+                  "\\$&"
+                );
+                query[key] = { $regex: escapedValue, $options: "i" };
+              }
+            }
+          } catch {
+            // For createdAt (Date field), use $expr with $dateToString for partial matching
+            // For deliveryDate/pickupDate (String fields), use regex
+            if (key === "createdAt") {
+              // Use $expr to convert Date to formatted string for partial matching
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              exprConditions.push({
+                $regexMatch: {
+                  input: {
+                    $dateToString: {
+                      format: "%B %d, %Y, %H:%M",
+                      date: `$${key}`,
+                    },
+                  },
+                  regex: escapedValue,
+                  options: "i",
+                },
+              });
+            } else {
+              // Fallback to regex search for String date fields (deliveryDate, pickupDate)
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              query[key] = { $regex: escapedValue, $options: "i" };
+            }
+          }
+        } else if (key === "quoteNo" || key === "leadNo") {
+          // Check if the filter value is a valid number (exact match)
+          const numericValue =
+            Number.isFinite(Number(filterValue)) &&
+            !isNaN(Number(filterValue)) &&
+            String(Number(filterValue)) === filterValue.trim()
+              ? Number(filterValue)
+              : null;
+          if (numericValue !== null) {
+            // Exact numeric match
+            query[key] = numericValue;
+          } else {
+            // For non-numeric or partial matches, convert number to string for regex search
+            // Use $expr to convert the number field to string for regex matching
+            const escapedValue = filterValue.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            exprConditions.push({
+              $regexMatch: {
+                input: { $toString: `$${key}` },
+                regex: escapedValue,
+                options: "i",
+              },
+            });
+          }
+        } else {
+          // For all other text fields, use regex search (supports partial matching)
+          const escapedValue = filterValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          query[key] = { $regex: escapedValue, $options: "i" };
+        }
       }
-    } catch (e) {
-      // Ignore date parsing errors
     }
+  });
 
-    query = {
-      $or: searchConditions,
-    };
+  // Combine $expr conditions if any exist
+  if (exprConditions.length > 0) {
+    if (exprConditions.length === 1) {
+      query.$expr = exprConditions[0];
+    } else {
+      query.$expr = { $and: exprConditions };
+    }
   }
 
   const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
