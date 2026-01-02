@@ -55,7 +55,7 @@ router.post("/", authLimiter, async (req, res) => {
       let validPassword;
       try {
         validPassword = await user.comparePassword(password);
-      } catch (error) {
+      } catch {
         await user.incLoginAttempts();
         return res.status(401).json({
           success: false,
@@ -260,7 +260,7 @@ router.post("/logout", (req, res) => {
       success: true,
       message: "Logout successful",
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({
       success: false,
       message: "Internal server error",

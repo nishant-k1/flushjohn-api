@@ -45,7 +45,7 @@ const UserSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
-      match: [/^[\+]?[1-9][\d]{0,15}$/, "Please provide a valid phone number"],
+      match: [/^[+]?[1-9][\d]{0,15}$/, "Please provide a valid phone number"],
     },
     avatarUrl: {
       type: String,
@@ -106,7 +106,7 @@ UserSchema.pre("save", async function (next) {
 UserSchema.methods.comparePassword = async function (candidatePassword) {
   try {
     return await argon2.verify(this.password, candidatePassword);
-  } catch (error) {
+  } catch {
     return false;
   }
 };

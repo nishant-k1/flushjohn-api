@@ -15,7 +15,6 @@ import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
 import {
   dbConnect,
   waitForConnection,
-  getConnectionStatus,
 } from "../../../lib/dbConnect/index.js";
 
 const config = {
@@ -176,7 +175,6 @@ async function generateAllBlogPosts() {
 
   for (let i = 0; i < allPosts.length; i += config.batchSize) {
     const batch = allPosts.slice(i, i + config.batchSize);
-    const batchNumber = Math.floor(i / config.batchSize) + 1;
 
 
     const batchPromises = batch.map((post) =>

@@ -214,7 +214,7 @@ app.use("/file-upload", authenticateToken, uploadLimiter, fileUploadRouter);
 app.use("/s3-cors", s3CorsRouter);
 // Public lead submission endpoint (POST /leads - no auth required)
 // ✅ PERFORMANCE: Add rate limiting to prevent abuse
-app.post("/leads", publicLimiter, async (req, res, next) => {
+app.post("/leads", publicLimiter, async (req, res) => {
   try {
     console.log("📥 Received public lead submission");
     const leadData = req.body;
@@ -312,14 +312,13 @@ app.use("/contacts", authenticateToken, contactsRouter);
 app.use("/sales-assist", salesAssistRouter);
 app.use("/sales-assist", speechRecognitionRouter);
 
-dbConnect().catch((error) => {
+dbConnect().catch(() => {
   process.exit(1);
 });
 
-let cronJobs;
 try {
-  cronJobs = initializeCronJobs();
-} catch (error) {
+  initializeCronJobs();
+} catch {
   // Failed to initialize cron jobs
 }
 
@@ -327,7 +326,7 @@ app.use((req, res, next) => {
   next(createError(404));
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
 
@@ -350,13 +349,15 @@ function normalizePort(val) {
 
 function onError(error) {
   if (error.syscall !== "listen") throw error;
-  const bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
+  const _bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
 
   switch (error.code) {
     case "EACCES":
       process.exit(1);
+      break;
     case "EADDRINUSE":
       process.exit(1);
+      break;
     default:
       throw error;
   }
