@@ -25,11 +25,113 @@ export const getAllContacts = async ({
   sortOrder = "desc",
   status,
   search,
+  ...columnFilters
 }) => {
   const query = {};
+  const exprConditions = [];
+  const dayjs = (await import("../../../lib/dayjs/index.js")).dayjs;
 
+  // Legacy filter
   if (status) query.status = status;
 
+  // Handle column-specific filters
+  const allowedColumnFilters = [
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "message",
+    "subject",
+    "company",
+    "status",
+    "createdAt",
+    "readAt",
+    "repliedAt",
+  ];
+
+  Object.keys(columnFilters).forEach((key) => {
+    if (allowedColumnFilters.includes(key) && columnFilters[key]) {
+      const filterValue = String(columnFilters[key]).trim();
+      if (filterValue) {
+        // For date fields
+        if (key === "createdAt" || key === "readAt" || key === "repliedAt") {
+          const hasYear = /\d{4}/.test(filterValue);
+          let parsedDate = null;
+
+          if (hasYear) {
+            const dateFormats = [
+              "MMMM D, YYYY",
+              "MMMM D YYYY",
+              "MMM D, YYYY",
+              "MMM D YYYY",
+              "MM/DD/YYYY",
+              "MM-DD-YYYY",
+              "YYYY-MM-DD",
+              "M/D/YYYY",
+              "M-D-YYYY",
+              "D MMMM YYYY",
+              "D MMM YYYY",
+            ];
+
+            for (const format of dateFormats) {
+              const testDate = dayjs(filterValue, format, true);
+              if (testDate.isValid()) {
+                parsedDate = testDate;
+                break;
+              }
+            }
+
+            if (!parsedDate || !parsedDate.isValid()) {
+              const standardDate = new Date(filterValue);
+              if (!isNaN(standardDate.getTime())) {
+                parsedDate = dayjs(standardDate);
+              }
+            }
+          }
+
+          if (parsedDate && parsedDate.isValid() && hasYear) {
+            const startOfDay = parsedDate.startOf("day").toDate();
+            const endOfDay = parsedDate.endOf("day").toDate();
+            query[key] = { $gte: startOfDay, $lte: endOfDay };
+          } else {
+            const escapedValue = filterValue.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            exprConditions.push({
+              $regexMatch: {
+                input: {
+                  $dateToString: {
+                    format: "%B %d, %Y, %H:%M",
+                    date: `$${key}`,
+                  },
+                },
+                regex: escapedValue,
+                options: "i",
+              },
+            });
+          }
+        } else {
+          const escapedValue = filterValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          query[key] = { $regex: escapedValue, $options: "i" };
+        }
+      }
+    }
+  });
+
+  // Combine $expr conditions if any exist
+  if (exprConditions.length > 0) {
+    if (exprConditions.length === 1) {
+      query.$expr = exprConditions[0];
+    } else {
+      query.$expr = { $and: exprConditions };
+    }
+  }
+
+  // Handle global search
   if (search) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const searchConditions = [
@@ -43,40 +145,75 @@ export const getAllContacts = async ({
       { status: { $regex: escapedSearch, $options: "i" } },
     ];
 
-    // Try to parse as date and search createdAt, readAt, repliedAt
-    try {
-      const searchDate = new Date(search);
-      if (!isNaN(searchDate.getTime())) {
-        const startOfDay = new Date(searchDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(searchDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        searchConditions.push(
-          {
-            createdAt: {
-              $gte: startOfDay,
-              $lte: endOfDay,
+    // Search date fields with partial matching
+    searchConditions.push(
+      {
+        $expr: {
+          $regexMatch: {
+            input: {
+              $dateToString: {
+                format: "%B %d, %Y, %H:%M",
+                date: "$createdAt",
+              },
             },
+            regex: escapedSearch,
+            options: "i",
           },
-          {
-            readAt: {
-              $gte: startOfDay,
-              $lte: endOfDay,
+        },
+      },
+      {
+        $expr: {
+          $regexMatch: {
+            input: {
+              $dateToString: {
+                format: "%B %d, %Y, %H:%M",
+                date: "$readAt",
+              },
             },
+            regex: escapedSearch,
+            options: "i",
           },
-          {
-            repliedAt: {
-              $gte: startOfDay,
-              $lte: endOfDay,
+        },
+      },
+      {
+        $expr: {
+          $regexMatch: {
+            input: {
+              $dateToString: {
+                format: "%B %d, %Y, %H:%M",
+                date: "$repliedAt",
+              },
             },
-          }
-        );
+            regex: escapedSearch,
+            options: "i",
+          },
+        },
       }
-    } catch (e) {
-      // Ignore date parsing errors
-    }
+    );
 
-    query.$or = searchConditions;
+    // Combine search with existing filters
+    const hasOtherFilters = Object.keys(query).some(
+      (key) => key !== "$or" && key !== "$and" && key !== "$expr"
+    );
+    const hasExpr = query.$expr;
+
+    if (hasOtherFilters || hasExpr) {
+      const andConditions = [{ $or: searchConditions }];
+
+      Object.keys(query).forEach((key) => {
+        if (key !== "$or" && key !== "$and" && key !== "$expr") {
+          andConditions.push({ [key]: query[key] });
+        }
+      });
+
+      if (hasExpr) {
+        andConditions.push({ $expr: query.$expr });
+      }
+
+      query = { $and: andConditions };
+    } else {
+      query = { $or: searchConditions };
+    }
   }
 
   const sort = {};

@@ -27,6 +27,11 @@ router.get("/", async function (req, res) {
       sortOrder = "desc",
       search = "",
       searchQuery = "",
+      page: _page,
+      limit: _limit,
+      sortBy: _sortBy,
+      sortOrder: _sortOrder,
+      ...columnFilters
     } = req.query;
 
     const pageNum = parseInt(page);
@@ -54,6 +59,7 @@ router.get("/", async function (req, res) {
       sortBy,
       sortOrder,
       search: search || searchQuery,
+      ...columnFilters,
     });
 
     res.status(200).json({
@@ -184,7 +190,9 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
         success: false,
         message: "Validation failed",
         error: "VALIDATION_ERROR",
-        details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
+        details: error.errors
+          ? Object.values(error.errors).map((err) => err.message)
+          : [error.message],
       });
     }
 
@@ -384,7 +392,9 @@ router.post(
           success: false,
           message: "Validation failed",
           error: "VALIDATION_ERROR",
-          details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
+          details: error.errors
+            ? Object.values(error.errors).map((err) => err.message)
+            : [error.message],
         });
       }
 

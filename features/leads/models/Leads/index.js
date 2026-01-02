@@ -105,7 +105,7 @@ const LeadsSchema = new Schema({
 });
 
 LeadsSchema.index({ createdAt: -1 }); // For sorting by creation date
-LeadsSchema.index({ leadNo: 1 }); // For lead number lookups
+// leadNo: unique: true already creates an index automatically
 LeadsSchema.index({ leadStatus: 1 }); // For filtering by status
 LeadsSchema.index({ assignedTo: 1 }); // For filtering by assigned user
 LeadsSchema.index({ leadSource: 1 }); // For filtering by source

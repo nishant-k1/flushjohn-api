@@ -1,7 +1,8 @@
 import * as salesOrdersRepository from "../repositories/salesOrdersRepository.js";
 import * as customersRepository from "../../customers/repositories/customersRepository.js";
 import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, dayjs } from "../../../lib/dayjs/index.js";
+import { updateSalesOrderPaymentTotals } from "../../payments/services/paymentsService.js";
 
 export const generateSalesOrderNumber = async () => {
   const maxRetries = 5;
@@ -155,45 +156,229 @@ export const createSalesOrder = async (salesOrderData) => {
     );
   }
 
-  return createdSalesOrder;
+  // Calculate and update payment totals (orderTotal, paidAmount, balanceDue)
+  // This ensures balanceDue is correctly set even when no payments exist yet
+  try {
+    await updateSalesOrderPaymentTotals(createdSalesOrder._id);
+  } catch (error) {
+    // Log but don't fail the sales order creation
+    console.error(
+      "Error updating payment totals on SalesOrder creation:",
+      error
+    );
+  }
+
+  // Fetch updated sales order to return with correct totals
+  const updatedSalesOrder = await salesOrdersRepository.findById(
+    createdSalesOrder._id
+  );
+  return updatedSalesOrder || createdSalesOrder;
 };
 
-export const getAllSalesOrders = async ({
-  page = 1,
-  limit = 10,
-  sortBy = "createdAt",
-  sortOrder = "desc",
-  search = "",
-  startDate = null,
-  endDate = null,
+/**
+ * Get all sales orders using aggregation pipeline with $lookup for lead data
+ * This enables searching by lead fields (fName, lName, cName, email, phone, usageType)
+ */
+const getAllSalesOrdersWithAggregation = async ({
+  page,
+  limit,
+  sortBy,
+  sortOrder,
+  search,
+  startDate,
+  endDate,
+  columnFilters,
 }) => {
   const skip = (page - 1) * limit;
+  const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  let query = {};
-  
-  // Add date range filter
-  if (startDate || endDate) {
-    query.createdAt = {};
-    if (startDate) {
-      query.createdAt.$gte = new Date(startDate);
+  // Import SalesOrders model
+  const SalesOrders = (await import("../models/SalesOrders/index.js")).default;
+
+  // Build aggregation pipeline
+  const pipeline = [];
+
+  // Step 1: JOIN leads collection FIRST (before any filtering)
+  pipeline.push({
+    $lookup: {
+      from: "leads",
+      localField: "lead",
+      foreignField: "_id",
+      as: "leadData",
+    },
+  });
+
+  // Step 2: Flatten leadData array
+  pipeline.push({
+    $unwind: {
+      path: "$leadData",
+      preserveNullAndEmptyArrays: true,
+    },
+  });
+
+  // Step 3: Build match conditions for column filters
+  const columnFilterConditions = {};
+  const columnFilterExpr = [];
+
+  // Fields directly in sales orders collection
+  const salesOrderFieldFilters = [
+    "salesOrderNo",
+    "customerNo",
+    "leadNo",
+    "customerName",
+    "customerEmail",
+    "customerPhone",
+    "eventLocation",
+    "deliveryDate",
+    "pickupDate",
+    "emailStatus",
+    "contactPersonName",
+    "contactPersonPhone",
+    "instructions",
+    "note",
+    "createdAt",
+    "status",
+    "paymentStatus",
+  ];
+
+  // Lead fields (now available via $lookup as leadData)
+  const leadFieldFilters = [
+    "fName",
+    "lName",
+    "cName",
+    "email",
+    "phone",
+    "usageType",
+  ];
+
+  const allowedColumnFilters = [...salesOrderFieldFilters, ...leadFieldFilters];
+
+  Object.keys(columnFilters).forEach((key) => {
+    if (allowedColumnFilters.includes(key) && columnFilters[key]) {
+      const filterValue = String(columnFilters[key]).trim();
+      if (filterValue) {
+        // Determine the field path (sales order fields vs lead fields)
+        const isLeadField = leadFieldFilters.includes(key);
+        const fieldPath = isLeadField ? `leadData.${key}` : key;
+        if (
+          key === "createdAt" ||
+          key === "deliveryDate" ||
+          key === "pickupDate"
+        ) {
+          const hasYear = /\d{4}/.test(filterValue);
+          let parsedDate = null;
+
+          if (hasYear) {
+            const dateFormats = [
+              "MMMM D, YYYY",
+              "MMMM D YYYY",
+              "MMM D, YYYY",
+              "MMM D YYYY",
+              "MM/DD/YYYY",
+              "MM-DD-YYYY",
+              "YYYY-MM-DD",
+              "M/D/YYYY",
+              "M-D-YYYY",
+              "D MMMM YYYY",
+              "D MMM YYYY",
+            ];
+
+            for (const format of dateFormats) {
+              const testDate = dayjs(filterValue, format, true);
+              if (testDate.isValid()) {
+                parsedDate = testDate;
+                break;
+              }
+            }
+
+            if (!parsedDate || !parsedDate.isValid()) {
+              const standardDate = new Date(filterValue);
+              if (!isNaN(standardDate.getTime())) {
+                parsedDate = dayjs(standardDate);
+              }
+            }
+          }
+
+          if (parsedDate && parsedDate.isValid() && hasYear) {
+            const startOfDay = parsedDate.startOf("day").toDate();
+            const endOfDay = parsedDate.endOf("day").toDate();
+            columnFilterConditions[fieldPath] = {
+              $gte: startOfDay,
+              $lte: endOfDay,
+            };
+          } else {
+            if (key === "createdAt") {
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              columnFilterExpr.push({
+                $regexMatch: {
+                  input: {
+                    $dateToString: {
+                      format: "%B %d, %Y, %H:%M",
+                      date: `$${fieldPath}`,
+                    },
+                  },
+                  regex: escapedValue,
+                  options: "i",
+                },
+              });
+            } else {
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              columnFilterConditions[fieldPath] = {
+                $regex: escapedValue,
+                $options: "i",
+              };
+            }
+          }
+        } else if (
+          key === "salesOrderNo" ||
+          key === "customerNo" ||
+          key === "leadNo"
+        ) {
+          const numericValue = Number.isFinite(Number(filterValue))
+            ? Number(filterValue)
+            : null;
+          if (numericValue !== null) {
+            columnFilterConditions[fieldPath] = numericValue;
+          } else {
+            const escapedValue = filterValue.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            columnFilterExpr.push({
+              $regexMatch: {
+                input: { $toString: `$${fieldPath}` },
+                regex: escapedValue,
+                options: "i",
+              },
+            });
+          }
+        } else {
+          // Text fields (includes lead fields like fName, lName, etc.)
+          const escapedValue = filterValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          columnFilterConditions[fieldPath] = {
+            $regex: escapedValue,
+            $options: "i",
+          };
+        }
+      }
     }
-    if (endDate) {
-      query.createdAt.$lte = new Date(endDate);
-    }
-  }
-  
-  if (search) {
-    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const searchConditions = [
-      { salesOrderNo: { $regex: escapedSearch, $options: "i" } },
-      { customerNo: { $regex: escapedSearch, $options: "i" } },
-      { leadNo: { $regex: escapedSearch, $options: "i" } },
-      { "lead.fName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.lName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.cName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.email": { $regex: escapedSearch, $options: "i" } },
-      { "lead.phone": { $regex: escapedSearch, $options: "i" } },
-      { "lead.usageType": { $regex: escapedSearch, $options: "i" } },
+  });
+
+  // Step 4: Build match conditions for global search (only if search is provided)
+  const searchConditions = [];
+
+  if (search && search.trim()) {
+    // Search in sales order fields
+    searchConditions.push(
       { customerName: { $regex: escapedSearch, $options: "i" } },
       { customerEmail: { $regex: escapedSearch, $options: "i" } },
       { customerPhone: { $regex: escapedSearch, $options: "i" } },
@@ -205,45 +390,376 @@ export const getAllSalesOrders = async ({
       { contactPersonPhone: { $regex: escapedSearch, $options: "i" } },
       { instructions: { $regex: escapedSearch, $options: "i" } },
       { note: { $regex: escapedSearch, $options: "i" } },
-    ];
+      { status: { $regex: escapedSearch, $options: "i" } },
+      { paymentStatus: { $regex: escapedSearch, $options: "i" } }
+    );
 
-    // Search numeric fields if search term is numeric
-    const numericSearch = Number.isFinite(Number(search)) ? Number(search) : null;
-    if (numericSearch !== null) {
-      searchConditions.push(
-        { salesOrderNo: numericSearch },
-        { customerNo: numericSearch }
-      );
-    }
+    // ✅ Search in lead fields (NOW AVAILABLE via $lookup!)
+    searchConditions.push(
+      { "leadData.fName": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.lName": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.cName": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.email": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.phone": { $regex: escapedSearch, $options: "i" } },
+      { "leadData.usageType": { $regex: escapedSearch, $options: "i" } }
+    );
 
-    // Try to parse as date and search createdAt
-    try {
-      const searchDate = new Date(search);
-      if (!isNaN(searchDate.getTime())) {
-        const startOfDay = new Date(searchDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(searchDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        searchConditions.push({
-          createdAt: {
-            $gte: startOfDay,
-            $lte: endOfDay,
+    // Search numeric fields using $expr
+    searchConditions.push(
+      {
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$salesOrderNo" },
+            regex: escapedSearch,
+            options: "i",
           },
-        });
+        },
+      },
+      {
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$customerNo" },
+            regex: escapedSearch,
+            options: "i",
+          },
+        },
+      },
+      {
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$leadNo" },
+            regex: escapedSearch,
+            options: "i",
+          },
+        },
       }
-    } catch (e) {
-      // Ignore date parsing errors
-    }
+    );
 
-    const searchQuery = {
-      $or: searchConditions,
-    };
-    
-    // Combine date filter with search query
-    if (Object.keys(query).length > 0 && Object.keys(query).includes('createdAt')) {
-      query = { $and: [query, searchQuery] };
+    // Search createdAt date field
+    searchConditions.push({
+      $expr: {
+        $regexMatch: {
+          input: {
+            $dateToString: {
+              format: "%B %d, %Y, %H:%M",
+              date: "$createdAt",
+            },
+          },
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    });
+  }
+
+  // Step 5: Combine search and column filters
+  const matchConditions = [];
+
+  // Add global search conditions (only if search was provided)
+  if (searchConditions.length > 0) {
+    matchConditions.push({ $or: searchConditions });
+  }
+
+  // Add date range filter
+  if (startDate || endDate) {
+    const dateFilter = {};
+    if (startDate) {
+      dateFilter.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      dateFilter.$lte = new Date(endDate);
+    }
+    matchConditions.push({ createdAt: dateFilter });
+  }
+
+  // Add column filter conditions
+  if (Object.keys(columnFilterConditions).length > 0) {
+    Object.keys(columnFilterConditions).forEach((key) => {
+      matchConditions.push({ [key]: columnFilterConditions[key] });
+    });
+  }
+
+  // Add column filter $expr conditions
+  if (columnFilterExpr.length > 0) {
+    if (columnFilterExpr.length === 1) {
+      matchConditions.push({ $expr: columnFilterExpr[0] });
     } else {
-      query = { ...query, ...searchQuery };
+      matchConditions.push({ $expr: { $and: columnFilterExpr } });
+    }
+  }
+
+  // Add $match stage if we have conditions
+  if (matchConditions.length > 0) {
+    if (matchConditions.length === 1) {
+      pipeline.push({ $match: matchConditions[0] });
+    } else {
+      pipeline.push({ $match: { $and: matchConditions } });
+    }
+  }
+
+  // Step 6: Count total documents (before pagination)
+  const countPipeline = [...pipeline, { $count: "total" }];
+
+  // Step 7: Sort
+  const sortField = sortBy === "createdAt" ? "createdAt" : sortBy;
+  pipeline.push({ $sort: { [sortField]: sortOrder === "desc" ? -1 : 1 } });
+
+  // Step 8: Pagination
+  pipeline.push({ $skip: skip }, { $limit: limit });
+
+  // Step 9: Reshape result to match original structure
+  pipeline.push({
+    $addFields: {
+      lead: "$leadData",
+    },
+  });
+
+  pipeline.push({
+    $project: {
+      leadData: 0,
+    },
+  });
+
+  // Execute both pipelines
+  const [results, countResult] = await Promise.all([
+    SalesOrders.aggregate(pipeline),
+    SalesOrders.aggregate(countPipeline),
+  ]);
+
+  const total = countResult[0]?.total || 0;
+
+  return {
+    data: results,
+    pagination: {
+      page,
+      limit,
+      totalItems: total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+export const getAllSalesOrders = async ({
+  page = 1,
+  limit = 10,
+  sortBy = "createdAt",
+  sortOrder = "desc",
+  search = "",
+  startDate = null,
+  endDate = null,
+  ...columnFilters
+}) => {
+  const skip = (page - 1) * limit;
+
+  // Lead fields that require $lookup aggregation
+  const leadFields = ["fName", "lName", "cName", "email", "phone", "usageType"];
+
+  // Check if any lead field is being filtered
+  const hasLeadFieldFilter = Object.keys(columnFilters).some(
+    (key) => leadFields.includes(key) && columnFilters[key]
+  );
+
+  // If global search OR lead field filtering is requested, use aggregation with $lookup
+  if ((search && search.trim()) || hasLeadFieldFilter) {
+    return await getAllSalesOrdersWithAggregation({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      search: search ? search.trim() : "",
+      startDate,
+      endDate,
+      columnFilters,
+    });
+  }
+
+  // Otherwise, use regular query for column filters only (faster for non-lead fields)
+  let query = {};
+  const exprConditions = []; // Collect $expr conditions for numeric/date field regex searches
+
+  // Handle column-specific filters
+  const allowedColumnFilters = [
+    "salesOrderNo",
+    "customerNo",
+    "leadNo",
+    "customerName",
+    "customerEmail",
+    "customerPhone",
+    "eventLocation",
+    "deliveryDate",
+    "pickupDate",
+    "emailStatus",
+    "contactPersonName",
+    "contactPersonPhone",
+    "instructions",
+    "note",
+    "createdAt",
+    "status",
+    "paymentStatus",
+  ];
+
+  Object.keys(columnFilters).forEach((key) => {
+    if (allowedColumnFilters.includes(key) && columnFilters[key]) {
+      const filterValue = String(columnFilters[key]).trim();
+      if (filterValue) {
+        // For date fields, try to parse with multiple formats
+        if (
+          key === "createdAt" ||
+          key === "deliveryDate" ||
+          key === "pickupDate"
+        ) {
+          try {
+            // Only use exact date matching if the input includes a year (4 digits)
+            const hasYear = /\d{4}/.test(filterValue);
+
+            let parsedDate = null;
+            if (hasYear) {
+              const dateFormats = [
+                "MMMM D, YYYY",
+                "MMMM D YYYY",
+                "MMM D, YYYY",
+                "MMM D YYYY",
+                "MM/DD/YYYY",
+                "MM-DD-YYYY",
+                "YYYY-MM-DD",
+                "M/D/YYYY",
+                "M-D-YYYY",
+                "D MMMM YYYY",
+                "D MMM YYYY",
+              ];
+
+              for (const format of dateFormats) {
+                const testDate = dayjs(filterValue, format, true);
+                if (testDate.isValid()) {
+                  parsedDate = testDate;
+                  break;
+                }
+              }
+
+              if (!parsedDate || !parsedDate.isValid()) {
+                const standardDate = new Date(filterValue);
+                if (!isNaN(standardDate.getTime())) {
+                  parsedDate = dayjs(standardDate);
+                }
+              }
+            }
+
+            if (parsedDate && parsedDate.isValid() && hasYear) {
+              const startOfDay = parsedDate.startOf("day").toDate();
+              const endOfDay = parsedDate.endOf("day").toDate();
+              query[key] = { $gte: startOfDay, $lte: endOfDay };
+            } else {
+              // For createdAt (Date field), use $expr with $dateToString for partial matching
+              // For deliveryDate/pickupDate (String fields), use regex
+              if (key === "createdAt") {
+                // Use $expr to convert Date to formatted string for partial matching
+                const escapedValue = filterValue.replace(
+                  /[.*+?^${}()|[\]\\]/g,
+                  "\\$&"
+                );
+                exprConditions.push({
+                  $regexMatch: {
+                    input: {
+                      $dateToString: {
+                        format: "%B %d, %Y, %H:%M",
+                        date: `$${key}`,
+                      },
+                    },
+                    regex: escapedValue,
+                    options: "i",
+                  },
+                });
+              } else {
+                // Fallback to regex search for String date fields (deliveryDate, pickupDate)
+                const escapedValue = filterValue.replace(
+                  /[.*+?^${}()|[\]\\]/g,
+                  "\\$&"
+                );
+                query[key] = { $regex: escapedValue, $options: "i" };
+              }
+            }
+          } catch (e) {
+            // For createdAt (Date field), use $expr with $dateToString for partial matching
+            // For deliveryDate/pickupDate (String fields), use regex
+            if (key === "createdAt") {
+              // Use $expr to convert Date to formatted string for partial matching
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              exprConditions.push({
+                $regexMatch: {
+                  input: {
+                    $dateToString: {
+                      format: "%B %d, %Y, %H:%M",
+                      date: `$${key}`,
+                    },
+                  },
+                  regex: escapedValue,
+                  options: "i",
+                },
+              });
+            } else {
+              // Fallback to regex search for String date fields (deliveryDate, pickupDate)
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              query[key] = { $regex: escapedValue, $options: "i" };
+            }
+          }
+        } else if (
+          key === "salesOrderNo" ||
+          key === "customerNo" ||
+          key === "leadNo"
+        ) {
+          const numericValue = Number.isFinite(Number(filterValue))
+            ? Number(filterValue)
+            : null;
+          if (numericValue !== null) {
+            query[key] = numericValue;
+          } else {
+            const escapedValue = filterValue.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            exprConditions.push({
+              $regexMatch: {
+                input: { $toString: `$${key}` },
+                regex: escapedValue,
+                options: "i",
+              },
+            });
+          }
+        } else {
+          // For all other text fields, use regex search (supports partial matching)
+          const escapedValue = filterValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          query[key] = { $regex: escapedValue, $options: "i" };
+        }
+      }
+    }
+  });
+
+  // Combine $expr conditions if any exist
+  if (exprConditions.length > 0) {
+    if (exprConditions.length === 1) {
+      query.$expr = exprConditions[0];
+    } else {
+      query.$expr = { $and: exprConditions };
+    }
+  }
+
+  // Add date range filter
+  if (startDate || endDate) {
+    query.createdAt = {};
+    if (startDate) {
+      query.createdAt.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      query.createdAt.$lte = new Date(endDate);
     }
   }
 
@@ -283,6 +799,40 @@ export const getSalesOrderById = async (id) => {
     const error = new Error("Sales Order not found");
     error.name = "NotFoundError";
     throw error;
+  }
+
+  // Recalculate payment totals if there's a discrepancy (e.g., orderTotal > 0 but balanceDue = 0 for unpaid orders)
+  // This fixes existing sales orders that may have incorrect balanceDue values
+  const salesOrderObj = salesOrder.toObject
+    ? salesOrder.toObject()
+    : salesOrder;
+  const { calculateOrderTotal } = await import(
+    "../../payments/services/stripeService.js"
+  );
+  const calculatedOrderTotal = calculateOrderTotal(
+    salesOrderObj.products || []
+  );
+
+  // Check if recalculation is needed: orderTotal doesn't match calculated total, or balanceDue is 0 when it shouldn't be
+  const needsRecalculation =
+    salesOrderObj.orderTotal !== calculatedOrderTotal ||
+    (calculatedOrderTotal > 0 &&
+      salesOrderObj.paidAmount === 0 &&
+      salesOrderObj.balanceDue === 0);
+
+  if (needsRecalculation) {
+    try {
+      await updateSalesOrderPaymentTotals(id);
+      // Fetch again to get updated values
+      const updatedSalesOrder = await salesOrdersRepository.findById(id);
+      return formatSalesOrderResponse(
+        updatedSalesOrder || salesOrder,
+        (updatedSalesOrder || salesOrder).lead
+      );
+    } catch (error) {
+      // If recalculation fails, return original sales order
+      console.error("Error recalculating payment totals on fetch:", error);
+    }
   }
 
   return formatSalesOrderResponse(salesOrder, salesOrder.lead);
@@ -360,6 +910,19 @@ export const updateSalesOrder = async (id, updateData) => {
     const error = new Error("Sales Order not found");
     error.name = "NotFoundError";
     throw error;
+  }
+
+  // If products were updated, recalculate payment totals (orderTotal, balanceDue, etc.)
+  if (updateData.products !== undefined) {
+    try {
+      await updateSalesOrderPaymentTotals(id);
+    } catch (error) {
+      // Log but don't fail the update
+      console.error(
+        "Error updating payment totals on SalesOrder update:",
+        error
+      );
+    }
   }
 
   const updatedSalesOrder = await salesOrdersRepository.findById(id);

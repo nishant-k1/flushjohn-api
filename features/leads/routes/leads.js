@@ -100,7 +100,23 @@ router.get(
       const limit = parseInt(req.query.limit) || 10;
       const sortBy = req.query.sortBy || "createdAt";
       const sortOrder = req.query.sortOrder || "desc";
-      const { status, assignedTo, leadSource, search } = req.query;
+      const { 
+        status, 
+        assignedTo, 
+        leadSource, 
+        search,
+        createdAtStart,
+        createdAtEnd,
+        deliveryDateStart,
+        deliveryDateEnd,
+        pickupDateStart,
+        pickupDateEnd,
+        page: _page,
+        limit: _limit,
+        sortBy: _sortBy,
+        sortOrder: _sortOrder,
+        ...columnFilters
+      } = req.query;
 
       const validationErrors = leadsService.validatePaginationParams(
         page,
@@ -123,6 +139,13 @@ router.get(
         assignedTo,
         leadSource,
         search,
+        createdAtStart,
+        createdAtEnd,
+        deliveryDateStart,
+        deliveryDateEnd,
+        pickupDateStart,
+        pickupDateEnd,
+        ...columnFilters,
       });
 
       res.status(200).json({

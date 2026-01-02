@@ -3,7 +3,7 @@
  */
 
 import * as customersRepository from "../repositories/customersRepository.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, dayjs } from "../../../lib/dayjs/index.js";
 
 export const generateCustomerNumber = async () => {
   const latestCustomer = await customersRepository.findOne({}, "customerNo");
@@ -30,10 +30,184 @@ export const getAllCustomers = async ({
   sortBy = "createdAt",
   sortOrder = "desc",
   search = "",
+  ...columnFilters
 }) => {
   const skip = (page - 1) * limit;
 
   let query = {};
+
+  // Handle column-specific filters (fName, lName, email, phone, zip, city, state, etc.)
+  const allowedColumnFilters = [
+    "fName",
+    "lName",
+    "email",
+    "phone",
+    "fax",
+    "zip",
+    "city",
+    "state",
+    "country",
+    "customerNo",
+    "cName",
+    "streetAddress",
+    "usageType",
+    "instructions",
+    "createdAt",
+    "deliveryDate",
+    "pickupDate",
+  ];
+
+  const exprConditions = []; // Collect $expr conditions for numeric/date field regex searches
+
+  Object.keys(columnFilters).forEach((key) => {
+    if (allowedColumnFilters.includes(key) && columnFilters[key]) {
+      const filterValue = String(columnFilters[key]).trim();
+      if (filterValue) {
+        // For date fields, try to parse with multiple formats
+        if (
+          key === "createdAt" ||
+          key === "deliveryDate" ||
+          key === "pickupDate"
+        ) {
+          try {
+            // Only use exact date matching if the input includes a year (4 digits)
+            const hasYear = /\d{4}/.test(filterValue);
+            
+            let parsedDate = null;
+            if (hasYear) {
+              const dateFormats = [
+                "MMMM D, YYYY",
+                "MMMM D YYYY",
+                "MMM D, YYYY",
+                "MMM D YYYY",
+                "MM/DD/YYYY",
+                "MM-DD-YYYY",
+                "YYYY-MM-DD",
+                "M/D/YYYY",
+                "M-D-YYYY",
+                "D MMMM YYYY",
+                "D MMM YYYY",
+              ];
+
+              for (const format of dateFormats) {
+                const testDate = dayjs(filterValue, format, true);
+                if (testDate.isValid()) {
+                  parsedDate = testDate;
+                  break;
+                }
+              }
+
+              if (!parsedDate || !parsedDate.isValid()) {
+                const standardDate = new Date(filterValue);
+                if (!isNaN(standardDate.getTime())) {
+                  parsedDate = dayjs(standardDate);
+                }
+              }
+            }
+
+            if (parsedDate && parsedDate.isValid() && hasYear) {
+              const startOfDay = parsedDate.startOf("day").toDate();
+              const endOfDay = parsedDate.endOf("day").toDate();
+              query[key] = { $gte: startOfDay, $lte: endOfDay };
+            } else {
+              // For createdAt (Date field), use $expr to convert to string for partial matching
+              // For deliveryDate/pickupDate (String fields), we can use regex
+              if (key === "createdAt") {
+                const escapedValue = filterValue.replace(
+                  /[.*+?^${}()|[\]\\]/g,
+                  "\\$&"
+                );
+                exprConditions.push({
+                  $regexMatch: {
+                    input: {
+                      $dateToString: {
+                        format: "%B %d, %Y, %H:%M",
+                        date: `$${key}`,
+                        
+                      },
+                    },
+                    regex: escapedValue,
+                    options: "i",
+                  },
+                });
+              } else {
+                // Fallback to regex search for String date fields (deliveryDate, pickupDate)
+                const escapedValue = filterValue.replace(
+                  /[.*+?^${}()|[\]\\]/g,
+                  "\\$&"
+                );
+                query[key] = { $regex: escapedValue, $options: "i" };
+              }
+            }
+          } catch (e) {
+            // For createdAt (Date field), use $expr to convert to string for partial matching
+            // For deliveryDate/pickupDate (String fields), we can use regex
+            if (key === "createdAt") {
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              exprConditions.push({
+                $regexMatch: {
+                  input: {
+                    $dateToString: {
+                      format: "%B %d, %Y, %H:%M",
+                      date: `$${key}`,
+                      
+                    },
+                  },
+                  regex: escapedValue,
+                  options: "i",
+                },
+              });
+            } else {
+              // Fallback to regex search for String date fields (deliveryDate, pickupDate)
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              query[key] = { $regex: escapedValue, $options: "i" };
+            }
+          }
+        } else if (key === "customerNo") {
+          const numericValue = Number.isFinite(Number(filterValue))
+            ? Number(filterValue)
+            : null;
+          if (numericValue !== null) {
+            query[key] = numericValue;
+          } else {
+            const escapedValue = filterValue.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            exprConditions.push({
+              $regexMatch: {
+                input: { $toString: `$${key}` },
+                regex: escapedValue,
+                options: "i",
+              },
+            });
+          }
+        } else {
+          // For all other text fields, use regex search (supports partial matching)
+          const escapedValue = filterValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          query[key] = { $regex: escapedValue, $options: "i" };
+        }
+      }
+    }
+  });
+
+  // Combine $expr conditions if any exist
+  if (exprConditions.length > 0) {
+    if (exprConditions.length === 1) {
+      query.$expr = exprConditions[0];
+    } else {
+      query.$expr = { $and: exprConditions };
+    }
+  }
   if (search) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const searchConditions = [
@@ -52,32 +226,33 @@ export const getAllCustomers = async ({
       { pickupDate: { $regex: escapedSearch, $options: "i" } },
       { usageType: { $regex: escapedSearch, $options: "i" } },
       { instructions: { $regex: escapedSearch, $options: "i" } },
-    ];
-
-    // Search customerNo if search term is numeric
-    const numericSearch = Number.isFinite(Number(search)) ? Number(search) : null;
-    if (numericSearch !== null) {
-      searchConditions.push({ customerNo: numericSearch });
-    }
-
-    // Try to parse as date and search createdAt
-    try {
-      const searchDate = new Date(search);
-      if (!isNaN(searchDate.getTime())) {
-        const startOfDay = new Date(searchDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(searchDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        searchConditions.push({
-          createdAt: {
-            $gte: startOfDay,
-            $lte: endOfDay,
+      // For numeric fields, use $expr with $toString for regex matching
+      {
+        $expr: {
+          $regexMatch: {
+            input: { $toString: "$customerNo" },
+            regex: escapedSearch,
+            options: "i",
           },
-        });
-      }
-    } catch (e) {
-      // Ignore date parsing errors
-    }
+        },
+      },
+      // For Date fields, convert to formatted string for partial matching
+      {
+        $expr: {
+          $regexMatch: {
+            input: {
+              $dateToString: {
+                format: "%B %d, %Y, %H:%M",
+                date: "$createdAt",
+                
+              },
+            },
+            regex: escapedSearch,
+            options: "i",
+          },
+        },
+      },
+    ];
 
     query.$or = searchConditions;
   }

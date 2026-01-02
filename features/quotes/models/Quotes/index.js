@@ -69,8 +69,7 @@ const QuotesSchema = new mongoose.Schema({
 
 // Add indexes for faster queries
 QuotesSchema.index({ createdAt: -1 }); // Sort by date
-// ⚠️ REMOVED: QuotesSchema.index({ email: 1 }); // Email field removed
-QuotesSchema.index({ lead: 1 }); // Find by lead reference
+// lead: index: true and customer: index: true already create indexes automatically
 QuotesSchema.index({ emailStatus: 1 }); // Filter by status
 QuotesSchema.index({ createdAt: -1, emailStatus: 1 }); // Compound index
 

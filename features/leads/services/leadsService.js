@@ -143,13 +143,161 @@ export const getAllLeads = async ({
   assignedTo,
   leadSource,
   search,
+  ...columnFilters
 }) => {
   const query = {};
+  const exprConditions = [];
+  const dayjs = (await import("../../../lib/dayjs/index.js")).dayjs;
 
+  // Legacy filters
   if (status) query.leadStatus = status;
   if (assignedTo) query.assignedTo = assignedTo;
   if (leadSource) query.leadSource = leadSource;
 
+  // Handle column-specific filters (all fields are in the leads collection)
+  const allowedColumnFilters = [
+    "leadNo",
+    "fName",
+    "lName",
+    "cName",
+    "email",
+    "phone",
+    "fax",
+    "contactPersonName",
+    "contactPersonPhone",
+    "streetAddress",
+    "city",
+    "state",
+    "zip",
+    "country",
+    "deliveryDate",
+    "pickupDate",
+    "usageType",
+    "leadStatus",
+    "leadSource",
+    "assignedTo",
+    "instructions",
+    "createdAt",
+  ];
+
+  Object.keys(columnFilters).forEach((key) => {
+    if (allowedColumnFilters.includes(key) && columnFilters[key]) {
+      const filterValue = String(columnFilters[key]).trim();
+      if (filterValue) {
+        // For date fields
+        if (
+          key === "createdAt" ||
+          key === "deliveryDate" ||
+          key === "pickupDate"
+        ) {
+          const hasYear = /\d{4}/.test(filterValue);
+          let parsedDate = null;
+
+          if (hasYear) {
+            const dateFormats = [
+              "MMMM D, YYYY",
+              "MMMM D YYYY",
+              "MMM D, YYYY",
+              "MMM D YYYY",
+              "MM/DD/YYYY",
+              "MM-DD-YYYY",
+              "YYYY-MM-DD",
+              "M/D/YYYY",
+              "M-D-YYYY",
+              "D MMMM YYYY",
+              "D MMM YYYY",
+            ];
+
+            for (const format of dateFormats) {
+              const testDate = dayjs(filterValue, format, true);
+              if (testDate.isValid()) {
+                parsedDate = testDate;
+                break;
+              }
+            }
+
+            if (!parsedDate || !parsedDate.isValid()) {
+              const standardDate = new Date(filterValue);
+              if (!isNaN(standardDate.getTime())) {
+                parsedDate = dayjs(standardDate);
+              }
+            }
+          }
+
+          if (parsedDate && parsedDate.isValid() && hasYear) {
+            const startOfDay = parsedDate.startOf("day").toDate();
+            const endOfDay = parsedDate.endOf("day").toDate();
+            query[key] = { $gte: startOfDay, $lte: endOfDay };
+          } else {
+            if (key === "createdAt") {
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              exprConditions.push({
+                $regexMatch: {
+                  input: {
+                    $dateToString: {
+                      format: "%B %d, %Y, %H:%M",
+                      date: `$${key}`,
+                    },
+                  },
+                  regex: escapedValue,
+                  options: "i",
+                },
+              });
+            } else {
+              const escapedValue = filterValue.replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+              );
+              query[key] = { $regex: escapedValue, $options: "i" };
+            }
+          }
+        } else if (key === "leadNo") {
+          const numericValue =
+            Number.isFinite(Number(filterValue)) &&
+            !isNaN(Number(filterValue)) &&
+            String(Number(filterValue)) === filterValue.trim()
+              ? Number(filterValue)
+              : null;
+
+          if (numericValue !== null) {
+            query[key] = numericValue;
+          } else {
+            const escapedValue = filterValue.replace(
+              /[.*+?^${}()|[\]\\]/g,
+              "\\$&"
+            );
+            exprConditions.push({
+              $regexMatch: {
+                input: { $toString: `$${key}` },
+                regex: escapedValue,
+                options: "i",
+              },
+            });
+          }
+        } else {
+          const escapedValue = filterValue.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+          );
+          query[key] = { $regex: escapedValue, $options: "i" };
+        }
+      }
+    }
+  });
+
+  // Combine $expr conditions if any exist
+  if (exprConditions.length > 0) {
+    if (exprConditions.length === 1) {
+      query.$expr = exprConditions[0];
+    } else {
+      query.$expr = { $and: exprConditions };
+    }
+  }
+
+  // Handle global search
   if (search) {
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const searchConditions = [
@@ -175,33 +323,56 @@ export const getAllLeads = async ({
       { instructions: { $regex: escapedSearch, $options: "i" } },
     ];
 
-    // Search leadNo if search term is numeric
-    const numericSearch = Number.isFinite(Number(search)) ? Number(search) : null;
-    if (numericSearch !== null) {
-      searchConditions.push({ leadNo: numericSearch });
-    }
+    // Search leadNo using $expr for partial numeric matching
+    searchConditions.push({
+      $expr: {
+        $regexMatch: {
+          input: { $toString: "$leadNo" },
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    });
 
-    // Try to parse as date and search createdAt
-    try {
-      const searchDate = new Date(search);
-      if (!isNaN(searchDate.getTime())) {
-        // Search for dates within the same day
-        const startOfDay = new Date(searchDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(searchDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        searchConditions.push({
-          createdAt: {
-            $gte: startOfDay,
-            $lte: endOfDay,
+    // Search createdAt date field with partial matching
+    searchConditions.push({
+      $expr: {
+        $regexMatch: {
+          input: {
+            $dateToString: {
+              format: "%B %d, %Y, %H:%M",
+              date: "$createdAt",
+            },
           },
-        });
-      }
-    } catch (e) {
-      // Ignore date parsing errors
-    }
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    });
 
-    query.$or = searchConditions;
+    // Combine search with existing filters
+    const hasOtherFilters = Object.keys(query).some(
+      (key) => key !== "$or" && key !== "$and" && key !== "$expr"
+    );
+    const hasExpr = query.$expr;
+
+    if (hasOtherFilters || hasExpr) {
+      const andConditions = [{ $or: searchConditions }];
+
+      Object.keys(query).forEach((key) => {
+        if (key !== "$or" && key !== "$and" && key !== "$expr") {
+          andConditions.push({ [key]: query[key] });
+        }
+      });
+
+      if (hasExpr) {
+        andConditions.push({ $expr: query.$expr });
+      }
+
+      query = { $and: andConditions };
+    } else {
+      query = { $or: searchConditions };
+    }
   }
 
   const validSortFields = [

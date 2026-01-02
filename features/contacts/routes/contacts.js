@@ -32,7 +32,15 @@ router.get(
       const limit = parseInt(req.query.limit) || 10;
       const sortBy = req.query.sortBy || "createdAt";
       const sortOrder = req.query.sortOrder || "desc";
-      const { status, search } = req.query;
+      const { 
+        status, 
+        search,
+        page: _page,
+        limit: _limit,
+        sortBy: _sortBy,
+        sortOrder: _sortOrder,
+        ...columnFilters
+      } = req.query;
 
       const validationErrors = contactsService.validatePaginationParams(
         page,
@@ -53,6 +61,7 @@ router.get(
         sortOrder,
         status,
         search,
+        ...columnFilters,
       });
 
       res.status(200).json({

@@ -190,6 +190,195 @@ export const createJobOrder = async (jobOrderData) => {
   return createdJobOrder;
 };
 
+/**
+ * Get all job orders using aggregation pipeline with $lookup for lead data
+ * This enables searching by lead fields (fName, lName, cName, email, phone, usageType)
+ */
+const getAllJobOrdersWithAggregation = async ({
+  page,
+  limit,
+  sortBy,
+  sortOrder,
+  search,
+  startDate,
+  endDate,
+}) => {
+  const skip = (page - 1) * limit;
+  const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Import JobOrders model
+  const JobOrders = (await import("../models/JobOrders/index.js")).default;
+
+  // Build aggregation pipeline
+  const pipeline = [];
+
+  // Step 1: JOIN leads collection FIRST
+  pipeline.push({
+    $lookup: {
+      from: "leads",
+      localField: "lead",
+      foreignField: "_id",
+      as: "leadData",
+    },
+  });
+
+  // Step 2: Flatten leadData array
+  pipeline.push({
+    $unwind: {
+      path: "$leadData",
+      preserveNullAndEmptyArrays: true,
+    },
+  });
+
+  // Step 3: Build match conditions for global search
+  const searchConditions = [];
+
+  // Search in job order fields
+  searchConditions.push(
+    { jobLocation: { $regex: escapedSearch, $options: "i" } },
+    { deliveryDate: { $regex: escapedSearch, $options: "i" } },
+    { pickupDate: { $regex: escapedSearch, $options: "i" } },
+    { emailStatus: { $regex: escapedSearch, $options: "i" } },
+    { vendorAcceptanceStatus: { $regex: escapedSearch, $options: "i" } },
+    { contactPersonName: { $regex: escapedSearch, $options: "i" } },
+    { contactPersonPhone: { $regex: escapedSearch, $options: "i" } },
+    { instructions: { $regex: escapedSearch, $options: "i" } },
+    { note: { $regex: escapedSearch, $options: "i" } },
+    { status: { $regex: escapedSearch, $options: "i" } },
+    { "vendor.name": { $regex: escapedSearch, $options: "i" } }
+  );
+
+  // ✅ Search in lead fields (NOW AVAILABLE via $lookup!)
+  searchConditions.push(
+    { "leadData.fName": { $regex: escapedSearch, $options: "i" } },
+    { "leadData.lName": { $regex: escapedSearch, $options: "i" } },
+    { "leadData.cName": { $regex: escapedSearch, $options: "i" } },
+    { "leadData.email": { $regex: escapedSearch, $options: "i" } },
+    { "leadData.phone": { $regex: escapedSearch, $options: "i" } },
+    { "leadData.usageType": { $regex: escapedSearch, $options: "i" } }
+  );
+
+  // Search numeric fields using $expr
+  searchConditions.push(
+    {
+      $expr: {
+        $regexMatch: {
+          input: { $toString: "$jobOrderNo" },
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    },
+    {
+      $expr: {
+        $regexMatch: {
+          input: { $toString: "$customerNo" },
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    },
+    {
+      $expr: {
+        $regexMatch: {
+          input: { $toString: "$salesOrderNo" },
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    }
+  );
+
+  // Search createdAt date field
+  searchConditions.push({
+    $expr: {
+      $regexMatch: {
+        input: {
+          $dateToString: {
+            format: "%B %d, %Y, %H:%M",
+            date: "$createdAt",
+          },
+        },
+        regex: escapedSearch,
+        options: "i",
+      },
+    },
+  });
+
+  // Step 4: Combine search and date filters
+  const matchConditions = [];
+
+  // Add global search conditions
+  if (searchConditions.length > 0) {
+    matchConditions.push({ $or: searchConditions });
+  }
+
+  // Add date range filter
+  if (startDate || endDate) {
+    const dateFilter = {};
+    if (startDate) {
+      dateFilter.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      dateFilter.$lte = new Date(endDate);
+    }
+    matchConditions.push({ createdAt: dateFilter });
+  }
+
+  // Add $match stage if we have conditions
+  if (matchConditions.length > 0) {
+    if (matchConditions.length === 1) {
+      pipeline.push({ $match: matchConditions[0] });
+    } else {
+      pipeline.push({ $match: { $and: matchConditions } });
+    }
+  }
+
+  // Step 5: Count total documents (before pagination)
+  const countPipeline = [...pipeline, { $count: "total" }];
+
+  // Step 6: Sort
+  const sortField = sortBy === "createdAt" ? "createdAt" : sortBy;
+  pipeline.push({ $sort: { [sortField]: sortOrder === "desc" ? -1 : 1 } });
+
+  // Step 7: Pagination
+  pipeline.push({ $skip: skip }, { $limit: limit });
+
+  // Step 8: Reshape result to match original structure
+  pipeline.push({
+    $addFields: {
+      lead: "$leadData",
+    },
+  });
+
+  pipeline.push({
+    $project: {
+      leadData: 0,
+    },
+  });
+
+  // Execute both pipelines
+  const [results, countResult] = await Promise.all([
+    JobOrders.aggregate(pipeline),
+    JobOrders.aggregate(countPipeline),
+  ]);
+
+  const total = countResult[0]?.total || 0;
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data: results,
+    pagination: {
+      currentPage: page,
+      totalPages,
+      totalItems: total,
+      itemsPerPage: limit,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+    },
+  };
+};
+
 export const getAllJobOrders = async ({
   page = 1,
   limit = 10,
@@ -198,9 +387,32 @@ export const getAllJobOrders = async ({
   search = "",
   startDate = null,
   endDate = null,
+  ...columnFilters
 }) => {
   const skip = (page - 1) * limit;
 
+  // Lead fields that require $lookup aggregation
+  const leadFields = ["fName", "lName", "cName", "email", "phone", "usageType"];
+  
+  // Check if any lead field is being filtered
+  const hasLeadFieldFilter = Object.keys(columnFilters).some(key => 
+    leadFields.includes(key) && columnFilters[key]
+  );
+
+  // If global search OR lead field filtering is requested, use aggregation with $lookup
+  if ((search && search.trim()) || hasLeadFieldFilter) {
+    return await getAllJobOrdersWithAggregation({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      search: search ? search.trim() : "",
+      startDate,
+      endDate,
+    });
+  }
+
+  // Otherwise, use regular query (faster for non-lead fields)
   let query = {};
   
   // Add date range filter
@@ -211,71 +423,6 @@ export const getAllJobOrders = async ({
     }
     if (endDate) {
       query.createdAt.$lte = new Date(endDate);
-    }
-  }
-  
-  if (search) {
-    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const searchConditions = [
-      { jobOrderNo: { $regex: escapedSearch, $options: "i" } },
-      { customerNo: { $regex: escapedSearch, $options: "i" } },
-      { salesOrderNo: { $regex: escapedSearch, $options: "i" } },
-      { "vendor.name": { $regex: escapedSearch, $options: "i" } },
-      { "lead.fName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.lName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.cName": { $regex: escapedSearch, $options: "i" } },
-      { "lead.email": { $regex: escapedSearch, $options: "i" } },
-      { "lead.phone": { $regex: escapedSearch, $options: "i" } },
-      { "lead.usageType": { $regex: escapedSearch, $options: "i" } },
-      { jobLocation: { $regex: escapedSearch, $options: "i" } },
-      { deliveryDate: { $regex: escapedSearch, $options: "i" } },
-      { pickupDate: { $regex: escapedSearch, $options: "i" } },
-      { emailStatus: { $regex: escapedSearch, $options: "i" } },
-      { vendorAcceptanceStatus: { $regex: escapedSearch, $options: "i" } },
-      { contactPersonName: { $regex: escapedSearch, $options: "i" } },
-      { contactPersonPhone: { $regex: escapedSearch, $options: "i" } },
-      { instructions: { $regex: escapedSearch, $options: "i" } },
-      { note: { $regex: escapedSearch, $options: "i" } },
-    ];
-
-    // Search numeric fields if search term is numeric
-    const numericSearch = Number.isFinite(Number(search)) ? Number(search) : null;
-    if (numericSearch !== null) {
-      searchConditions.push(
-        { jobOrderNo: numericSearch },
-        { customerNo: numericSearch },
-        { salesOrderNo: numericSearch }
-      );
-    }
-
-    // Try to parse as date and search createdAt
-    try {
-      const searchDate = new Date(search);
-      if (!isNaN(searchDate.getTime())) {
-        const startOfDay = new Date(searchDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(searchDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        searchConditions.push({
-          createdAt: {
-            $gte: startOfDay,
-            $lte: endOfDay,
-          },
-        });
-      }
-    } catch (e) {
-      // Ignore date parsing errors
-    }
-
-    const searchQuery = {
-      $or: searchConditions,
-    };
-    
-    // Combine date filter with search query
-    if (Object.keys(query).length > 0 && Object.keys(query).includes('createdAt')) {
-      query = { $and: [query, searchQuery] };
-    } else {
-      query = { ...query, ...searchQuery };
     }
   }
 

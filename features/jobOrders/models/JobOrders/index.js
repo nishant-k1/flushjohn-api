@@ -146,10 +146,7 @@ const JobOrdersSchema = new mongoose.Schema({
 
 // Add indexes for faster queries
 JobOrdersSchema.index({ createdAt: -1 }); // Sort by date
-// ⚠️ REMOVED: JobOrdersSchema.index({ email: 1 }); // Email field removed
-JobOrdersSchema.index({ salesOrder: 1 }); // Find by sales order reference
-JobOrdersSchema.index({ lead: 1 }); // Find by lead reference
-JobOrdersSchema.index({ customer: 1 }); // Find by customer reference
+// salesOrder, lead, customer: index: true already creates indexes automatically
 JobOrdersSchema.index({ emailStatus: 1 }); // Filter by email status
 JobOrdersSchema.index({ vendorAcceptanceStatus: 1 }); // Filter by vendor status
 JobOrdersSchema.index({ jobOrderNo: 1 }); // Find by job order number

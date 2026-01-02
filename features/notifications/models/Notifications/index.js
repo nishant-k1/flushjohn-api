@@ -50,7 +50,7 @@ const notificationSchema = new mongoose.Schema(
 // Indexes for efficient querying
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, read: 1, createdAt: -1 });
-notificationSchema.index({ leadId: 1 });
+// leadId: index: true already creates an index automatically
 notificationSchema.index({ createdAt: -1 }); // For cleanup jobs
 
 // Virtual for lead data (can be populated)
@@ -64,4 +64,3 @@ notificationSchema.virtual("lead", {
 const Notification = mongoose.model("Notification", notificationSchema);
 
 export default Notification;
-
