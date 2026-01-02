@@ -109,7 +109,8 @@ async function generateAllBlogContent() {
   const outputDir = path.join(process.cwd(), 'generated-blogs');
   try {
     await fs.mkdir(outputDir, { recursive: true });
-  } catch (error) {
+  } catch {
+    // Directory may already exist, ignore error
   }
 
   const results = [];
@@ -151,15 +152,12 @@ async function generateAllBlogContent() {
     JSON.stringify(summary, null, 2)
   );
 
-  
-  results.forEach(result => {
-  });
   return results;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   generateAllBlogContent()
-    .then(results => {
+    .then((_results) => {
       process.exit(0);
     })
     .catch(error => {

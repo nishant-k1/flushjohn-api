@@ -12,7 +12,7 @@ router.get("/", async (req, res) => {
       success: true,
       data: users,
     });
-  } catch (error) {
+  } catch {
 
     res.status(500).json({
       success: false,
@@ -39,7 +39,7 @@ router.get("/:userId", async (req, res) => {
       success: true,
       data: user,
     });
-  } catch (error) {
+  } catch {
 
     res.status(500).json({
       success: false,
@@ -70,7 +70,7 @@ router.put("/:userId", async (req, res) => {
       data: user,
       message: "User updated successfully",
     });
-  } catch (error) {
+  } catch {
 
     res.status(500).json({
       success: false,
@@ -117,11 +117,11 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
       data: user,
       message: "Profile updated successfully",
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({
       success: false,
       message: "Failed to update profile",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      error: process.env.NODE_ENV === "development" ? "Internal server error" : undefined,
     });
   }
 });
@@ -141,7 +141,7 @@ router.delete("/:userId", async (req, res) => {
       success: true,
       message: "User deleted successfully",
     });
-  } catch (error) {
+  } catch {
 
     res.status(500).json({
       success: false,
