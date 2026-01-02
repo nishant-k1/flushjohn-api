@@ -49,6 +49,7 @@ const leadsRouter = leadsFeature.routes;
 const blogsRouter = blogsFeature.routes.blogs;
 const vendorsRouter = vendorsFeature.routes;
 const dashboardRouter = commonFeature.routes.dashboard;
+// const phoneRouter = commonFeature.routes.phone; // Commented out - will be enabled in future
 const customersRouter = customersFeature.routes;
 const quotesRouter = quotesFeature.routes;
 const salesOrdersRouter = salesOrdersFeature.routes;
@@ -238,7 +239,10 @@ app.post("/leads", publicLimiter, async (req, res, next) => {
     // OPTIMIZATION: Emit only the new lead instead of fetching all leads
     if (global.leadsNamespace) {
       try {
-        const payload = { lead: lead.toObject ? lead.toObject() : lead, action: "add" };
+        const payload = {
+          lead: lead.toObject ? lead.toObject() : lead,
+          action: "add",
+        };
         global.leadsNamespace.emit("leadCreated", payload);
         console.log("📢 Emitted leadCreated event to socket clients");
       } catch (emitError) {
@@ -293,6 +297,7 @@ app.use("/quotes", authenticateToken, quotesRouter);
 app.use("/salesOrders", authenticateToken, salesOrdersRouter);
 app.use("/jobOrders", authenticateToken, jobOrdersRouter);
 app.use("/payments", authenticateToken, paymentsRouter);
+// app.use("/phone", phoneRouter); // Commented out - will be enabled in future
 app.use(
   "/blog-automation",
   authenticateToken,

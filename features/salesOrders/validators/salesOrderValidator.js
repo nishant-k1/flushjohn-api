@@ -41,8 +41,9 @@ export const validateCreateSalesOrder = [
     }),
 
   body("streetAddress")
-    .optional()
     .trim()
+    .notEmpty()
+    .withMessage("Street address is required")
     .isLength({ max: 200 })
     .withMessage("Street address is too long"),
 
@@ -82,6 +83,13 @@ export const validateUpdateSalesOrder = [
     .isEmail()
     .withMessage("Please provide a valid email address")
     .normalizeEmail(),
+
+  body("streetAddress")
+    .trim()
+    .notEmpty()
+    .withMessage("Street address is required")
+    .isLength({ max: 200 })
+    .withMessage("Street address is too long"),
 ];
 
 export const validateSalesOrderId = [
