@@ -7,6 +7,7 @@ import alertService from "./services/alertService.js";
 import * as emailService from "./services/emailService.js";
 import * as s3Service from "./services/s3Service.js";
 import dashboardRouter from "./routes/dashboard.js";
+import phoneRouter from "./routes/phone.js";
 
 export default {
   services: {
@@ -16,5 +17,6 @@ export default {
   },
   routes: {
     dashboard: dashboardRouter,
+    phone: phoneRouter,
   },
 };
