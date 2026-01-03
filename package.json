@@ -7,15 +7,17 @@
     "node": ">=20.x"
   },
   "scripts": {
-    "start": "node ./app.js",
-    "dev": "nodemon ./app.js",
-    "lint": "eslint . --ext .js",
-    "lint:fix": "eslint . --ext .js --fix",
+    "build": "tsc",
+    "start": "node ./dist/app.js",
+    "dev": "tsx watch app.ts",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "type-check": "tsc --noEmit",
     "postinstall": "npx playwright install chromium || echo 'Playwright install failed, PDF generation may not work'",
-    "generate-blogs": "node features/blogs/scripts/generateBlogPosts.js",
-    "generate-content": "node features/blogs/scripts/generateBlogContentFiles.js",
-    "publish-blogs": "node features/blogs/scripts/publishBlogPosts.js",
-    "add-indexes": "node scripts/addIndexes.js"
+    "generate-blogs": "tsx features/blogs/scripts/generateBlogPosts.ts",
+    "generate-content": "tsx features/blogs/scripts/generateBlogContentFiles.ts",
+    "publish-blogs": "tsx features/blogs/scripts/publishBlogPosts.ts",
+    "add-indexes": "tsx scripts/addIndexes.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.714.0",
@@ -52,7 +54,22 @@
     "stripe": "^17.5.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/compression": "^1.7.5",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/debug": "^4.1.12",
     "@types/express": "^5.0.0",
-    "eslint": "^9.18.0"
+    "@types/http-errors": "^2.0.4",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^22.10.2",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^6.4.16",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^9.18.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }

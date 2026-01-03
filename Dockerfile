@@ -19,15 +19,20 @@ RUN apt-get update && \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-# The postinstall script will run automatically and install Playwright browsers
-RUN npm ci --only=production
+# Install dependencies (including dev dependencies for TypeScript compilation)
+RUN npm ci
 
 # Copy application files
 COPY . .
 
+# Build TypeScript
+RUN npm run build
+
 # Create temp directory for PDFs with proper permissions
 RUN mkdir -p public/temp && chmod 755 public/temp
+
+# Remove dev dependencies after build
+RUN npm prune --production
 
 # Expose port
 EXPOSE 8080
