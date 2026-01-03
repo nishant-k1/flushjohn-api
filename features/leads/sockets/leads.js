@@ -1,6 +1,6 @@
-import Leads from "../models/Leads/index.js";
+import Leads from "../models/Leads.js";
 import alertService from "../../common/services/alertService.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 const productsData = (leadSource, products) => {
   if (!Array.isArray(products)) {

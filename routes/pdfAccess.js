@@ -4,7 +4,7 @@ import {
   authorizeRoles,
   checkDocumentAccess,
 } from "../features/auth/middleware/auth.js";
-import { getCurrentDateTime } from "../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../lib/dayjs.js";
 import { getPDFSignedUrl } from "../features/common/services/s3Service.js";
 
 const router = Router();

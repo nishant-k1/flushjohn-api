@@ -12,16 +12,29 @@ const __dirname = dirname(__filename);
 
 dotenv.config({ path: join(__dirname, "..", "..", ".env") });
 
-import { dbConnect, waitForConnection } from "../../../lib/dbConnect/index.js";
+import { dbConnect, waitForConnection } from "../../../lib/dbConnect.js";
 import * as blogsService from "./blogsService.js";
 import * as blogGeneratorService from "./blogGeneratorService.js";
 import { getNextTopic, getCurrentSeason } from "./contentCalendar.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization of OpenAI client
+let openai = null;
+
+const getOpenAIClient = () => {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error(
+        "OPENAI_API_KEY environment variable is required for blog generation"
+      );
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+};
 
 const defaultCoverImages = {
   events: [
@@ -64,7 +77,8 @@ export async function generateAutomatedBlogPost(
       keywordsObj = {
         primary: topic.keywords[0] || "",
         secondary: topic.keywords[1] || topic.keywords[0] || "",
-        longTail: topic.keywords[2] || topic.keywords[1] || topic.keywords[0] || "",
+        longTail:
+          topic.keywords[2] || topic.keywords[1] || topic.keywords[0] || "",
       };
     }
 
@@ -235,7 +249,7 @@ export async function runAutomatedBlogGeneration(
 async function generateAICoverImage(title, category, content) {
   try {
     // Generate search query using AI
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {

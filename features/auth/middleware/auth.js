@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User/index.js";
+import User from "../models/User.js";
 
 /**
  * JWT Authentication Middleware
@@ -14,11 +14,9 @@ export const authenticateToken = async (req, res, next) => {
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7);
-    }
-    else if (queryToken) {
+    } else if (queryToken) {
       token = queryToken;
-    }
-    else if (req.cookies && req.cookies.token) {
+    } else if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
     }
 

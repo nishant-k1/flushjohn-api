@@ -17,7 +17,7 @@ import {
   runAutomatedBlogGeneration,
   getAutomationStats,
 } from "./automatedBlogService.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 const CRON_CONFIG = {
   weeklyBlogGeneration: "0 9 * * 1",

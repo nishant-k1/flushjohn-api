@@ -4,7 +4,7 @@ import {
   authenticateToken,
   authorizeRoles,
 } from "../../auth/middleware/auth.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 const router = Router();
 

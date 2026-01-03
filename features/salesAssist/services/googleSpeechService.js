@@ -31,11 +31,15 @@ const initializeSpeechClient = () => {
       return new SpeechClient();
     }
 
-    // Option 3: Try default credentials (Google Cloud environment)
-    console.log(
-      "Attempting to initialize Google Speech client with default credentials..."
+    // Option 3: No credentials configured - skip initialization
+    console.warn(
+      "⚠️  Google Speech client NOT initialized - credentials not configured"
     );
-    return new SpeechClient();
+    console.warn("ℹ️  Speech recognition features will be unavailable");
+    console.warn(
+      "ℹ️  Set GOOGLE_CREDENTIALS_JSON (JSON string) or GOOGLE_APPLICATION_CREDENTIALS (file path) to enable"
+    );
+    return null;
   } catch (error) {
     console.warn(
       "Google Cloud Speech client initialization failed:",

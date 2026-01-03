@@ -1,4 +1,4 @@
-import Notes from "../models/Notes/index.js";
+import Notes from "../models/Notes.js";
 
 export const findByUserId = async (userId) => {
   try {

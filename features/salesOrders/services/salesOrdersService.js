@@ -1,7 +1,7 @@
 import * as salesOrdersRepository from "../repositories/salesOrdersRepository.js";
 import * as customersRepository from "../../customers/repositories/customersRepository.js";
 import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
-import { getCurrentDateTime, dayjs } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 import { updateSalesOrderPaymentTotals } from "../../payments/services/paymentsService.js";
 
 export const generateSalesOrderNumber = async () => {
@@ -193,7 +193,7 @@ const getAllSalesOrdersWithAggregation = async ({
   const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // Import SalesOrders model
-  const SalesOrders = (await import("../models/SalesOrders/index.js")).default;
+  const SalesOrders = (await import("../models/SalesOrders.js")).default;
 
   // Build aggregation pipeline
   const pipeline = [];
@@ -872,7 +872,7 @@ export const updateSalesOrder = async (id, updateData) => {
 
   // ✅ Update the associated Lead if it exists and there are lead fields to update
   if (leadId && Object.keys(leadFields).length > 0) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const Leads = (await import("../../leads/models/Leads.js")).default;
     await Leads.findByIdAndUpdate(
       leadId,
       { $set: leadFields },
@@ -950,7 +950,7 @@ export const cancelSalesOrder = async (id) => {
   }
 
   // Check if there are any payments that haven't been fully refunded
-  const Payments = (await import("../../payments/models/Payments/index.js"))
+  const Payments = (await import("../../payments/models/Payments.js"))
     .default;
 
   const payments = await Payments.find({
@@ -989,7 +989,7 @@ export const deleteSalesOrder = async (id) => {
     throw error;
   }
 
-  const JobOrder = (await import("../../jobOrders/models/JobOrders/index.js"))
+  const JobOrder = (await import("../../jobOrders/models/JobOrders.js"))
     .default;
 
   const jobOrdersCount = await JobOrder.countDocuments({
@@ -1048,7 +1048,7 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
     return;
   }
 
-  const Leads = (await import("../../leads/models/Leads/index.js")).default;
+  const Leads = (await import("../../leads/models/Leads.js")).default;
   const lead = await Leads.findById(salesOrder.lead);
 
   if (!lead) {
@@ -1069,7 +1069,7 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
     country: lead.country || "USA",
   };
 
-  const Customers = (await import("../../customers/models/Customers/index.js"))
+  const Customers = (await import("../../customers/models/Customers.js"))
     .default;
 
   let customer = await Customers.findOne({
@@ -1094,7 +1094,7 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
     });
 
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes/index.js"))
+      const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
       await Quotes.findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
@@ -1109,7 +1109,7 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
     });
 
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes/index.js"))
+      const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
       await Quotes.findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,

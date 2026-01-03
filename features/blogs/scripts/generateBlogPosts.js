@@ -11,11 +11,8 @@ import blogContentData, {
   defaultCoverImages,
 } from "../services/blogContentData.js";
 import * as blogsService from "../services/blogsService.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
-import {
-  dbConnect,
-  waitForConnection,
-} from "../../../lib/dbConnect/index.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
+import { dbConnect, waitForConnection } from "../../../lib/dbConnect.js";
 
 const config = {
   apiKey: process.env.OPENAI_API_KEY,
@@ -113,7 +110,6 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
 
     const createdBlog = await blogsService.createBlog(blogPostData);
 
-
     return {
       success: true,
       blogId: createdBlog._id,
@@ -135,7 +131,6 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
 }
 
 async function generateAllBlogPosts() {
-
   if (!config.apiKey) {
     console.error("❌ OPENAI_API_KEY environment variable is required");
     process.exit(1);
@@ -169,13 +164,11 @@ async function generateAllBlogPosts() {
     })),
   ];
 
-
   const results = [];
   const errors = [];
 
   for (let i = 0; i < allPosts.length; i += config.batchSize) {
     const batch = allPosts.slice(i, i + config.batchSize);
-
 
     const batchPromises = batch.map((post) =>
       generateSingleBlogPost(post, post.type)

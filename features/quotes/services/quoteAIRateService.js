@@ -5,9 +5,22 @@
 import OpenAI from "openai";
 import * as vendorPricingRepository from "../../salesAssist/repositories/vendorPricingRepository.js";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization of OpenAI client
+let openai = null;
+
+const getOpenAIClient = () => {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error(
+        "OPENAI_API_KEY environment variable is required for AI rate suggestions"
+      );
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+};
 
 /**
  * Get AI suggested rate for a product in a quote based on location and historical data
@@ -74,9 +87,8 @@ export const getAISuggestedRate = async ({
     }
 
     try {
-      const JobOrders = (
-        await import("../../jobOrders/models/JobOrders/index.js")
-      ).default;
+      const JobOrders = (await import("../../jobOrders/models/JobOrders.js"))
+        .default;
 
       const locationQuery = {};
       if (zipCode) {
@@ -121,7 +133,7 @@ export const getAISuggestedRate = async ({
 
     try {
       const SalesOrders = (
-        await import("../../salesOrders/models/SalesOrders/index.js")
+        await import("../../salesOrders/models/SalesOrders.js")
       ).default;
 
       const locationQuery = {};
@@ -166,7 +178,7 @@ export const getAISuggestedRate = async ({
     }
 
     try {
-      const Quotes = (await import("../models/Quotes/index.js")).default;
+      const Quotes = (await import("../models/Quotes.js")).default;
 
       const locationQuery = {};
       if (zipCode) {
@@ -309,7 +321,7 @@ Calculate the AI suggested rate per unit. Consider:
 
 Return ONLY valid JSON, no markdown, no code blocks.`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
@@ -334,8 +346,7 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
       // Fallback calculation
       const fallbackVendorCost = averageVendorCost || 150;
       aiResponse = {
-        suggestedRatePerUnit:
-          Math.round((fallbackVendorCost + 50) * 100) / 100,
+        suggestedRatePerUnit: Math.round((fallbackVendorCost + 50) * 100) / 100,
         vendorCostEstimate: Math.round(fallbackVendorCost * 100) / 100,
         margin: 50,
         confidence: confidence,
@@ -387,4 +398,3 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
     throw new Error(`Failed to get AI suggested price: ${error.message}`);
   }
 };
-

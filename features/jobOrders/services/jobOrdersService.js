@@ -1,6 +1,6 @@
 import * as jobOrdersRepository from "../repositories/jobOrdersRepository.js";
 import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
-import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
 
 export const generateJobOrderNumber = async () => {
   const maxRetries = 5;
@@ -207,7 +207,7 @@ const getAllJobOrdersWithAggregation = async ({
   const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // Import JobOrders model
-  const JobOrders = (await import("../models/JobOrders/index.js")).default;
+  const JobOrders = (await import("../models/JobOrders.js")).default;
 
   // Build aggregation pipeline
   const pipeline = [];
@@ -499,7 +499,7 @@ export const updateJobOrder = async (id, updateData) => {
 
   // ✅ Update the associated Lead if it exists and there are lead fields to update
   if (leadId && Object.keys(leadFields).length > 0) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const Leads = (await import("../../leads/models/Leads.js")).default;
     await Leads.findByIdAndUpdate(
       leadId,
       { $set: leadFields },
@@ -569,7 +569,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
   }
 
   const SalesOrders = (
-    await import("../../salesOrders/models/SalesOrders/index.js")
+    await import("../../salesOrders/models/SalesOrders.js")
   ).default;
   const salesOrder = await SalesOrders.findById(jobOrder.salesOrder);
 
@@ -577,7 +577,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     return;
   }
 
-  const Leads = (await import("../../leads/models/Leads/index.js")).default;
+  const Leads = (await import("../../leads/models/Leads.js")).default;
   const lead = salesOrder.lead ? await Leads.findById(salesOrder.lead) : null;
 
   if (!lead) {
@@ -598,7 +598,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     country: lead.country || "USA",
   };
 
-  const Customers = (await import("../../customers/models/Customers/index.js"))
+  const Customers = (await import("../../customers/models/Customers.js"))
     .default;
 
   let customer = await Customers.findOne({
@@ -624,7 +624,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     });
 
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes/index.js"))
+      const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
       await Quotes.findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
@@ -640,7 +640,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     });
 
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes/index.js"))
+      const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
       await Quotes.findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,

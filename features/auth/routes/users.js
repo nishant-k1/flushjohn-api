@@ -1,5 +1,5 @@
 import express from "express";
-import User from "../models/User/index.js";
+import User from "../models/User.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -13,7 +13,6 @@ router.get("/", async (req, res) => {
       data: users,
     });
   } catch {
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch users",
@@ -40,7 +39,6 @@ router.get("/:userId", async (req, res) => {
       data: user,
     });
   } catch {
-
     res.status(500).json({
       success: false,
       message: "Failed to fetch user",
@@ -71,7 +69,6 @@ router.put("/:userId", async (req, res) => {
       message: "User updated successfully",
     });
   } catch {
-
     res.status(500).json({
       success: false,
       message: "Failed to update user",
@@ -84,7 +81,6 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
     const userId = req.user?.userId;
 
     if (!userId) {
-
       return res.status(401).json({
         success: false,
         message: "Unauthorized - No user ID found",
@@ -105,7 +101,6 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
     });
 
     if (!user) {
-
       return res.status(404).json({
         success: false,
         message: "User not found",
@@ -121,7 +116,10 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update profile",
-      error: process.env.NODE_ENV === "development" ? "Internal server error" : undefined,
+      error:
+        process.env.NODE_ENV === "development"
+          ? "Internal server error"
+          : undefined,
     });
   }
 });
@@ -142,7 +140,6 @@ router.delete("/:userId", async (req, res) => {
       message: "User deleted successfully",
     });
   } catch {
-
     res.status(500).json({
       success: false,
       message: "Failed to delete user",

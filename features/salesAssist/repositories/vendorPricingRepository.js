@@ -2,7 +2,7 @@
  * Vendor Pricing History Repository - Database Access Layer
  */
 
-import VendorPricingHistory from "../models/VendorPricingHistory/index.js";
+import VendorPricingHistory from "../models/VendorPricingHistory.js";
 
 export const create = async (pricingData) => {
   return await VendorPricingHistory.create(pricingData);

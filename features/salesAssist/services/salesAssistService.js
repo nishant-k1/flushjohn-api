@@ -8,13 +8,26 @@ import * as vendorPricingRepository from "../repositories/vendorPricingRepositor
 import * as leadsRepository from "../../leads/repositories/leadsRepository.js";
 import * as conversationLogRepository from "../repositories/conversationLogRepository.js";
 import * as vendorConversationLogRepository from "../repositories/vendorConversationLogRepository.js";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 import * as quoteAIRateService from "../../quotes/services/quoteAIRateService.js";
 import { getStateTaxRate } from "../../../constants/tax/stateTaxRates.js";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization of OpenAI client
+let openai = null;
+
+const getOpenAIClient = () => {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error(
+        "OPENAI_API_KEY environment variable is required for AI sales assistance"
+      );
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+};
 
 const DEFAULT_MARGIN_AMOUNT = 50; // Fixed $50 margin on vendor pricing
 
@@ -90,7 +103,7 @@ ${
 
 Identify speaker roles based on what each person says, then extract the relevant information.`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
@@ -308,7 +321,7 @@ Be professional, friendly, and focused on helping the customer.`;
 
     userPrompt += `\nGenerate a suggested response for the operator to say to the customer.`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
@@ -496,7 +509,7 @@ Focus on:
 - Getting complete information to create an accurate quote for the customer
 - Maintaining professional vendor relationships`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
@@ -807,7 +820,7 @@ AVOID:
 IMPORTANT: When using phrases learned from vendor conversations, convert them to phonetic spelling and keep them conversational.
 For example, if vendor learning says "I can definitely help with that", use "Yeah, we kin definitly help ya out with that" (phonetic + natural).`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
@@ -887,7 +900,7 @@ ${transcript}
 
 Return JSON with: effectivePhrases, negotiationTactics, pricingStrategies, objectionHandling, closingTechniques, toneNotes`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
@@ -970,7 +983,7 @@ ${transcript}
 
 Return JSON with: effectivePhrases, salesTactics, objectionHandling, closingTechniques, pricingStrategies, toneNotes`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAIClient().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },

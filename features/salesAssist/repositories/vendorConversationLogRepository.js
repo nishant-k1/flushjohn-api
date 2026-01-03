@@ -3,7 +3,7 @@
  * Handles database operations for vendor conversation logs
  */
 
-import VendorConversationLog from "../models/VendorConversationLog/index.js";
+import VendorConversationLog from "../models/VendorConversationLog.js";
 
 /**
  * Create a new vendor conversation log

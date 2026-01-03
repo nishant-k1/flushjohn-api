@@ -1,5 +1,5 @@
 import * as quotesRepository from "../repositories/quotesRepository.js";
-import { getCurrentDateTime, dayjs } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 
 export const generateQuoteNumber = async () => {
   const maxRetries = 5;
@@ -66,7 +66,7 @@ export const createQuote = async (quoteData) => {
   let leadId = quoteData.lead || quoteData.leadId;
 
   if (!leadId && quoteData.leadNo) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const Leads = (await import("../../leads/models/Leads.js")).default;
     let leadNo = quoteData.leadNo;
 
     if (typeof leadNo === "string") {
@@ -117,7 +117,7 @@ const getAllQuotesWithAggregation = async ({
   const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // Import Quotes model
-  const Quotes = (await import("../models/Quotes/index.js")).default;
+  const Quotes = (await import("../models/Quotes.js")).default;
 
   // Build aggregation pipeline
   const pipeline = [];
@@ -659,7 +659,7 @@ export const getAllQuotes = async ({
 
   let leadsMap = new Map();
   if (quotesNeedingLeads.length > 0) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const Leads = (await import("../../leads/models/Leads.js")).default;
     const leadNumbers = quotesNeedingLeads
       .map((quote) => {
         let leadNo = quote.leadNo;
@@ -737,7 +737,7 @@ export const getQuoteById = async (id) => {
   let lead = quote.lead;
 
   if (!lead && quote.leadNo) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const Leads = (await import("../../leads/models/Leads.js")).default;
     let leadNo = quote.leadNo;
 
     if (typeof leadNo === "string") {
@@ -776,7 +776,7 @@ export const updateQuote = async (id, updateData) => {
 
   let leadId = updateData.lead || updateData.leadId || existingQuote.lead;
   if (!leadId && updateData.leadNo) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const Leads = (await import("../../leads/models/Leads.js")).default;
     let leadNo = updateData.leadNo;
 
     if (typeof leadNo === "string") {
@@ -816,7 +816,7 @@ export const updateQuote = async (id, updateData) => {
 
   // ✅ Update the associated Lead if it exists and there are lead fields to update
   if (leadId && Object.keys(leadFields).length > 0) {
-    const Leads = (await import("../../leads/models/Leads/index.js")).default;
+    const Leads = (await import("../../leads/models/Leads.js")).default;
     await Leads.findByIdAndUpdate(
       leadId,
       { $set: leadFields },
@@ -870,7 +870,7 @@ export const deleteQuote = async (id) => {
   }
 
   const SalesOrder = (
-    await import("../../salesOrders/models/SalesOrders/index.js")
+    await import("../../salesOrders/models/SalesOrders.js")
   ).default;
 
   const salesOrdersCount = await SalesOrder.countDocuments({

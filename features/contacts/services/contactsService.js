@@ -29,7 +29,7 @@ export const getAllContacts = async ({
 }) => {
   const query = {};
   const exprConditions = [];
-  const dayjs = (await import("../../../lib/dayjs/index.js")).dayjs;
+  const dayjs = (await import("../../../lib/dayjs.js")).dayjs;
 
   // Legacy filter
   if (status) query.status = status;

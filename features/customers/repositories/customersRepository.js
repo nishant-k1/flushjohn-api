@@ -2,7 +2,7 @@
  * Customers Repository - Database Access Layer
  */
 
-import Customers from "../models/Customers/index.js";
+import Customers from "../models/Customers.js";
 
 export const create = async (customerData) => {
   return await Customers.create(customerData);

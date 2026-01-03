@@ -3,7 +3,7 @@
  */
 
 import * as vendorsRepository from "../repositories/vendorsRepository.js";
-import { getCurrentDateTime, dayjs } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 
 const escapeRegExp = (value = "") =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

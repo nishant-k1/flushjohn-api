@@ -1,4 +1,4 @@
-import Notification from "../models/Notifications/index.js";
+import Notification from "../models/Notifications.js";
 
 export const findByUserId = async (userId, options = {}) => {
   try {

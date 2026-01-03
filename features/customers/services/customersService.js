@@ -3,7 +3,7 @@
  */
 
 import * as customersRepository from "../repositories/customersRepository.js";
-import { getCurrentDateTime, dayjs } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 
 export const generateCustomerNumber = async () => {
   const latestCustomer = await customersRepository.findOne({}, "customerNo");

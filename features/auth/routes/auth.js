@@ -1,7 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
-import User from "../models/User/index.js";
+import User from "../models/User.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();

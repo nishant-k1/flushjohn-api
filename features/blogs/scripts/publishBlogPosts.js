@@ -12,7 +12,7 @@ import {
   dbConnect,
   waitForConnection,
   getConnectionStatus,
-} from "../../../lib/dbConnect/index.js";
+} from "../../../lib/dbConnect.js";
 
 async function publishBlogPosts() {
 
