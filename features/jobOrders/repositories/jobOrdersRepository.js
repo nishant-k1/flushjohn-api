@@ -2,7 +2,7 @@
  * Job Orders Repository - Database Access Layer
  */
 
-import JobOrders from "../models/JobOrders/index.js";
+import JobOrders from "../models/JobOrders.js";
 
 export const create = async (jobOrderData) => {
   const result = await JobOrders.create(jobOrderData);

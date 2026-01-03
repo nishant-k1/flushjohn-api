@@ -16,11 +16,11 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, "..", ".env") });
 
 // Import models
-import Lead from "../features/leads/models/Leads/index.js";
-import Quote from "../features/quotes/models/Quotes/index.js";
-import SalesOrder from "../features/salesOrders/models/SalesOrders/index.js";
-import JobOrder from "../features/jobOrders/models/JobOrders/index.js";
-import Customer from "../features/customers/models/Customers/index.js";
+import Lead from "../features/leads/models/Leads.js";
+import Quote from "../features/quotes/models/Quotes.js";
+import SalesOrder from "../features/salesOrders/models/SalesOrders.js";
+import JobOrder from "../features/jobOrders/models/JobOrders.js";
+import Customer from "../features/customers/models/Customers.js";
 
 /**
  * Connect to database

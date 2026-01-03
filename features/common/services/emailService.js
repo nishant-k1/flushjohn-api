@@ -1,10 +1,10 @@
 import { createTransport } from "nodemailer";
-import { flushjohn, quengenesis } from "../../../constants/index.js";
+import { flushjohn, quengenesis } from "../../../constants.js";
 
-import quoteEmailTemplate from "../../quotes/templates/email/index.js";
-import salesOrderEmailTemplate from "../../salesOrders/templates/email/index.js";
-import invoiceEmailTemplate from "../../salesOrders/templates/invoice/index.js";
-import jobOrderEmailTemplate from "../../jobOrders/templates/email/index.js";
+import quoteEmailTemplate from "../../quotes/templates/email.js";
+import salesOrderEmailTemplate from "../../salesOrders/templates/email.js";
+import invoiceEmailTemplate from "../../salesOrders/templates/invoice.js";
+import jobOrderEmailTemplate from "../../jobOrders/templates/email.js";
 
 // ============================================
 // SMTP CONNECTION POOL FOR FASTER EMAIL SENDING

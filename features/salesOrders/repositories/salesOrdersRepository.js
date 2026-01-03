@@ -2,7 +2,7 @@
  * Sales Orders Repository - Database Access Layer
  */
 
-import SalesOrders from "../models/SalesOrders/index.js";
+import SalesOrders from "../models/SalesOrders.js";
 
 export const create = async (salesOrderData) => {
   return await SalesOrders.create(salesOrderData);

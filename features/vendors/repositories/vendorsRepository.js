@@ -2,7 +2,7 @@
  * Vendors Repository - Database Access Layer
  */
 
-import Vendors from "../models/Vendors/index.js";
+import Vendors from "../models/Vendors.js";
 
 export const create = async (vendorData) => {
   return await Vendors.create(vendorData);

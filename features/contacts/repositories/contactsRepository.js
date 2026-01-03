@@ -5,7 +5,7 @@
  * No business logic should be here - just pure database queries.
  */
 
-import Contacts from "../models/Contacts/index.js";
+import Contacts from "../models/Contacts.js";
 
 /**
  * Create a new contact

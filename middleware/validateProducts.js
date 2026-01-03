@@ -3,7 +3,7 @@
  * Ensures financial accuracy by server-side verification
  */
 
-import { getCurrentDateTime } from "../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../lib/dayjs.js";
 
 const validateAndRecalculateProducts = (req, res, next) => {
   try {

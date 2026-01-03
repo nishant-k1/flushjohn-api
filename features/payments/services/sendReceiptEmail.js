@@ -4,8 +4,8 @@
  */
 
 import { getPooledTransporter } from "../../common/services/emailService.js";
-import salesReceiptEmailTemplate from "../templates/email/index.js";
-import { flushjohn } from "../../../constants/index.js";
+import salesReceiptEmailTemplate from "../templates/email.js";
+import { flushjohn } from "../../../constants.js";
 import * as salesOrdersRepository from "../../salesOrders/repositories/salesOrdersRepository.js";
 
 /**

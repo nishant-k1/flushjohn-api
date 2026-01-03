@@ -19,21 +19,20 @@ import s3CorsRouter from "./routes/s3-cors.js";
 import contactRouter from "./routes/contact.js";
 import blogAutomationRouter from "./features/blogs/routes/blog-automation.js";
 
-import leadsRouter from "./features/leads/routes/leads.js";
-import quotesRouter from "./features/quotes/routes/quotes.js";
-import customersRouter from "./features/customers/routes/customers.js";
-import salesOrdersRouter from "./features/salesOrders/routes/salesOrders.js";
-import vendorsRouter from "./features/vendors/routes/vendors.js";
-import jobOrdersRouter from "./features/jobOrders/routes/jobOrders.js";
-import blogsRouter from "./features/blogs/routes/blogs.js";
-import authRouter from "./features/auth/routes/auth.js";
-import usersRouter from "./features/auth/routes/users.js";
-import notesRouter from "./features/notes/routes/notes.js";
-import contactsRouter from "./features/contacts/routes/contacts.js";
-import salesAssistRouter from "./features/salesAssist/routes/salesAssist.js";
-import speechRecognitionRouter from "./features/salesAssist/routes/speechRecognition.js";
-import notificationsRouter from "./features/notifications/routes/notifications.js";
-import paymentsRouter from "./features/payments/routes/payments.js";
+import leadsFeature from "./features/leads/routes/leads.js";
+import quotesFeature from "./features/quotes/routes/quotes.js";
+import customersFeature from "./features/customers/routes/customers.js";
+import salesOrdersFeature from "./features/salesOrders/routes/salesOrders.js";
+import vendorsFeature from "./features/vendors/routes/vendors.js";
+import jobOrdersFeature from "./features/jobOrders/routes/jobOrders.js";
+import blogsFeature from "./features/blogs/routes/blogs.js";
+import authFeature from "./features/auth/routes/auth.js";
+import commonFeature from "./features/common/routes/common.js";
+import notesFeature from "./features/notes/routes/notes.js";
+import contactsFeature from "./features/contacts/routes/contacts.js";
+import salesAssistFeature from "./features/salesAssist/routes/salesAssist.js";
+import notificationsFeature from "./features/notifications/routes/notifications.js";
+import paymentsFeature from "./features/payments/routes/payments.js";
 import {
   authenticateToken,
   authorizeRoles,
@@ -44,7 +43,23 @@ import {
   publicLimiter,
 } from "./middleware/rateLimiter.js";
 
-// All routers are now directly imported above
+const authRouter = authFeature.routes.auth;
+const usersRouter = authFeature.routes.users;
+const leadsRouter = leadsFeature.routes;
+const blogsRouter = blogsFeature.routes.blogs;
+const vendorsRouter = vendorsFeature.routes;
+const dashboardRouter = commonFeature.routes.dashboard;
+// const phoneRouter = commonFeature.routes.phone; // Commented out - will be enabled in future
+const customersRouter = customersFeature.routes;
+const quotesRouter = quotesFeature.routes;
+const salesOrdersRouter = salesOrdersFeature.routes;
+const jobOrdersRouter = jobOrdersFeature.routes;
+const notesRouter = notesFeature.router;
+const contactsRouter = contactsFeature.routes;
+const salesAssistRouter = salesAssistFeature.routes.salesAssist;
+const speechRecognitionRouter = salesAssistFeature.routes.speechRecognition;
+const notificationsRouter = notificationsFeature.router;
+const paymentsRouter = paymentsFeature.routes.payments;
 
 config({ path: "./.env" });
 
@@ -134,7 +149,7 @@ app.use(
   express.raw({ type: "application/json" }),
   async (req, res, next) => {
     try {
-      const paymentsFeature = await import("./features/payments.js");
+      const paymentsFeature = await import("./features/payments/index.js");
       const webhookRouter = paymentsFeature.default.routes.webhook;
       return webhookRouter(req, res, next);
     } catch (error) {
@@ -290,22 +305,16 @@ app.use(
   blogAutomationRouter
 ); // Only admins can automate blogs
 // ✅ PERFORMANCE: Add strict rate limiting to dashboard (expensive queries)
-// app.use("/dashboard", authenticateToken, strictLimiter, dashboardRouter); // TODO: dashboardRouter not found
+app.use("/dashboard", authenticateToken, strictLimiter, dashboardRouter);
 app.use("/notes", authenticateToken, notesRouter);
 app.use("/notifications", authenticateToken, notificationsRouter);
 app.use("/contacts", authenticateToken, contactsRouter);
 app.use("/sales-assist", salesAssistRouter);
 app.use("/sales-assist", speechRecognitionRouter);
 
-dbConnect()
-  .then(() => {
-    console.log("✅ Database connected successfully");
-  })
-  .catch((error) => {
-    console.error("❌ Database connection failed:", error.message);
-    console.error("Please check your MONGO_DB_URI in .env file");
-    process.exit(1);
-  });
+dbConnect().catch(() => {
+  process.exit(1);
+});
 
 try {
   initializeCronJobs();
@@ -357,9 +366,6 @@ function onError(error) {
 function onListening() {
   const addr = server.address();
   const bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
-  console.log("🚀 Server started successfully!");
-  console.log(`🌐 Listening on ${bind}`);
-  console.log(`📡 API ready at http://localhost:${addr.port}`);
   log("Listening on " + bind);
 }
 

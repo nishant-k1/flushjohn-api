@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getCurrentDateTime } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 class AlertService {
   constructor() {

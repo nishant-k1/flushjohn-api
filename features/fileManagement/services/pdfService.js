@@ -1,8 +1,8 @@
 import { uploadPDFToS3 } from "../../common/services/s3Service.js";
 
-import quoteTemplate from "../../quotes/templates/pdf/index.js";
-import salesOrderTemplate from "../../salesOrders/templates/pdf/index.js";
-import jobOrderTemplate from "../../jobOrders/templates/pdf/index.js";
+import quoteTemplate from "../../quotes/templates/pdf.js";
+import salesOrderTemplate from "../../salesOrders/templates/pdf.js";
+import jobOrderTemplate from "../../jobOrders/templates/pdf.js";
 
 let browserLib = null;
 let usePuppeteer = false;
@@ -305,7 +305,7 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
   if (jobOrderData.vendor && jobOrderData.vendor._id) {
     try {
       const { default: Vendors } = await import(
-        "../../vendors/models/Vendors/index.js"
+        "../../vendors/models/Vendors.js"
       );
 
       let vendor = await Vendors.findById(jobOrderData.vendor._id);

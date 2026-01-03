@@ -2,7 +2,7 @@
  * Quotes Repository - Database Access Layer
  */
 
-import Quotes from "../models/Quotes/index.js";
+import Quotes from "../models/Quotes.js";
 
 export const create = async (quoteData) => {
   return await Quotes.create(quoteData);

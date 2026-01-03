@@ -5,7 +5,7 @@
  * No business logic should be here - just pure database queries.
  */
 
-import Leads from "../models/Leads/index.js";
+import Leads from "../models/Leads.js";
 
 /**
  * Create a new lead

@@ -2,7 +2,7 @@
  * Blogs Repository - Database Access Layer
  */
 
-import Blogs from "../models/Blogs/index.js";
+import Blogs from "../models/Blogs.js";
 
 export const create = async (blogData) => {
   return await Blogs.create(blogData);

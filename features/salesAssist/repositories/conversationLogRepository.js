@@ -3,7 +3,7 @@
  * Handles database operations for conversation logs
  */
 
-import ConversationLog from "../models/ConversationLog/index.js";
+import ConversationLog from "../models/ConversationLog.js";
 
 /**
  * Create a new conversation log

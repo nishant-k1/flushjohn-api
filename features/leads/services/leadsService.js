@@ -7,7 +7,7 @@
 
 import * as leadsRepository from "../repositories/leadsRepository.js";
 import alertService from "../../common/services/alertService.js";
-import { getCurrentDateTime, createDate } from "../../../lib/dayjs/index.js";
+import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
 import { createLeadNotification } from "../../notifications/services/notificationHelpers.js";
 import { deleteNotificationsByLeadId } from "../../notifications/services/notificationsService.js";
 
@@ -147,7 +147,7 @@ export const getAllLeads = async ({
 }) => {
   const query = {};
   const exprConditions = [];
-  const dayjs = (await import("../../../lib/dayjs/index.js")).dayjs;
+  const dayjs = (await import("../../../lib/dayjs.js")).dayjs;
 
   // Legacy filters
   if (status) query.leadStatus = status;
@@ -477,11 +477,11 @@ export const deleteLead = async (id) => {
   }
 
   // Check for related records
-  const Quote = (await import("../../quotes/models/Quotes/index.js")).default;
+  const Quote = (await import("../../quotes/models/Quotes.js")).default;
   const SalesOrder = (
-    await import("../../salesOrders/models/SalesOrders/index.js")
+    await import("../../salesOrders/models/SalesOrders.js")
   ).default;
-  const JobOrder = (await import("../../jobOrders/models/JobOrders/index.js"))
+  const JobOrder = (await import("../../jobOrders/models/JobOrders.js"))
     .default;
 
   const [quotesCount, salesOrdersCount, jobOrdersCount] = await Promise.all([

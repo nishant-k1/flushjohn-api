@@ -296,9 +296,9 @@ const contentTemplates = {
         `what is the best porta potty rental company in ${city}`,
         `porta potty rental prices in ${city}`,
         `how to rent porta potties in ${city}`,
-        `porta potty rental near me ${city}`,
+        `porta potty rental near me ${city}`
       ];
-
+      
       return `
 Write a comprehensive blog post optimized for Google search rankings that will drive organic traffic:
 
@@ -312,7 +312,7 @@ CRITICAL SEO REQUIREMENTS:
 
 1. **Answer Real User Questions (MOST IMPORTANT):**
    Target these question keywords in your content:
-${questionKeywords.map((q) => `   - "${q}"`).join("\n")}
+${questionKeywords.map(q => `   - "${q}"`).join('\n')}
    
    - Answer each question DIRECTLY in the content
    - Use questions as H2 headings (e.g., <h2>How Many Porta Potties Do I Need in ${city}?</h2>)
@@ -320,9 +320,7 @@ ${questionKeywords.map((q) => `   - "${q}"`).join("\n")}
    - Include in FAQ section with detailed answers (100-150 words each)
 
 2. **Search Intent Matching:**
-   - Users searching "${
-     keywords.primary
-   }" want: INFORMATION about porta potty rentals
+   - Users searching "${keywords.primary}" want: INFORMATION about porta potty rentals
    - Provide comprehensive guides, tips, best practices
    - Include pricing information (transactional intent)
    - Make it actionable and helpful
@@ -386,9 +384,9 @@ Write content that will RANK IN GOOGLE by answering real user questions about po
         `how many ${keywords.primary.toLowerCase()}`,
         `${keywords.primary.toLowerCase()} guide`,
         `${keywords.primary.toLowerCase()} best practices`,
-        `${keywords.primary.toLowerCase()} requirements`,
+        `${keywords.primary.toLowerCase()} requirements`
       ];
-
+      
       return `
 Write a comprehensive industry guide optimized for Google search rankings:
 
@@ -402,7 +400,7 @@ CRITICAL SEO REQUIREMENTS:
 
 1. **Answer Real User Questions (MOST IMPORTANT):**
    Target these question keywords:
-${questionKeywords.map((q) => `   - "${q}"`).join("\n")}
+${questionKeywords.map(q => `   - "${q}"`).join('\n')}
    
    - Answer each question DIRECTLY in the content
    - Use questions as H2 headings
@@ -410,9 +408,7 @@ ${questionKeywords.map((q) => `   - "${q}"`).join("\n")}
    - Include in FAQ section with detailed answers
 
 2. **Search Intent Matching:**
-   - Users searching "${
-     keywords.primary
-   }" want: INFORMATION/guide about this topic
+   - Users searching "${keywords.primary}" want: INFORMATION/guide about this topic
    - Provide comprehensive how-to guides, best practices, requirements
    - Include specific data, regulations, statistics
    - Make it actionable and authoritative
@@ -467,9 +463,9 @@ Write authoritative content that will RANK IN GOOGLE and establishes FlushJohn a
         `how many porta potties do I need for ${season} events`,
         `${season} porta potty rental tips`,
         `${season} event porta potty planning`,
-        `best time to rent porta potties for ${season}`,
+        `best time to rent porta potties for ${season}`
       ];
-
+      
       return `
 Write a comprehensive seasonal blog post optimized for Google search rankings:
 
@@ -484,7 +480,7 @@ CRITICAL SEO REQUIREMENTS:
 
 1. **Answer Real User Questions (MOST IMPORTANT):**
    Target these question keywords:
-${questionKeywords.map((q) => `   - "${q}"`).join("\n")}
+${questionKeywords.map(q => `   - "${q}"`).join('\n')}
    
    - Answer each question DIRECTLY in the content
    - Use questions as H2 headings
@@ -547,9 +543,9 @@ Write engaging content that will RANK IN GOOGLE and helps customers plan for the
         `${keywords.primary.toLowerCase()} success story`,
         `${keywords.primary.toLowerCase()} case study results`,
         `how to achieve ${keywords.primary.toLowerCase()} success`,
-        `${keywords.primary.toLowerCase()} best practices`,
+        `${keywords.primary.toLowerCase()} best practices`
       ];
-
+      
       return `
 Write a compelling case study blog post optimized for Google search rankings:
 
@@ -563,7 +559,7 @@ CRITICAL SEO REQUIREMENTS:
 
 1. **Answer Real User Questions (MOST IMPORTANT):**
    Target these question keywords:
-${questionKeywords.map((q) => `   - "${q}"`).join("\n")}
+${questionKeywords.map(q => `   - "${q}"`).join('\n')}
    
    - Answer each question DIRECTLY in the content
    - Use questions as H2 headings
@@ -630,7 +626,7 @@ export async function generateBlogContent(templateType, params) {
       throw new Error(`Invalid template type: ${templateType}`);
     }
 
-    const response = await getOpenAIClient().chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -674,7 +670,7 @@ export async function generateBlogContent(templateType, params) {
 
 export async function generateMetaDescription(title, content, keywords) {
   try {
-    const response = await getOpenAIClient().chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -736,7 +732,7 @@ export async function generateComprehensiveBlogMetadata(
   category
 ) {
   try {
-    const response = await getOpenAIClient().chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -839,7 +835,7 @@ Requirements:
  */
 export async function generateCoverImageDescription(title, category, content) {
   try {
-    const response = await getOpenAIClient().chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -931,7 +927,7 @@ export async function generateAIExcerpt(content, title, maxLength = 150) {
     // Limit content to first 2000 characters to stay within token limits
     const truncatedContent = cleanContent.substring(0, 2000);
 
-    const response = await getOpenAIClient().chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
@@ -1003,58 +999,23 @@ export async function extractCityAndState(title, content) {
 
     // List of cities we serve
     const cities = [
-      "Houston",
-      "Dallas",
-      "Austin",
-      "San Antonio",
-      "Fort Worth", // TX
-      "Miami",
-      "Orlando",
-      "Tampa",
-      "Jacksonville",
-      "Fort Lauderdale", // FL
-      "Los Angeles",
-      "San Diego",
-      "Sacramento",
-      "San Jose",
-      "Fresno", // CA
-      "Atlanta",
-      "Savannah",
-      "Augusta",
-      "Macon",
-      "Columbus", // GA
-      "Chicago",
-      "Springfield",
-      "Peoria",
-      "Rockford",
-      "Naperville", // IL
+      "Houston", "Dallas", "Austin", "San Antonio", "Fort Worth", // TX
+      "Miami", "Orlando", "Tampa", "Jacksonville", "Fort Lauderdale", // FL
+      "Los Angeles", "San Diego", "Sacramento", "San Jose", "Fresno", // CA
+      "Atlanta", "Savannah", "Augusta", "Macon", "Columbus", // GA
+      "Chicago", "Springfield", "Peoria", "Rockford", "Naperville", // IL
       "Dover", // DE
     ];
 
-    const states = [
-      "Texas",
-      "TX",
-      "Florida",
-      "FL",
-      "California",
-      "CA",
-      "Georgia",
-      "GA",
-      "Illinois",
-      "IL",
-      "Delaware",
-      "DE",
-    ];
+    const states = ["Texas", "TX", "Florida", "FL", "California", "CA", "Georgia", "GA", "Illinois", "IL", "Delaware", "DE"];
 
     // Check if any city is mentioned
-    const mentionedCity = cities.find((city) => {
+    const mentionedCity = cities.find(city => {
       const cityLower = city.toLowerCase();
       const textLower = textSample.toLowerCase();
       // Check for city name (word boundary to avoid partial matches)
-      return (
-        textLower.includes(cityLower) ||
-        new RegExp(`\\b${cityLower}\\b`, "i").test(textLower)
-      );
+      return textLower.includes(cityLower) || 
+             new RegExp(`\\b${cityLower}\\b`, 'i').test(textLower);
     });
 
     if (!mentionedCity) {
@@ -1062,90 +1023,54 @@ export async function extractCityAndState(title, content) {
     }
 
     // Try to find state mentioned near the city
-    const cityIndex = textSample
-      .toLowerCase()
-      .indexOf(mentionedCity.toLowerCase());
-    const surroundingText = textSample
-      .substring(
-        Math.max(0, cityIndex - 100),
-        Math.min(textSample.length, cityIndex + mentionedCity.length + 100)
-      )
-      .toLowerCase();
+    const cityIndex = textSample.toLowerCase().indexOf(mentionedCity.toLowerCase());
+    const surroundingText = textSample.substring(
+      Math.max(0, cityIndex - 100),
+      Math.min(textSample.length, cityIndex + mentionedCity.length + 100)
+    ).toLowerCase();
 
-    const mentionedState = states.find((state) => {
+    const mentionedState = states.find(state => {
       const stateLower = state.toLowerCase();
-      return (
-        surroundingText.includes(`, ${stateLower}`) ||
-        surroundingText.includes(`${stateLower}`) ||
-        surroundingText.includes(` ${stateLower},`)
-      );
+      return surroundingText.includes(`, ${stateLower}`) ||
+             surroundingText.includes(`${stateLower}`) ||
+             surroundingText.includes(` ${stateLower},`);
     });
 
     // Normalize state to full name or abbreviation
     let stateAbbr = null;
     if (mentionedState) {
       const stateMap = {
-        texas: "TX",
-        tx: "TX",
-        florida: "FL",
-        fl: "FL",
-        california: "CA",
-        ca: "CA",
-        georgia: "GA",
-        ga: "GA",
-        illinois: "IL",
-        il: "IL",
-        delaware: "DE",
-        de: "DE",
+        "texas": "TX", "tx": "TX",
+        "florida": "FL", "fl": "FL",
+        "california": "CA", "ca": "CA",
+        "georgia": "GA", "ga": "GA",
+        "illinois": "IL", "il": "IL",
+        "delaware": "DE", "de": "DE",
       };
-      stateAbbr =
-        stateMap[mentionedState.toLowerCase()] ||
-        mentionedState.toUpperCase().slice(0, 2);
+      stateAbbr = stateMap[mentionedState.toLowerCase()] || mentionedState.toUpperCase().slice(0, 2);
     } else {
       // Try to infer state from city
       const cityStateMap = {
-        Houston: "TX",
-        Dallas: "TX",
-        Austin: "TX",
-        "San Antonio": "TX",
-        "Fort Worth": "TX",
-        Miami: "FL",
-        Orlando: "FL",
-        Tampa: "FL",
-        Jacksonville: "FL",
-        "Fort Lauderdale": "FL",
-        "Los Angeles": "CA",
-        "San Diego": "CA",
-        Sacramento: "CA",
-        "San Jose": "CA",
-        Fresno: "CA",
-        Atlanta: "GA",
-        Savannah: "GA",
-        Augusta: "GA",
-        Macon: "GA",
-        Columbus: "GA",
-        Chicago: "IL",
-        Springfield: "IL",
-        Peoria: "IL",
-        Rockford: "IL",
-        Naperville: "IL",
-        Dover: "DE",
+        "Houston": "TX", "Dallas": "TX", "Austin": "TX", "San Antonio": "TX", "Fort Worth": "TX",
+        "Miami": "FL", "Orlando": "FL", "Tampa": "FL", "Jacksonville": "FL", "Fort Lauderdale": "FL",
+        "Los Angeles": "CA", "San Diego": "CA", "Sacramento": "CA", "San Jose": "CA", "Fresno": "CA",
+        "Atlanta": "GA", "Savannah": "GA", "Augusta": "GA", "Macon": "GA", "Columbus": "GA",
+        "Chicago": "IL", "Springfield": "IL", "Peoria": "IL", "Rockford": "IL", "Naperville": "IL",
+        "Dover": "DE",
       };
       stateAbbr = cityStateMap[mentionedCity] || null;
     }
 
     // Convert state abbreviation to full name for storage
     const stateFullNameMap = {
-      TX: "Texas",
-      FL: "Florida",
-      CA: "California",
-      GA: "Georgia",
-      IL: "Illinois",
-      DE: "Delaware",
+      "TX": "Texas",
+      "FL": "Florida",
+      "CA": "California",
+      "GA": "Georgia",
+      "IL": "Illinois",
+      "DE": "Delaware",
     };
-    const stateFullName = stateAbbr
-      ? stateFullNameMap[stateAbbr] || stateAbbr
-      : null;
+    const stateFullName = stateAbbr ? (stateFullNameMap[stateAbbr] || stateAbbr) : null;
 
     return {
       city: mentionedCity,
@@ -1205,31 +1130,27 @@ export function generateFAQSchema(content, title) {
     const questionPattern = /<h[23][^>]*>(.*?\?)<\/h[23]>/gi;
     const questions = [];
     let match;
-
+    
     while ((match = questionPattern.exec(content)) !== null) {
-      const questionText = match[1].replace(/<[^>]*>/g, "").trim();
+      const questionText = match[1].replace(/<[^>]*>/g, '').trim();
       if (questionText && questionText.length > 10) {
         questions.push({
           question: questionText,
-          position: match.index,
+          position: match.index
         });
       }
     }
-
+    
     // If no questions found in headings, try to extract from FAQ section
     if (questions.length === 0) {
       // Look for FAQ section and extract questions
-      const faqSectionMatch = content.match(
-        /<h2[^>]*>.*?FAQ.*?<\/h2>([\s\S]*?)(?=<h2|$)/i
-      );
+      const faqSectionMatch = content.match(/<h2[^>]*>.*?FAQ.*?<\/h2>([\s\S]*?)(?=<h2|$)/i);
       if (faqSectionMatch) {
         const faqContent = faqSectionMatch[1];
-        const questionMatches = faqContent.match(
-          /<[ph][^>]*>(.*?\?)<\/[ph]>/gi
-        );
+        const questionMatches = faqContent.match(/<[ph][^>]*>(.*?\?)<\/[ph]>/gi);
         if (questionMatches) {
-          questionMatches.forEach((q) => {
-            const qText = q.replace(/<[^>]*>/g, "").trim();
+          questionMatches.forEach(q => {
+            const qText = q.replace(/<[^>]*>/g, '').trim();
             if (qText && qText.length > 10) {
               questions.push({ question: qText, position: 0 });
             }
@@ -1237,58 +1158,52 @@ export function generateFAQSchema(content, title) {
         }
       }
     }
-
+    
     if (questions.length === 0) {
       return null;
     }
-
+    
     // Extract answers (next paragraph after each question)
-    const faqItems = questions
-      .slice(0, 10)
-      .map((q, index) => {
-        // Try to find answer after question
-        const questionEscaped = q.question.replace(
-          /[.*+?^${}()|[\]\\]/g,
-          "\\$&"
-        );
-        const answerPattern = new RegExp(
-          `${questionEscaped}[\\s\\S]*?<p[^>]*>(.*?)<\\/p>`,
-          "i"
-        );
-        const answerMatch = content.match(answerPattern);
-
-        let answerText = "";
-        if (answerMatch && answerMatch[1]) {
-          answerText = answerMatch[1]
-            .replace(/<[^>]*>/g, "")
-            .trim()
-            .substring(0, 500); // Limit answer length
+    const faqItems = questions.slice(0, 10).map((q, index) => {
+      // Try to find answer after question
+      const questionEscaped = q.question.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const answerPattern = new RegExp(
+        `${questionEscaped}[\\s\\S]*?<p[^>]*>(.*?)<\\/p>`,
+        'i'
+      );
+      const answerMatch = content.match(answerPattern);
+      
+      let answerText = '';
+      if (answerMatch && answerMatch[1]) {
+        answerText = answerMatch[1]
+          .replace(/<[^>]*>/g, '')
+          .trim()
+          .substring(0, 500); // Limit answer length
+      }
+      
+      // If no answer found, create a generic one
+      if (!answerText || answerText.length < 20) {
+        answerText = `Find the answer to "${q.question}" in our comprehensive guide about ${title}.`;
+      }
+      
+      return {
+        "@type": "Question",
+        "name": q.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": answerText
         }
-
-        // If no answer found, create a generic one
-        if (!answerText || answerText.length < 20) {
-          answerText = `Find the answer to "${q.question}" in our comprehensive guide about ${title}.`;
-        }
-
-        return {
-          "@type": "Question",
-          name: q.question,
-          acceptedAnswer: {
-            "@type": "Answer",
-            text: answerText,
-          },
-        };
-      })
-      .filter((item) => item.acceptedAnswer.text.length > 20);
-
+      };
+    }).filter(item => item.acceptedAnswer.text.length > 20);
+    
     if (faqItems.length === 0) {
       return null;
     }
-
+    
     return {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      mainEntity: faqItems,
+      "mainEntity": faqItems
     };
   } catch (error) {
     console.error("Error generating FAQ schema:", error);

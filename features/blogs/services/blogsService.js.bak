@@ -38,7 +38,7 @@ const generateAIExcerpt = async (content, title) => {
     // Limit content to first 2000 characters to stay within token limits
     const truncatedContent = cleanContent.substring(0, 2000);
 
-    const response = await getOpenAIClient().chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {

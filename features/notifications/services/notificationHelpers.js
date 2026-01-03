@@ -1,5 +1,5 @@
 import * as notificationsService from "./notificationsService.js";
-import User from "../../auth/models/User/index.js";
+import User from "../../auth/models/User.js";
 
 /**
  * Create notification for a new lead

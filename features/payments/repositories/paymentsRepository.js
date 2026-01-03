@@ -1,4 +1,4 @@
-import Payments from "../models/Payments/index.js";
+import Payments from "../models/Payments.js";
 
 /**
  * Payments Repository
