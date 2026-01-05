@@ -35,6 +35,7 @@ import notificationsRouter from "./features/notifications/routes/notifications.j
 import paymentsRouter from "./features/payments/routes/payments.js";
 import { authenticateToken, authorizeRoles, } from "./features/auth/middleware/auth.js";
 import { uploadLimiter, publicLimiter, } from "./middleware/rateLimiter.js";
+import { csrfProtection } from "./middleware/csrf.js";
 // All routers are now directly imported above
 // Validate critical environment variables
 if (!process.env.SECRET_KEY) {
@@ -84,8 +85,10 @@ const corsOptions = {
         "Access-Control-Request-Headers",
         "X-Custom-Header",
         "X-Access-Token",
+        "X-Session-ID",
+        "X-CSRF-Token",
     ],
-    exposedHeaders: ["Content-Length", "X-Request-ID"],
+    exposedHeaders: ["Content-Length", "X-Request-ID", "X-CSRF-Token"],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
@@ -110,6 +113,8 @@ app.use("/payments/webhook", express.raw({ type: "application/json" }), async (r
 app.use(json({ limit: "10mb" }));
 app.use(urlencoded({ extended: false, limit: "10mb" }));
 app.use(cookieParser());
+// CSRF Protection - Apply to all routes except public endpoints
+app.use(csrfProtection);
 app.use((req, res, next) => {
     if (req.headers["x-http-method-override"]) {
         req.method = req.headers["x-http-method-override"].toUpperCase();
@@ -134,8 +139,29 @@ app.use((req, res, next) => {
         }
     }
     res.setHeader("Vary", "Origin, Access-Control-Request-Method, Access-Control-Request-Headers");
+    // Security Headers
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    // Content-Security-Policy (CSP) - Strict policy for API
+    // Note: Adjust based on your needs (images, fonts, etc.)
+    const cspPolicy = [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'", // Allow inline styles (some libraries need this)
+        "img-src 'self' data: https:",
+        "font-src 'self' data:",
+        "connect-src 'self'",
+        "frame-ancestors 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ].join("; ");
+    res.setHeader("Content-Security-Policy", cspPolicy);
+    // HSTS (HTTP Strict Transport Security) - Only in production
+    if (process.env.NODE_ENV === "production") {
+        res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    }
     res.setHeader("X-Timestamp", Date.now().toString());
     res.setHeader("X-Request-ID", Math.random().toString(36).substring(7));
     next();

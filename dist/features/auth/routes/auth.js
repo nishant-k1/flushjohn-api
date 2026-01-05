@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import User from "../models/User.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
+import { generateCsrfToken } from "../../../middleware/csrf.js";
 import { isUserJwtPayload, } from "../../../types/common.js";
 const router = express.Router();
 // Rate limiter for authentication endpoints
@@ -68,15 +69,8 @@ router.post("/", authLimiter, (async (req, res) => {
                     expiresIn: "24h", // Extended to 24 hours for better user experience
                     algorithm: "HS256", // Explicitly specify the algorithm
                 });
-                const isProduction = process.env.NODE_ENV === "production";
-                const cookieOptions = {
-                    httpOnly: true, // ✅ Prevent XSS attacks
-                    maxAge: 24 * 3600 * 1000, // 24 hours expiration to match JWT
-                    path: "/",
-                    secure: isProduction, // Only send over HTTPS in production
-                    sameSite: (isProduction ? "none" : "lax"), // Cross-origin support in production
-                };
-                res.cookie("token", token, cookieOptions);
+                // Generate CSRF token for the session
+                generateCsrfToken(req, res);
                 res.status(200).json({
                     success: true,
                     message: "Authentication successful",
@@ -186,12 +180,10 @@ router.post("/register", authenticateToken, requireAdmin, (async (req, res) => {
 }));
 router.get("/verify", (async (req, res) => {
     try {
-        let token = req.cookies.token; // Try cookie first
-        if (!token) {
-            const authHeader = req.headers.authorization;
-            if (authHeader && authHeader.startsWith("Bearer ")) {
-                token = authHeader.substring(7);
-            }
+        const authHeader = req.headers.authorization;
+        let token = null;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
         }
         if (!token) {
             res.status(401).json({
@@ -245,14 +237,6 @@ router.get("/verify", (async (req, res) => {
 }));
 router.post("/logout", (req, res) => {
     try {
-        const isProduction = process.env.NODE_ENV === "production";
-        const cookieOptions = {
-            httpOnly: true,
-            path: "/",
-            secure: isProduction, // Only send over HTTPS in production
-            sameSite: (isProduction ? "none" : "lax"),
-        };
-        res.clearCookie("token", cookieOptions);
         res.status(200).json({
             success: true,
             message: "Logout successful",

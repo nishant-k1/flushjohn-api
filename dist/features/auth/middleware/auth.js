@@ -16,9 +16,6 @@ export const authenticateToken = async (req, res, next) => {
         else if (queryToken) {
             token = queryToken;
         }
-        else if (req.cookies && req.cookies.token) {
-            token = req.cookies.token;
-        }
         if (!token) {
             return res.status(401).json({
                 success: false,
@@ -122,9 +119,6 @@ export const optionalAuth = async (req, res, next) => {
         }
         else if (queryToken) {
             token = queryToken;
-        }
-        else if (req.cookies && req.cookies.token) {
-            token = req.cookies.token;
         }
         if (!token) {
             return next();
