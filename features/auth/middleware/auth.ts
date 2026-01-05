@@ -1,16 +1,22 @@
 import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 import User from "../models/User.js";
+import {
+  isUserJwtPayload,
+  UserJwtPayload,
+  MongooseFilter,
+} from "../../../types/common.js";
 
 /**
  * JWT Authentication Middleware
  * Verifies JWT tokens and adds user information to the request
  */
-export const authenticateToken = async (req, res, next) => {
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
-    const queryToken = req.query.token;
+    const queryToken = req.query.token as string | undefined;
 
-    let token = null;
+    let token: string | null = null;
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7);
@@ -28,11 +34,21 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.SECRET_KEY, {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY!, {
       algorithms: ["HS256"], // Explicitly specify the algorithm
     });
 
-    const user = await User.findOne({ userId: decoded.userId });
+    if (!isUserJwtPayload(decoded)) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token format",
+        error: "INVALID_TOKEN",
+      });
+    }
+
+    const user = await User.findOne({
+      userId: decoded.userId,
+    } as MongooseFilter<{ userId: string }>);
 
     if (!user) {
       return res.status(401).json({
@@ -59,7 +75,7 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    if (user.changedPasswordAfter(decoded.iat)) {
+    if (decoded.iat && user.changedPasswordAfter(decoded.iat)) {
       return res.status(401).json({
         success: false,
         message: "Password was recently changed. Please log in again.",
@@ -115,12 +131,12 @@ export const authenticateToken = async (req, res, next) => {
  * Similar to authenticateToken but doesn't require authentication
  * If token is provided, it will be verified and user info added to request
  */
-export const optionalAuth = async (req, res, next) => {
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
-    const queryToken = req.query.token;
+    const queryToken = req.query.token as string | undefined;
 
-    let token = null;
+    let token: string | null = null;
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
       token = authHeader.substring(7);
@@ -134,10 +150,17 @@ export const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    const decoded = jwt.verify(token, process.env.SECRET_KEY, {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY!, {
       algorithms: ["HS256"], // Explicitly specify the algorithm
     });
-    const user = await User.findOne({ userId: decoded.userId });
+
+    if (!isUserJwtPayload(decoded)) {
+      return next();
+    }
+
+    const user = await User.findOne({
+      userId: decoded.userId,
+    } as MongooseFilter<{ userId: string }>);
 
     if (user && user.isActive && !user.isLocked()) {
       req.user = {
@@ -161,8 +184,8 @@ export const optionalAuth = async (req, res, next) => {
  * Role-based Authorization Middleware
  * Must be used after authenticateToken middleware
  */
-export const authorizeRoles = (...roles) => {
-  return (req, res, next) => {
+export const authorizeRoles = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -187,7 +210,7 @@ export const authorizeRoles = (...roles) => {
  * Admin-only Authorization Middleware
  * Must be used after authenticateToken middleware
  */
-export const requireAdmin = (req, res, next) => {
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -212,7 +235,7 @@ export const requireAdmin = (req, res, next) => {
  * Allows access if user is accessing their own data or is an admin
  * Must be used after authenticateToken middleware
  */
-export const selfOrAdmin = (req, res, next) => {
+export const selfOrAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -241,7 +264,7 @@ export const selfOrAdmin = (req, res, next) => {
  * Checks if user has permission to access specific document types
  * Must be used after authenticateToken middleware
  */
-export const checkDocumentAccess = (req, res, next) => {
+export const checkDocumentAccess = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,

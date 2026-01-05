@@ -5,6 +5,7 @@ import quoteEmailTemplate from "../../quotes/templates/email.js";
 import salesOrderEmailTemplate from "../../salesOrders/templates/email.js";
 import invoiceEmailTemplate from "../../salesOrders/templates/invoice.js";
 import jobOrderEmailTemplate from "../../jobOrders/templates/email.js";
+import { downloadPDFFromS3 } from "./s3Service.js";
 
 // ============================================
 // SMTP CONNECTION POOL FOR FASTER EMAIL SENDING
@@ -226,6 +227,16 @@ export const sendEmailWithS3PDF = async (
     const emailContent = emailTemplate(documentData);
     const fileName = `${documentType}.pdf`;
 
+    // Download PDF from S3 as buffer (nodemailer needs buffer or local path, not URL)
+    let pdfBuffer;
+    try {
+      pdfBuffer = await downloadPDFFromS3(s3PdfUrl);
+    } catch (downloadError) {
+      throw new Error(
+        `Failed to download PDF from S3: ${downloadError.message}`
+      );
+    }
+
     const emailOptions = {
       from: `${companyName}<${emailConfig.user}>`,
       to: documentData.email,
@@ -234,7 +245,7 @@ export const sendEmailWithS3PDF = async (
       attachments: [
         {
           filename: fileName,
-          path: s3PdfUrl,
+          content: pdfBuffer, // Use buffer instead of path
         },
       ],
     };

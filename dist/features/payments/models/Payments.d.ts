@@ -1,0 +1,126 @@
+import mongoose from "mongoose";
+declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Model<{
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+    amount: number;
+    salesOrder: mongoose.Types.ObjectId;
+    status: "pending" | "cancelled" | "succeeded" | "failed" | "refunded" | "partially_refunded";
+    metadata: any;
+    currency: "usd";
+    refundedAmount: number;
+    paymentMethod: "payment_link" | "saved_card" | "card";
+    customer?: mongoose.Types.ObjectId;
+    stripeCustomerId?: string;
+    stripePaymentIntentId?: string;
+    stripeChargeId?: string;
+    stripePaymentMethodId?: string;
+    stripePaymentLinkId?: string;
+    errorMessage?: string;
+    cardLast4?: string;
+    cardBrand?: string;
+}, {}, {}, {}, mongoose.Document<unknown, {}, {
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+    amount: number;
+    salesOrder: mongoose.Types.ObjectId;
+    status: "pending" | "cancelled" | "succeeded" | "failed" | "refunded" | "partially_refunded";
+    metadata: any;
+    currency: "usd";
+    refundedAmount: number;
+    paymentMethod: "payment_link" | "saved_card" | "card";
+    customer?: mongoose.Types.ObjectId;
+    stripeCustomerId?: string;
+    stripePaymentIntentId?: string;
+    stripeChargeId?: string;
+    stripePaymentMethodId?: string;
+    stripePaymentLinkId?: string;
+    errorMessage?: string;
+    cardLast4?: string;
+    cardBrand?: string;
+}, {}, mongoose.DefaultSchemaOptions> & {
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+    amount: number;
+    salesOrder: mongoose.Types.ObjectId;
+    status: "pending" | "cancelled" | "succeeded" | "failed" | "refunded" | "partially_refunded";
+    metadata: any;
+    currency: "usd";
+    refundedAmount: number;
+    paymentMethod: "payment_link" | "saved_card" | "card";
+    customer?: mongoose.Types.ObjectId;
+    stripeCustomerId?: string;
+    stripePaymentIntentId?: string;
+    stripeChargeId?: string;
+    stripePaymentMethodId?: string;
+    stripePaymentLinkId?: string;
+    errorMessage?: string;
+    cardLast4?: string;
+    cardBrand?: string;
+} & {
+    _id: mongoose.Types.ObjectId;
+} & {
+    __v: number;
+}, mongoose.Schema<any, mongoose.Model<any, any, any, any, any, any>, {}, {}, {}, {}, mongoose.DefaultSchemaOptions, {
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+    amount: number;
+    salesOrder: mongoose.Types.ObjectId;
+    status: "pending" | "cancelled" | "succeeded" | "failed" | "refunded" | "partially_refunded";
+    metadata: any;
+    currency: "usd";
+    refundedAmount: number;
+    paymentMethod: "payment_link" | "saved_card" | "card";
+    customer?: mongoose.Types.ObjectId;
+    stripeCustomerId?: string;
+    stripePaymentIntentId?: string;
+    stripeChargeId?: string;
+    stripePaymentMethodId?: string;
+    stripePaymentLinkId?: string;
+    errorMessage?: string;
+    cardLast4?: string;
+    cardBrand?: string;
+}, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+    amount: number;
+    salesOrder: mongoose.Types.ObjectId;
+    status: "pending" | "cancelled" | "succeeded" | "failed" | "refunded" | "partially_refunded";
+    metadata: any;
+    currency: "usd";
+    refundedAmount: number;
+    paymentMethod: "payment_link" | "saved_card" | "card";
+    customer?: mongoose.Types.ObjectId;
+    stripeCustomerId?: string;
+    stripePaymentIntentId?: string;
+    stripeChargeId?: string;
+    stripePaymentMethodId?: string;
+    stripePaymentLinkId?: string;
+    errorMessage?: string;
+    cardLast4?: string;
+    cardBrand?: string;
+}>, {}, mongoose.ResolveSchemaOptions<mongoose.DefaultSchemaOptions>> & mongoose.FlatRecord<{
+    createdAt: NativeDate;
+    updatedAt: NativeDate;
+    amount: number;
+    salesOrder: mongoose.Types.ObjectId;
+    status: "pending" | "cancelled" | "succeeded" | "failed" | "refunded" | "partially_refunded";
+    metadata: any;
+    currency: "usd";
+    refundedAmount: number;
+    paymentMethod: "payment_link" | "saved_card" | "card";
+    customer?: mongoose.Types.ObjectId;
+    stripeCustomerId?: string;
+    stripePaymentIntentId?: string;
+    stripeChargeId?: string;
+    stripePaymentMethodId?: string;
+    stripePaymentLinkId?: string;
+    errorMessage?: string;
+    cardLast4?: string;
+    cardBrand?: string;
+}> & {
+    _id: mongoose.Types.ObjectId;
+} & {
+    __v: number;
+}>>;
+export default _default;
+//# sourceMappingURL=Payments.d.ts.map

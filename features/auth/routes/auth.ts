@@ -92,17 +92,6 @@ router.post("/", authLimiter, (async (req, res) => {
           }
         );
 
-        const isProduction = process.env.NODE_ENV === "production";
-        const cookieOptions = {
-          httpOnly: true, // ✅ Prevent XSS attacks
-          maxAge: 24 * 3600 * 1000, // 24 hours expiration to match JWT
-          path: "/",
-          secure: isProduction, // Only send over HTTPS in production
-          sameSite: (isProduction ? "none" : "lax") as "none" | "lax" | "strict", // Cross-origin support in production
-        };
-
-        res.cookie("token", token, cookieOptions);
-
         res.status(200).json({
           success: true,
           message: "Authentication successful",

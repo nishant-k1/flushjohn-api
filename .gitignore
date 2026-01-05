@@ -56,3 +56,6 @@ public/temp/*
 
 # playwright-mcp
 .playwright-mcp/
+
+# Environment backup files
+.env.backup*

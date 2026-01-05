@@ -4,9 +4,13 @@ declare global {
   namespace Express {
     interface Request {
       user?: {
+        id: string;
         userId: string;
+        email?: string;
+        fName?: string;
+        lName?: string;
         role?: string;
-        [key: string]: any;
+        isActive?: boolean;
       };
       pagination?: {
         page: number;

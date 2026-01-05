@@ -4,38 +4,40 @@
 export declare const create: (blogData: any) => Promise<import("mongoose").Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -47,8 +49,6 @@ export declare const create: (blogData: any) => Promise<import("mongoose").Docum
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps, {}, {
@@ -62,38 +62,40 @@ export declare const create: (blogData: any) => Promise<import("mongoose").Docum
 }> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -105,8 +107,6 @@ export declare const create: (blogData: any) => Promise<import("mongoose").Docum
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps & {
@@ -122,38 +122,40 @@ export declare const findAll: ({ query, sort, skip, limit }: {
 }) => Promise<(import("mongoose").FlattenMaps<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -165,8 +167,6 @@ export declare const findAll: ({ query, sort, skip, limit }: {
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 }> & {
@@ -178,38 +178,40 @@ export declare const count: (query?: {}) => Promise<number>;
 export declare const findById: (id: any) => Promise<import("mongoose").Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -221,8 +223,6 @@ export declare const findById: (id: any) => Promise<import("mongoose").Document<
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps, {}, {
@@ -236,38 +236,40 @@ export declare const findById: (id: any) => Promise<import("mongoose").Document<
 }> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -279,8 +281,6 @@ export declare const findById: (id: any) => Promise<import("mongoose").Document<
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps & {
@@ -291,38 +291,40 @@ export declare const findById: (id: any) => Promise<import("mongoose").Document<
 export declare const findOne: (query: any, projection?: any, options?: {}) => Promise<import("mongoose").Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -334,8 +336,6 @@ export declare const findOne: (query: any, projection?: any, options?: {}) => Pr
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps, {}, {
@@ -349,38 +349,40 @@ export declare const findOne: (query: any, projection?: any, options?: {}) => Pr
 }> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -392,8 +394,6 @@ export declare const findOne: (query: any, projection?: any, options?: {}) => Pr
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps & {
@@ -404,38 +404,40 @@ export declare const findOne: (query: any, projection?: any, options?: {}) => Pr
 export declare const updateById: (id: any, updateData: any) => Promise<import("mongoose").Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -447,8 +449,6 @@ export declare const updateById: (id: any, updateData: any) => Promise<import("m
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps, {}, {
@@ -462,38 +462,40 @@ export declare const updateById: (id: any, updateData: any) => Promise<import("m
 }> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -505,8 +507,6 @@ export declare const updateById: (id: any, updateData: any) => Promise<import("m
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps & {
@@ -517,38 +517,40 @@ export declare const updateById: (id: any, updateData: any) => Promise<import("m
 export declare const deleteById: (id: any) => Promise<import("mongoose").Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -560,8 +562,6 @@ export declare const deleteById: (id: any) => Promise<import("mongoose").Documen
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps, {}, {
@@ -575,38 +575,40 @@ export declare const deleteById: (id: any) => Promise<import("mongoose").Documen
 }> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -618,8 +620,6 @@ export declare const deleteById: (id: any) => Promise<import("mongoose").Documen
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps & {

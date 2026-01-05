@@ -2,6 +2,8 @@ import createError from "http-errors";
 import express, { json, urlencoded } from "express";
 import { config } from "dotenv";
 import debug from "debug";
+// Load environment variables FIRST before any other imports that might depend on them
+config({ path: "./.env" });
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import cors from "cors";
@@ -34,7 +36,6 @@ import paymentsRouter from "./features/payments/routes/payments.js";
 import { authenticateToken, authorizeRoles, } from "./features/auth/middleware/auth.js";
 import { uploadLimiter, publicLimiter, } from "./middleware/rateLimiter.js";
 // All routers are now directly imported above
-config({ path: "./.env" });
 // Validate critical environment variables
 if (!process.env.SECRET_KEY) {
     console.error("ERROR: SECRET_KEY environment variable is required for JWT authentication");
@@ -99,8 +100,7 @@ app.use(logger("dev"));
 // We need to use express.raw() for this specific route
 app.use("/payments/webhook", express.raw({ type: "application/json" }), async (req, res, next) => {
     try {
-        const paymentsFeature = await import("./features/payments.js");
-        const webhookRouter = paymentsFeature.default.routes.webhook;
+        const { default: webhookRouter } = await import("./features/payments/routes/webhook.js");
         return webhookRouter(req, res, next);
     }
     catch (error) {
@@ -156,11 +156,12 @@ app.post("/leads", publicLimiter, async (req, res) => {
         const leadData = req.body;
         // Basic validation
         if (!leadData.email || !leadData.fName || !leadData.phone) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Missing required fields: email, fName, and phone are required",
                 error: "VALIDATION_ERROR",
             });
+            return;
         }
         // Use the service to create the lead
         const { createLead } = await import("./features/leads/services/leadsService.js");
@@ -189,7 +190,7 @@ app.post("/leads", publicLimiter, async (req, res) => {
     catch (error) {
         console.error("❌ Error creating lead via public endpoint:", error);
         if (error.name === "ValidationError") {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Validation failed",
                 error: "VALIDATION_ERROR",
@@ -197,13 +198,15 @@ app.post("/leads", publicLimiter, async (req, res) => {
                     ? Object.values(error.errors).map((err) => err.message)
                     : [error.message],
             });
+            return;
         }
         if (error.code === 11000) {
-            return res.status(409).json({
+            res.status(409).json({
                 success: false,
                 message: "Lead already exists",
                 error: "DUPLICATE_LEAD",
             });
+            return;
         }
         res.status(500).json({
             success: false,

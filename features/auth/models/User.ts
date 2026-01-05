@@ -96,7 +96,7 @@ UserSchema.pre("save", async function (next) {
 
   try {
     this.password = await argon2.hash(this.password);
-    this.passwordChangedAt = getCurrentDateTime();
+    this.passwordChangedAt = getCurrentDateTime().toDate();
     next();
   } catch (error) {
     next(error);
@@ -123,10 +123,10 @@ UserSchema.methods.incLoginAttempts = function () {
     });
   }
 
-  const updates = { $inc: { failedLoginAttempts: 1 } };
+  const updates: { $inc: { failedLoginAttempts: number }; $set?: { lockUntil: Date } } = { $inc: { failedLoginAttempts: 1 } };
 
   if (this.failedLoginAttempts + 1 >= 5 && !this.isLocked()) {
-    updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 }; // 2 hours
+    updates.$set = { lockUntil: new Date(Date.now() + 2 * 60 * 60 * 1000) }; // 2 hours
   }
 
   return this.updateOne(updates);
@@ -139,14 +139,13 @@ UserSchema.methods.resetLoginAttempts = function () {
 };
 
 UserSchema.methods.updateLastLogin = function () {
-  return this.updateOne({ lastLogin: getCurrentDateTime() });
+  return this.updateOne({ lastLogin: getCurrentDateTime().toDate() });
 };
 
-UserSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+UserSchema.methods.changedPasswordAfter = function (JWTTimestamp: number) {
   if (this.passwordChangedAt) {
-    const changedTimestamp = parseInt(
-      this.passwordChangedAt.getTime() / 1000,
-      10
+    const changedTimestamp = Math.floor(
+      (this.passwordChangedAt as Date).getTime() / 1000
     );
     return JWTTimestamp < changedTimestamp;
   }

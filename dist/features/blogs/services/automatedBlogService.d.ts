@@ -51,38 +51,40 @@ export declare function generateAutomatedBlogPost(contentType?: any, randomize?:
 export declare function publishAutomatedBlogPost(blogData: any): Promise<import("mongoose").Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -94,8 +96,6 @@ export declare function publishAutomatedBlogPost(blogData: any): Promise<import(
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps, {}, {
@@ -109,38 +109,40 @@ export declare function publishAutomatedBlogPost(blogData: any): Promise<import(
 }> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
+    wordCount: number;
+    status: "draft" | "published" | "archived";
     blogNo: number;
     title: string;
     slug: string;
     content: string;
     author: string;
     tags: string[];
-    status: "draft" | "published" | "archived";
-    category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+    category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
     metaKeywords: string[];
-    wordCount: number;
     readingTime: number;
     featured: boolean;
     views: number;
     likes: number;
     comments: import("mongoose").Types.DocumentArray<{
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }> & {
         createdAt: NativeDate;
-        content: string;
         user: string;
+        content: string;
         isApproved: boolean;
     }>;
     automated: boolean;
     priority: "high" | "medium" | "low";
+    city?: string;
+    state?: string;
     excerpt?: string;
     coverImageS3?: {
         alt: string;
@@ -152,8 +154,6 @@ export declare function publishAutomatedBlogPost(blogData: any): Promise<import(
     };
     publishedAt?: NativeDate;
     metaDescription?: string;
-    city?: string;
-    state?: string;
     faqSchema?: any;
     automationDate?: NativeDate;
 } & import("mongoose").DefaultTimestampProps & {
@@ -171,38 +171,40 @@ export declare function runAutomatedBlogGeneration(contentType?: any, randomize?
     blogPost: import("mongoose").Document<unknown, {}, {
         createdAt: NativeDate;
         updatedAt: NativeDate;
+        wordCount: number;
+        status: "draft" | "published" | "archived";
         blogNo: number;
         title: string;
         slug: string;
         content: string;
         author: string;
         tags: string[];
-        status: "draft" | "published" | "archived";
-        category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+        category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
         metaKeywords: string[];
-        wordCount: number;
         readingTime: number;
         featured: boolean;
         views: number;
         likes: number;
         comments: import("mongoose").Types.DocumentArray<{
             createdAt: NativeDate;
-            content: string;
             user: string;
+            content: string;
             isApproved: boolean;
         }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
             createdAt: NativeDate;
-            content: string;
             user: string;
+            content: string;
             isApproved: boolean;
         }> & {
             createdAt: NativeDate;
-            content: string;
             user: string;
+            content: string;
             isApproved: boolean;
         }>;
         automated: boolean;
         priority: "high" | "medium" | "low";
+        city?: string;
+        state?: string;
         excerpt?: string;
         coverImageS3?: {
             alt: string;
@@ -214,8 +216,6 @@ export declare function runAutomatedBlogGeneration(contentType?: any, randomize?
         };
         publishedAt?: NativeDate;
         metaDescription?: string;
-        city?: string;
-        state?: string;
         faqSchema?: any;
         automationDate?: NativeDate;
     } & import("mongoose").DefaultTimestampProps, {}, {
@@ -229,38 +229,40 @@ export declare function runAutomatedBlogGeneration(contentType?: any, randomize?
     }> & {
         createdAt: NativeDate;
         updatedAt: NativeDate;
+        wordCount: number;
+        status: "draft" | "published" | "archived";
         blogNo: number;
         title: string;
         slug: string;
         content: string;
         author: string;
         tags: string[];
-        status: "draft" | "published" | "archived";
-        category: "general" | "porta-potty-rental" | "construction" | "events" | "tips" | "news";
+        category: "construction" | "general" | "porta-potty-rental" | "events" | "tips" | "news";
         metaKeywords: string[];
-        wordCount: number;
         readingTime: number;
         featured: boolean;
         views: number;
         likes: number;
         comments: import("mongoose").Types.DocumentArray<{
             createdAt: NativeDate;
-            content: string;
             user: string;
+            content: string;
             isApproved: boolean;
         }, import("mongoose").Types.Subdocument<import("bson").ObjectId, any, {
             createdAt: NativeDate;
-            content: string;
             user: string;
+            content: string;
             isApproved: boolean;
         }> & {
             createdAt: NativeDate;
-            content: string;
             user: string;
+            content: string;
             isApproved: boolean;
         }>;
         automated: boolean;
         priority: "high" | "medium" | "low";
+        city?: string;
+        state?: string;
         excerpt?: string;
         coverImageS3?: {
             alt: string;
@@ -272,8 +274,6 @@ export declare function runAutomatedBlogGeneration(contentType?: any, randomize?
         };
         publishedAt?: NativeDate;
         metaDescription?: string;
-        city?: string;
-        state?: string;
         faqSchema?: any;
         automationDate?: NativeDate;
     } & import("mongoose").DefaultTimestampProps & {

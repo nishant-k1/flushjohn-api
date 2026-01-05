@@ -5,10 +5,6 @@ declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Mod
     salesOrders: mongoose.Types.ObjectId[];
     jobOrders: mongoose.Types.ObjectId[];
     country: string;
-    city?: string;
-    state?: string;
-    salesOrder?: mongoose.Types.ObjectId;
-    customerNo?: number;
     fName?: string;
     lName?: string;
     cName?: string;
@@ -16,18 +12,18 @@ declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Mod
     phone?: string;
     fax?: string;
     streetAddress?: string;
+    city?: string;
+    state?: string;
     zip?: string;
     note?: string;
+    salesOrder?: mongoose.Types.ObjectId;
+    customerNo?: number;
 }, {}, {}, {}, mongoose.Document<unknown, {}, {
     createdAt: NativeDate;
     quotes: mongoose.Types.ObjectId[];
     salesOrders: mongoose.Types.ObjectId[];
     jobOrders: mongoose.Types.ObjectId[];
     country: string;
-    city?: string;
-    state?: string;
-    salesOrder?: mongoose.Types.ObjectId;
-    customerNo?: number;
     fName?: string;
     lName?: string;
     cName?: string;
@@ -35,18 +31,18 @@ declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Mod
     phone?: string;
     fax?: string;
     streetAddress?: string;
+    city?: string;
+    state?: string;
     zip?: string;
     note?: string;
+    salesOrder?: mongoose.Types.ObjectId;
+    customerNo?: number;
 }, {}, mongoose.DefaultSchemaOptions> & {
     createdAt: NativeDate;
     quotes: mongoose.Types.ObjectId[];
     salesOrders: mongoose.Types.ObjectId[];
     jobOrders: mongoose.Types.ObjectId[];
     country: string;
-    city?: string;
-    state?: string;
-    salesOrder?: mongoose.Types.ObjectId;
-    customerNo?: number;
     fName?: string;
     lName?: string;
     cName?: string;
@@ -54,8 +50,12 @@ declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Mod
     phone?: string;
     fax?: string;
     streetAddress?: string;
+    city?: string;
+    state?: string;
     zip?: string;
     note?: string;
+    salesOrder?: mongoose.Types.ObjectId;
+    customerNo?: number;
 } & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -66,10 +66,6 @@ declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Mod
     salesOrders: mongoose.Types.ObjectId[];
     jobOrders: mongoose.Types.ObjectId[];
     country: string;
-    city?: string;
-    state?: string;
-    salesOrder?: mongoose.Types.ObjectId;
-    customerNo?: number;
     fName?: string;
     lName?: string;
     cName?: string;
@@ -77,18 +73,18 @@ declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Mod
     phone?: string;
     fax?: string;
     streetAddress?: string;
+    city?: string;
+    state?: string;
     zip?: string;
     note?: string;
+    salesOrder?: mongoose.Types.ObjectId;
+    customerNo?: number;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     createdAt: NativeDate;
     quotes: mongoose.Types.ObjectId[];
     salesOrders: mongoose.Types.ObjectId[];
     jobOrders: mongoose.Types.ObjectId[];
     country: string;
-    city?: string;
-    state?: string;
-    salesOrder?: mongoose.Types.ObjectId;
-    customerNo?: number;
     fName?: string;
     lName?: string;
     cName?: string;
@@ -96,18 +92,18 @@ declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Mod
     phone?: string;
     fax?: string;
     streetAddress?: string;
+    city?: string;
+    state?: string;
     zip?: string;
     note?: string;
+    salesOrder?: mongoose.Types.ObjectId;
+    customerNo?: number;
 }>, {}, mongoose.ResolveSchemaOptions<mongoose.DefaultSchemaOptions>> & mongoose.FlatRecord<{
     createdAt: NativeDate;
     quotes: mongoose.Types.ObjectId[];
     salesOrders: mongoose.Types.ObjectId[];
     jobOrders: mongoose.Types.ObjectId[];
     country: string;
-    city?: string;
-    state?: string;
-    salesOrder?: mongoose.Types.ObjectId;
-    customerNo?: number;
     fName?: string;
     lName?: string;
     cName?: string;
@@ -115,8 +111,12 @@ declare const _default: mongoose.Model<any, {}, {}, {}, any, any> | mongoose.Mod
     phone?: string;
     fax?: string;
     streetAddress?: string;
+    city?: string;
+    state?: string;
     zip?: string;
     note?: string;
+    salesOrder?: mongoose.Types.ObjectId;
+    customerNo?: number;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {

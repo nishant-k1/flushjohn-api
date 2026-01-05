@@ -4,56 +4,51 @@
 import { Router } from "express";
 import * as blogsService from "../services/blogsService.js";
 import { generateBlogCoverImagePresignedUrl, deleteBlogCoverImageFromS3, } from "../../common/services/s3Service.js";
+import { parsePaginationQuery, safeStringQuery, isValidationError, } from "../../../types/common.js";
 const router = Router();
-router.post("/", async function (req, res) {
+router.post("/", (async function (req, res) {
     try {
         const blog = await blogsService.createBlog(req.body);
         res.status(201).json({ success: true, data: blog });
     }
     catch (error) {
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
+        if (isValidationError(error)) {
+            res.status(400).json({
                 success: false,
                 message: "Validation failed",
                 error: "VALIDATION_ERROR",
                 details: error.message,
             });
+            return;
         }
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         res.status(500).json({
             success: false,
             message: "Failed to create blog",
-            error: error.message,
+            error: errorMessage,
         });
     }
-});
-router.get("/", async function (req, res) {
+}));
+router.get("/", (async function (req, res) {
     try {
-        const { page = 1, limit = 10, sortBy = "createdAt", sortOrder = "desc", slug = null, search = "", searchQuery = "", status = null, // ✅ NEW: Add status parameter
-        page: _page, limit: _limit, sortBy: _sortBy, sortOrder: _sortOrder, ...columnFilters } = req.query;
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-        if (isNaN(pageNum) || pageNum < 1) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid page number",
-                error: "INVALID_PAGE_NUMBER",
-            });
-        }
-        if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid limit. Must be between 1 and 100",
-                error: "INVALID_LIMIT",
-            });
-        }
+        const pagination = parsePaginationQuery(req.query);
+        const { slug, status, ...columnFilters } = req.query;
+        const slugValue = slug
+            ? safeStringQuery(typeof slug === "string" || Array.isArray(slug) ? slug : String(slug))
+            : null;
+        const statusValue = status
+            ? safeStringQuery(typeof status === "string" || Array.isArray(status)
+                ? status
+                : String(status))
+            : null;
         const result = await blogsService.getAllBlogs({
-            page: pageNum,
-            limit: limitNum,
-            sortBy,
-            sortOrder,
-            slug,
-            search: search || searchQuery,
-            status,
+            page: pagination.page,
+            limit: pagination.limit,
+            sortBy: pagination.sortBy,
+            sortOrder: pagination.sortOrder,
+            slug: slugValue,
+            search: pagination.search,
+            status: statusValue,
             ...columnFilters,
         });
         res.status(200).json({
@@ -62,63 +57,70 @@ router.get("/", async function (req, res) {
         });
     }
     catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        res.status(500).json({ success: false, error: errorMessage });
     }
-});
-router.get("/:id", async function (req, res) {
+}));
+router.get("/:id", (async function (req, res) {
     try {
         const { id } = req.params;
         if (!blogsService.isValidObjectId(id)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid blog ID format",
                 error: "INVALID_ID_FORMAT",
             });
+            return;
         }
         const blog = await blogsService.getBlogById(id);
         res.status(200).json({ success: true, data: blog });
     }
     catch (error) {
-        if (error.name === "NotFoundError") {
-            return res.status(404).json({
+        if (error instanceof Error && error.name === "NotFoundError") {
+            res.status(404).json({
                 success: false,
                 message: error.message,
                 error: "BLOG_NOT_FOUND",
             });
+            return;
         }
-        res.status(500).json({ success: false, error: error.message });
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        res.status(500).json({ success: false, error: errorMessage });
     }
-});
-router.put("/:id", async function (req, res) {
+}));
+router.put("/:id", (async function (req, res) {
     try {
         const { id } = req.params;
         if (!blogsService.isValidObjectId(id)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid blog ID format",
                 error: "INVALID_ID_FORMAT",
             });
+            return;
         }
         if (!req.body || Object.keys(req.body).length === 0) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Request body is required for update",
                 error: "EMPTY_REQUEST_BODY",
             });
+            return;
         }
         const blog = await blogsService.updateBlog(id, req.body);
         res.status(200).json({ success: true, data: blog });
     }
     catch (error) {
-        if (error.name === "NotFoundError") {
-            return res.status(404).json({
+        if (error instanceof Error && error.name === "NotFoundError") {
+            res.status(404).json({
                 success: false,
                 message: error.message,
                 error: "BLOG_NOT_FOUND",
             });
+            return;
         }
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
+        if (isValidationError(error)) {
+            res.status(400).json({
                 success: false,
                 message: "Validation failed",
                 error: "VALIDATION_ERROR",
@@ -126,24 +128,27 @@ router.put("/:id", async function (req, res) {
                     ? Object.values(error.errors).map((err) => err.message)
                     : [error.message],
             });
+            return;
         }
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         res.status(500).json({
             success: false,
             message: "Failed to update blog",
             error: "INTERNAL_SERVER_ERROR",
-            ...(process.env.NODE_ENV === "development" && { details: error.message }),
+            ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
         });
     }
-});
-router.delete("/:id", async function (req, res) {
+}));
+router.delete("/:id", (async function (req, res) {
     try {
         const { id } = req.params;
         if (!blogsService.isValidObjectId(id)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid blog ID format",
                 error: "INVALID_ID_FORMAT",
             });
+            return;
         }
         const result = await blogsService.deleteBlog(id);
         res.status(200).json({
@@ -153,38 +158,42 @@ router.delete("/:id", async function (req, res) {
         });
     }
     catch (error) {
-        if (error.name === "NotFoundError") {
-            return res.status(404).json({
+        if (error instanceof Error && error.name === "NotFoundError") {
+            res.status(404).json({
                 success: false,
                 message: error.message,
                 error: "BLOG_NOT_FOUND",
             });
+            return;
         }
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         res.status(500).json({
             success: false,
             message: "Failed to delete blog",
             error: "INTERNAL_SERVER_ERROR",
-            ...(process.env.NODE_ENV === "development" && { details: error.message }),
+            ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
         });
     }
-});
-router.post("/:id/cover-image/presigned-url", async function (req, res) {
+}));
+router.post("/:id/cover-image/presigned-url", (async function (req, res) {
     try {
         const { id } = req.params;
         const { fileType } = req.body;
         if (!blogsService.isValidObjectId(id)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid blog ID format",
                 error: "INVALID_ID_FORMAT",
             });
+            return;
         }
         if (!fileType) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "File type is required",
                 error: "MISSING_FILE_TYPE",
             });
+            return;
         }
         const allowedTypes = [
             "image/jpeg",
@@ -194,11 +203,12 @@ router.post("/:id/cover-image/presigned-url", async function (req, res) {
             "image/webp",
         ];
         if (!allowedTypes.includes(fileType)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid file type. Allowed types: jpeg, jpg, png, gif, webp",
                 error: "INVALID_FILE_TYPE",
             });
+            return;
         }
         await blogsService.getBlogById(id);
         const result = await generateBlogCoverImagePresignedUrl(id, fileType);
@@ -208,38 +218,42 @@ router.post("/:id/cover-image/presigned-url", async function (req, res) {
         });
     }
     catch (error) {
-        if (error.name === "NotFoundError") {
-            return res.status(404).json({
+        if (error instanceof Error && error.name === "NotFoundError") {
+            res.status(404).json({
                 success: false,
                 message: error.message,
                 error: "BLOG_NOT_FOUND",
             });
+            return;
         }
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         res.status(500).json({
             success: false,
             message: "Failed to generate presigned URL",
             error: "INTERNAL_SERVER_ERROR",
-            ...(process.env.NODE_ENV === "development" && { details: error.message }),
+            ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
         });
     }
-});
-router.post("/:id/cover-image/upload-complete", async function (req, res) {
+}));
+router.post("/:id/cover-image/upload-complete", (async function (req, res) {
     try {
         const { id } = req.params;
         const { publicUrl, key } = req.body;
         if (!blogsService.isValidObjectId(id)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid blog ID format",
                 error: "INVALID_ID_FORMAT",
             });
+            return;
         }
         if (!publicUrl || !key) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Public URL and key are required",
                 error: "MISSING_REQUIRED_FIELDS",
             });
+            return;
         }
         await blogsService.getBlogById(id);
         const updatedBlog = await blogsService.updateBlog(id, {
@@ -255,30 +269,33 @@ router.post("/:id/cover-image/upload-complete", async function (req, res) {
         });
     }
     catch (error) {
-        if (error.name === "NotFoundError") {
-            return res.status(404).json({
+        if (error instanceof Error && error.name === "NotFoundError") {
+            res.status(404).json({
                 success: false,
                 message: error.message,
                 error: "BLOG_NOT_FOUND",
             });
+            return;
         }
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         res.status(500).json({
             success: false,
             message: "Failed to complete upload",
             error: "INTERNAL_SERVER_ERROR",
-            ...(process.env.NODE_ENV === "development" && { details: error.message }),
+            ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
         });
     }
-});
-router.delete("/:id/cover-image", async function (req, res) {
+}));
+router.delete("/:id/cover-image", (async function (req, res) {
     try {
         const { id } = req.params;
         if (!blogsService.isValidObjectId(id)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid blog ID format",
                 error: "INVALID_ID_FORMAT",
             });
+            return;
         }
         await blogsService.getBlogById(id);
         const deleteSuccess = await deleteBlogCoverImageFromS3(id);
@@ -295,58 +312,64 @@ router.delete("/:id/cover-image", async function (req, res) {
         });
     }
     catch (error) {
-        if (error.name === "NotFoundError") {
-            return res.status(404).json({
+        if (error instanceof Error && error.name === "NotFoundError") {
+            res.status(404).json({
                 success: false,
                 message: error.message,
                 error: "BLOG_NOT_FOUND",
             });
+            return;
         }
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         res.status(500).json({
             success: false,
             message: "Failed to delete cover image",
             error: "INTERNAL_SERVER_ERROR",
-            ...(process.env.NODE_ENV === "development" && { details: error.message }),
+            ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
         });
     }
-});
+}));
 // Regenerate excerpt for a blog
-router.post("/:id/regenerate-excerpt", async function (req, res) {
+router.post("/:id/regenerate-excerpt", (async function (req, res) {
     try {
         const { id } = req.params;
         if (!blogsService.isValidObjectId(id)) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "Invalid blog ID format",
                 error: "INVALID_ID_FORMAT",
             });
+            return;
         }
         const blog = await blogsService.regenerateExcerpt(id);
         res.status(200).json({ success: true, data: blog });
     }
     catch (error) {
-        if (error.name === "NotFoundError") {
-            return res.status(404).json({
+        if (error instanceof Error && error.name === "NotFoundError") {
+            res.status(404).json({
                 success: false,
                 message: "Blog not found",
                 error: "NOT_FOUND",
             });
+            return;
         }
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
+        if (isValidationError(error)) {
+            res.status(400).json({
                 success: false,
                 message: "Validation failed",
                 error: "VALIDATION_ERROR",
                 details: error.message,
             });
+            return;
         }
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
         res.status(500).json({
             success: false,
             message: "Failed to regenerate excerpt",
             error: "INTERNAL_SERVER_ERROR",
-            ...(process.env.NODE_ENV === "development" && { details: error.message }),
+            ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
         });
     }
-});
+}));
 export default router;
 //# sourceMappingURL=blogs.js.map
