@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import User from "../models/User.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
+import { generateCsrfToken } from "../../../middleware/csrf.js";
 import {
   AsyncRouteHandler,
   isUserJwtPayload,
