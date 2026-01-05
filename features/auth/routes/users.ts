@@ -1,12 +1,13 @@
 import express from "express";
 import User from "../models/User.js";
 import { authenticateToken } from "../middleware/auth.js";
+import { AsyncRouteHandler, MongooseFilter } from "../../../types/common.js";
 
 const router = express.Router();
 
-router.get("/", async (req, res) => {
+router.get("/", (async (req, res) => {
   try {
-    const users = await User.find({}, { password: 0 }); // Exclude password field
+    const users = await User.find({} as MongooseFilter, { password: 0 }); // Exclude password field
 
     res.status(200).json({
       success: true,
@@ -18,20 +19,21 @@ router.get("/", async (req, res) => {
       message: "Failed to fetch users",
     });
   }
-});
+}) as AsyncRouteHandler);
 
-router.get("/:userId", async (req, res) => {
+router.get("/:userId", (async (req, res) => {
   try {
     const user = await User.findOne(
-      { userId: req.params.userId },
+      { userId: req.params.userId } as MongooseFilter<{ userId: string }>,
       { password: 0 }
     );
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "User not found",
       });
+      return;
     }
 
     res.status(200).json({
@@ -44,23 +46,24 @@ router.get("/:userId", async (req, res) => {
       message: "Failed to fetch user",
     });
   }
-});
+}) as AsyncRouteHandler);
 
-router.put("/:userId", async (req, res) => {
+router.put("/:userId", (async (req, res) => {
   try {
     const { fName, lName, email, role, isActive } = req.body;
 
     const user = await User.findOneAndUpdate(
-      { userId: req.params.userId },
+      { userId: req.params.userId } as MongooseFilter<{ userId: string }>,
       { fName, lName, email, role, isActive },
       { new: true, select: "-password" }
     );
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "User not found",
       });
+      return;
     }
 
     res.status(200).json({
@@ -74,37 +77,48 @@ router.put("/:userId", async (req, res) => {
       message: "Failed to update user",
     });
   }
-});
+}) as AsyncRouteHandler);
 
-router.post("/update-avatar", authenticateToken, async (req, res) => {
+router.post("/update-avatar", authenticateToken, (async (req, res) => {
   try {
     const userId = req.user?.userId;
 
     if (!userId) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Unauthorized - No user ID found",
       });
+      return;
     }
 
     const { avatarUrl, fName, lName, phone } = req.body;
 
-    const updateData = {};
+    const updateData: {
+      avatarUrl?: string;
+      fName?: string;
+      lName?: string;
+      phone?: string;
+    } = {};
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
     if (fName !== undefined) updateData.fName = fName;
     if (lName !== undefined) updateData.lName = lName;
     if (phone !== undefined) updateData.phone = phone;
 
-    const user = await User.findOneAndUpdate({ userId }, updateData, {
-      new: true,
-      select: "-password",
-    });
+    const user = await User.findOneAndUpdate(
+      { userId } as MongooseFilter<{ userId: string }>,
+      updateData,
+      {
+        new: true,
+        select: "-password",
+      }
+    );
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "User not found",
       });
+      return;
     }
 
     res.status(200).json({
@@ -122,17 +136,31 @@ router.post("/update-avatar", authenticateToken, async (req, res) => {
           : undefined,
     });
   }
-});
+}) as AsyncRouteHandler);
 
-router.delete("/:userId", async (req, res) => {
+router.delete("/:userId", (async (req, res) => {
   try {
-    const user = await User.findOneAndDelete({ userId: req.params.userId });
+    // Prevent users from deleting themselves
+    if (req.user?.userId === req.params.userId) {
+      res.status(400).json({
+        success: false,
+        message: "Cannot delete your own account",
+        error: "CANNOT_DELETE_SELF",
+      });
+      return;
+    }
+
+    const user = await User.findOneAndDelete({
+      userId: req.params.userId,
+    } as MongooseFilter<{ userId: string }>);
 
     if (!user) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "User not found",
+        error: "USER_NOT_FOUND",
       });
+      return;
     }
 
     res.status(200).json({
@@ -145,6 +173,6 @@ router.delete("/:userId", async (req, res) => {
       message: "Failed to delete user",
     });
   }
-});
+}) as AsyncRouteHandler);
 
 export default router;
