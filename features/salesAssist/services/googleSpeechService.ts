@@ -10,25 +10,61 @@ import { SpeechClient } from "@google-cloud/speech";
 // Credentials can be provided via:
 // 1. GOOGLE_CREDENTIALS_JSON environment variable (JSON string - recommended for production)
 // 2. GOOGLE_APPLICATION_CREDENTIALS environment variable (path to service account JSON file - for local dev)
-let speechClient = null;
+let speechClient: SpeechClient | null = null;
+let initializationAttempted = false;
 
 /**
  * Initialize the Speech client with credentials
  * Supports both JSON string (production) and file path (local development)
+ * Uses lazy initialization to ensure environment variables are loaded
  */
-const initializeSpeechClient = () => {
+const initializeSpeechClient = (): SpeechClient | null => {
+  // Only attempt initialization once
+  if (initializationAttempted) {
+    return speechClient;
+  }
+  
+  initializationAttempted = true;
+
   try {
     // Option 1: Check for JSON credentials string (production)
     if (process.env.GOOGLE_CREDENTIALS_JSON) {
       console.log("Initializing Google Speech client with JSON credentials...");
-      const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
-      return new SpeechClient({ credentials });
+      try {
+        // Trim whitespace and parse JSON
+        const jsonString = process.env.GOOGLE_CREDENTIALS_JSON.trim();
+        const credentials = JSON.parse(jsonString);
+        
+        // Validate required fields
+        if (!credentials.type || !credentials.project_id || !credentials.private_key || !credentials.client_email) {
+          throw new Error("Invalid credentials: missing required fields (type, project_id, private_key, client_email)");
+        }
+        
+        console.log(`Google Speech client credentials loaded for project: ${credentials.project_id}`);
+        speechClient = new SpeechClient({ credentials });
+        console.log("✅ Google Speech client initialized successfully");
+        return speechClient;
+      } catch (parseError: any) {
+        console.error("❌ Failed to parse GOOGLE_CREDENTIALS_JSON:", parseError.message);
+        console.error("Error details:", parseError);
+        speechClient = null;
+        return null;
+      }
     }
 
     // Option 2: Check for file path (local development)
     if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
       console.log("Initializing Google Speech client with credentials file...");
-      return new SpeechClient();
+      console.log(`Using credentials file: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
+      try {
+        speechClient = new SpeechClient();
+        console.log("✅ Google Speech client initialized successfully with file credentials");
+        return speechClient;
+      } catch (fileError: any) {
+        console.error("❌ Failed to initialize Google Speech client with file credentials:", fileError.message);
+        speechClient = null;
+        return null;
+      }
     }
 
     // Option 3: No credentials configured - skip initialization
@@ -39,21 +75,21 @@ const initializeSpeechClient = () => {
     console.warn(
       "ℹ️  Set GOOGLE_CREDENTIALS_JSON (JSON string) or GOOGLE_APPLICATION_CREDENTIALS (file path) to enable"
     );
+    speechClient = null;
     return null;
-  } catch (error) {
-    console.warn(
-      "Google Cloud Speech client initialization failed:",
+  } catch (error: any) {
+    console.error(
+      "❌ Google Cloud Speech client initialization failed:",
       error.message
     );
+    console.error("Error stack:", error.stack);
     console.warn(
       "Set GOOGLE_CREDENTIALS_JSON (JSON string) or GOOGLE_APPLICATION_CREDENTIALS (file path)"
     );
+    speechClient = null;
     return null;
   }
 };
-
-// Initialize the client
-speechClient = initializeSpeechClient();
 
 /**
  * Create a streaming recognition request configuration
@@ -79,6 +115,11 @@ export const createRecognitionConfig = () => {
  * @returns {Object} StreamingRecognizeClient and request configuration
  */
 export const startStreamingRecognition = (onTranscript, onError) => {
+  // Lazy initialization - initialize on first use
+  if (!speechClient) {
+    speechClient = initializeSpeechClient();
+  }
+  
   if (!speechClient) {
     throw new Error(
       "Google Cloud Speech client not initialized. Please configure credentials."
@@ -150,6 +191,11 @@ export const startStreamingRecognition = (onTranscript, onError) => {
  * @returns {Promise<Object>} Recognition results
  */
 export const recognizeAudioBuffer = async (audioBuffer) => {
+  // Lazy initialization - initialize on first use
+  if (!speechClient) {
+    speechClient = initializeSpeechClient();
+  }
+  
   if (!speechClient) {
     throw new Error(
       "Google Cloud Speech client not initialized. Please configure credentials."
@@ -200,8 +246,13 @@ export const recognizeAudioBuffer = async (audioBuffer) => {
 
 /**
  * Check if Google Cloud Speech client is initialized
+ * Uses lazy initialization to ensure environment variables are loaded
  * @returns {boolean}
  */
 export const isInitialized = () => {
+  // Lazy initialization - initialize on first check
+  if (!initializationAttempted) {
+    speechClient = initializeSpeechClient();
+  }
   return speechClient !== null;
 };
