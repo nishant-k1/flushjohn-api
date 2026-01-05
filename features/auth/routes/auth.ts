@@ -3,6 +3,14 @@ import jwt from "jsonwebtoken";
 import rateLimit from "express-rate-limit";
 import User from "../models/User.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
+import {
+  AsyncRouteHandler,
+  isUserJwtPayload,
+  UserJwtPayload,
+  MongooseFilter,
+  isValidationError,
+  isDuplicateKeyError,
+} from "../../../types/common.js";
 
 const router = express.Router();
 
@@ -21,35 +29,38 @@ const authLimiter = rateLimit({
 });
 
 // Apply rate limiting to login endpoint
-router.post("/", authLimiter, async (req, res) => {
+router.post("/", authLimiter, (async (req, res) => {
   try {
     const { userId, password } = req.body;
 
     if (!userId || !password) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "User ID and password are required",
       });
+      return;
     }
 
     const user = await User.findOne({
       userId,
-    }).select("+password"); // Include password field for authentication
+    } as MongooseFilter<{ userId: string }>).select("+password"); // Include password field for authentication
 
     if (user) {
       if (user.isLocked()) {
-        return res.status(423).json({
+        res.status(423).json({
           success: false,
           message:
             "Account is temporarily locked due to too many failed login attempts. Please try again later.",
         });
+        return;
       }
 
       if (!user.isActive) {
-        return res.status(403).json({
+        res.status(403).json({
           success: false,
           message: "Account is deactivated. Please contact administrator.",
         });
+        return;
       }
 
       let validPassword;
@@ -57,10 +68,11 @@ router.post("/", authLimiter, async (req, res) => {
         validPassword = await user.comparePassword(password);
       } catch {
         await user.incLoginAttempts();
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: "Authentication failed",
         });
+        return;
       }
 
       if (validPassword) {
@@ -83,7 +95,7 @@ router.post("/", authLimiter, async (req, res) => {
           maxAge: 24 * 3600 * 1000, // 24 hours expiration to match JWT
           path: "/",
           secure: isProduction, // Only send over HTTPS in production
-          sameSite: isProduction ? "none" : "lax", // Cross-origin support in production
+          sameSite: (isProduction ? "none" : "lax") as "none" | "lax" | "strict", // Cross-origin support in production
         };
 
         res.cookie("token", token, cookieOptions);
@@ -98,67 +110,80 @@ router.post("/", authLimiter, async (req, res) => {
             lName: user.lName,
             email: user.email,
             avatarUrl: user.avatarUrl,
+            role: user.role,
           },
         });
       } else {
         await user.incLoginAttempts();
-        return res.status(401).json({
+        res.status(401).json({
           success: false,
           message: "Invalid credentials",
         });
+        return;
       }
     } else {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Invalid credentials",
       });
+      return;
     }
   } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      error: process.env.NODE_ENV === "development" ? errorMessage : undefined,
     });
   }
-});
+}) as AsyncRouteHandler);
 
-router.post("/register", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { userId, email, password, fName, lName, role = "user" } = req.body;
+router.post(
+  "/register",
+  authenticateToken,
+  requireAdmin,
+  (async (req, res) => {
+    try {
+      const { userId, email, password, fName, lName, role = "user" } = req.body;
 
-    if (!userId || !email || !password || !fName || !lName) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "User ID, email, password, first name, and last name are required",
-      });
-    }
+      if (!userId || !email || !password || !fName || !lName) {
+        res.status(400).json({
+          success: false,
+          message:
+            "User ID, email, password, first name, and last name are required",
+        });
+        return;
+      }
 
-    // Validate password strength
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 8 characters long",
-      });
-    }
+      // Validate password strength
+      if (password.length < 8) {
+        res.status(400).json({
+          success: false,
+          message: "Password must be at least 8 characters long",
+        });
+        return;
+      }
 
-    // Validate role is valid
-    const validRoles = ["admin", "manager", "user"];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid role. Must be one of: admin, manager, user",
-      });
-    }
+      // Validate role is valid
+      const validRoles = ["admin", "manager", "user"];
+      if (!validRoles.includes(role)) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid role. Must be one of: admin, manager, user",
+        });
+        return;
+      }
 
-    const existingUser = await User.findOne({
-      $or: [{ userId }, { email }],
-    });
+      const existingUser = await User.findOne({
+        $or: [{ userId }, { email }],
+      } as MongooseFilter<{ userId: string; email: string }>);
     if (existingUser) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "User already exists with this User ID or email",
       });
+      return;
     }
 
     const user = new User({
@@ -184,15 +209,17 @@ router.post("/register", authenticateToken, requireAdmin, async (req, res) => {
       },
     });
   } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      error: process.env.NODE_ENV === "development" ? errorMessage : undefined,
     });
   }
-});
+}) as AsyncRouteHandler);
 
-router.get("/verify", async (req, res) => {
+router.get("/verify", (async (req, res) => {
   try {
     let token = req.cookies.token; // Try cookie first
 
@@ -204,26 +231,38 @@ router.get("/verify", async (req, res) => {
     }
 
     if (!token) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "No token provided",
       });
+      return;
     }
 
-    const decoded = jwt.verify(token, process.env.SECRET_KEY, {
+    const decoded = jwt.verify(token, process.env.SECRET_KEY!, {
       algorithms: ["HS256"], // Explicitly specify the algorithm
     });
 
-    const user = await User.findOne({ userId: decoded.userId });
+    if (!isUserJwtPayload(decoded)) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid token format",
+      });
+      return;
+    }
+
+    const user = await User.findOne({
+      userId: decoded.userId,
+    } as MongooseFilter<{ userId: string }>);
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "User not found",
       });
+      return;
     }
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Token is valid",
       user: {
@@ -233,25 +272,28 @@ router.get("/verify", async (req, res) => {
         email: user.email,
         avatarUrl: user.avatarUrl,
         name: `${user.fName} ${user.lName}`,
+        role: user.role,
       },
     });
   } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     res.status(401).json({
       success: false,
       message: "Invalid token",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      error: process.env.NODE_ENV === "development" ? errorMessage : undefined,
     });
   }
-});
+}) as AsyncRouteHandler);
 
-router.post("/logout", (req, res) => {
+router.post("/logout", (req, res): void => {
   try {
     const isProduction = process.env.NODE_ENV === "production";
     const cookieOptions = {
       httpOnly: true,
       path: "/",
       secure: isProduction, // Only send over HTTPS in production
-      sameSite: isProduction ? "none" : "lax",
+      sameSite: (isProduction ? "none" : "lax") as "none" | "lax" | "strict",
     };
 
     res.clearCookie("token", cookieOptions);
