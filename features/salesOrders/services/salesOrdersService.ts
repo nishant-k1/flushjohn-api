@@ -1108,6 +1108,12 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
       },
     });
 
+    // Also update Lead's customer reference when Customer already exists
+    // This ensures the Lead shows up in "Show Customers Only" filter
+    await Leads.findByIdAndUpdate(lead._id, {
+      customer: customer._id,
+    });
+
     if (salesOrder.quote) {
       const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
