@@ -164,12 +164,14 @@ router.get(
         });
       }
 
+      console.error("Error retrieving leads:", error);
       res.status(500).json({
         success: false,
         message: "Failed to retrieve leads",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
           details: error.message,
+          stack: error.stack,
         }),
       });
     }

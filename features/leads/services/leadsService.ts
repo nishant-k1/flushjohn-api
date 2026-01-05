@@ -146,7 +146,7 @@ export const getAllLeads = async ({
   hasCustomerNo,
   ...columnFilters
 }) => {
-  const query = {};
+  let query = {};
   const exprConditions = [];
   const dayjs = (await import("../../../lib/dayjs.js")).dayjs;
 
@@ -321,8 +321,6 @@ export const getAllLeads = async ({
       { state: { $regex: escapedSearch, $options: "i" } },
       { zip: { $regex: escapedSearch, $options: "i" } },
       { country: { $regex: escapedSearch, $options: "i" } },
-      { deliveryDate: { $regex: escapedSearch, $options: "i" } },
-      { pickupDate: { $regex: escapedSearch, $options: "i" } },
       { usageType: { $regex: escapedSearch, $options: "i" } },
       { leadStatus: { $regex: escapedSearch, $options: "i" } },
       { leadSource: { $regex: escapedSearch, $options: "i" } },
@@ -330,26 +328,99 @@ export const getAllLeads = async ({
       { instructions: { $regex: escapedSearch, $options: "i" } },
     ];
 
-    // Search leadNo using $expr for partial numeric matching
+    // Search leadNo using $expr for partial numeric matching (handle null/missing values)
     searchConditions.push({
       $expr: {
         $regexMatch: {
-          input: { $toString: "$leadNo" },
+          input: {
+            $ifNull: [
+              { $toString: "$leadNo" },
+              "",
+            ],
+          },
           regex: escapedSearch,
           options: "i",
         },
       },
     });
 
-    // Search createdAt date field with partial matching
+    // Search createdAt date field with partial matching (handle null/missing dates and string dates)
     searchConditions.push({
       $expr: {
         $regexMatch: {
           input: {
-            $dateToString: {
-              format: "%B %d, %Y, %H:%M",
-              date: "$createdAt",
-            },
+            $ifNull: [
+              {
+                $dateToString: {
+                  format: "%B %d, %Y, %H:%M",
+                  date: {
+                    $convert: {
+                      input: "$createdAt",
+                      to: "date",
+                      onError: null,
+                      onNull: null,
+                    },
+                  },
+                },
+              },
+              "",
+            ],
+          },
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    });
+
+    // Search deliveryDate date field with partial matching (handle null/missing dates and string dates)
+    searchConditions.push({
+      $expr: {
+        $regexMatch: {
+          input: {
+            $ifNull: [
+              {
+                $dateToString: {
+                  format: "%B %d, %Y",
+                  date: {
+                    $convert: {
+                      input: "$deliveryDate",
+                      to: "date",
+                      onError: null,
+                      onNull: null,
+                    },
+                  },
+                },
+              },
+              "",
+            ],
+          },
+          regex: escapedSearch,
+          options: "i",
+        },
+      },
+    });
+
+    // Search pickupDate date field with partial matching (handle null/missing dates and string dates)
+    searchConditions.push({
+      $expr: {
+        $regexMatch: {
+          input: {
+            $ifNull: [
+              {
+                $dateToString: {
+                  format: "%B %d, %Y",
+                  date: {
+                    $convert: {
+                      input: "$pickupDate",
+                      to: "date",
+                      onError: null,
+                      onNull: null,
+                    },
+                  },
+                },
+              },
+              "",
+            ],
           },
           regex: escapedSearch,
           options: "i",
