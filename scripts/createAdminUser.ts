@@ -36,7 +36,7 @@ const createAdminUser = async () => {
     };
 
     // Check if user already exists
-    const existingUser = await User.findOne({
+    const existingUser = await (User as any).findOne({
       $or: [
         { userId: adminUser.userId },
         { email: adminUser.email },

@@ -5,7 +5,7 @@
 import { Router } from "express";
 import * as paymentsService from "../services/paymentsService.js";
 
-const router = Router();
+const router: any = Router();
 
 /**
  * Helper to validate MongoDB ObjectId
@@ -26,11 +26,11 @@ router.post(
       const { returnUrl } = req.body;
 
       if (!isValidObjectId(salesOrderId)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid sales order ID format",
           error: "INVALID_ID_FORMAT",
-        });
+        }); return;
       }
 
       const result = await paymentsService.createSalesOrderPaymentLink(
@@ -45,11 +45,11 @@ router.post(
       });
     } catch (error) {
       if (error.message === "Sales Order not found") {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: error.message,
           error: "SALES_ORDER_NOT_FOUND",
-        });
+        }); return;
       }
 
       res.status(500).json({
@@ -76,19 +76,19 @@ router.post(
       const { paymentMethodId, customerId = null } = req.body;
 
       if (!isValidObjectId(salesOrderId)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid sales order ID format",
           error: "INVALID_ID_FORMAT",
-        });
+        }); return;
       }
 
       if (!paymentMethodId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Payment method ID is required",
           error: "PAYMENT_METHOD_REQUIRED",
-        });
+        }); return;
       }
 
       const result = await paymentsService.savePaymentMethod(salesOrderId, {
@@ -103,11 +103,11 @@ router.post(
       });
     } catch (error) {
       if (error.message === "Sales Order not found") {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: error.message,
           error: "SALES_ORDER_NOT_FOUND",
-        });
+        }); return;
       }
       res.status(500).json({
         success: false,
@@ -131,19 +131,19 @@ router.post("/sales-orders/:salesOrderId/charge", async function (req, res) {
     const { paymentMethodId, saveCard = false, customerId = null } = req.body;
 
     if (!isValidObjectId(salesOrderId)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid sales order ID format",
         error: "INVALID_ID_FORMAT",
-      });
+      }); return;
     }
 
     if (!paymentMethodId) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Payment method ID is required",
         error: "PAYMENT_METHOD_REQUIRED",
-      });
+      }); return;
     }
 
     const result = await paymentsService.chargeSalesOrder(salesOrderId, {
@@ -159,11 +159,11 @@ router.post("/sales-orders/:salesOrderId/charge", async function (req, res) {
     });
   } catch (error) {
     if (error.message === "Sales Order not found") {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
         error: "SALES_ORDER_NOT_FOUND",
-      });
+      }); return;
     }
 
     res.status(500).json({
@@ -185,11 +185,11 @@ router.get("/customers/:customerId/payment-methods", async function (req, res) {
     const { customerId } = req.params;
 
     if (!customerId || !customerId.startsWith("cus_")) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid Stripe customer ID format",
         error: "INVALID_CUSTOMER_ID_FORMAT",
-      });
+      }); return;
     }
 
     const paymentMethods = await paymentsService.getCustomerPaymentMethods(
@@ -223,19 +223,19 @@ router.delete(
       const { customerId, paymentMethodId } = req.params;
 
       if (!customerId || !customerId.startsWith("cus_")) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid Stripe customer ID format",
           error: "INVALID_CUSTOMER_ID_FORMAT",
-        });
+        }); return;
       }
 
       if (!paymentMethodId || !paymentMethodId.startsWith("pm_")) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid payment method ID format",
           error: "INVALID_PAYMENT_METHOD_ID_FORMAT",
-        });
+        }); return;
       }
 
       await paymentsService.deletePaymentMethod(paymentMethodId);
@@ -267,11 +267,11 @@ router.get("/sales-orders/:salesOrderId", async function (req, res) {
     const { salesOrderId } = req.params;
 
     if (!isValidObjectId(salesOrderId)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid sales order ID format",
         error: "INVALID_ID_FORMAT",
-      });
+      }); return;
     }
 
     const payments = await paymentsService.getPaymentsBySalesOrder(
@@ -304,21 +304,21 @@ router.get("/:paymentId", async function (req, res) {
     const { paymentId } = req.params;
 
     if (!isValidObjectId(paymentId)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid payment ID format",
         error: "INVALID_ID_FORMAT",
-      });
+      }); return;
     }
 
     const payment = await paymentsService.getPaymentById(paymentId);
 
     if (!payment) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Payment not found",
         error: "PAYMENT_NOT_FOUND",
-      });
+      }); return;
     }
 
     res.status(200).json({
@@ -347,11 +347,11 @@ router.post("/:paymentId/cancel", async function (req, res) {
     const { paymentId } = req.params;
 
     if (!isValidObjectId(paymentId)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid payment ID format",
         error: "INVALID_ID_FORMAT",
-      });
+      }); return;
     }
 
     await cancelPaymentLink(paymentId);
@@ -364,11 +364,11 @@ router.post("/:paymentId/cancel", async function (req, res) {
     console.error("Error cancelling payment link:", error);
 
     if (error.message === "Payment not found") {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
         error: "PAYMENT_NOT_FOUND",
-      });
+      }); return;
     }
 
     res.status(500).json({
@@ -388,11 +388,11 @@ router.post("/:paymentId/sync", async function (req, res) {
     const { paymentId } = req.params;
 
     if (!isValidObjectId(paymentId)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid payment ID format",
         error: "INVALID_ID_FORMAT",
-      });
+      }); return;
     }
 
     const { syncPaymentLinkStatus } = await import(
@@ -407,22 +407,22 @@ router.post("/:paymentId/sync", async function (req, res) {
     });
   } catch (error) {
     if (error.message === "Payment not found") {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
         error: "PAYMENT_NOT_FOUND",
-      });
+      }); return;
     }
 
     if (
       error.message.includes("Only payment link payments") ||
       error.message.includes("Payment link ID not found")
     ) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: error.message,
         error: "INVALID_PAYMENT_TYPE",
-      });
+      }); return;
     }
 
     res.status(500).json({
@@ -444,11 +444,11 @@ router.post("/:paymentId/refund", async function (req, res) {
     const { amount = null, reason = "requested_by_customer" } = req.body;
 
     if (!isValidObjectId(paymentId)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid payment ID format",
         error: "INVALID_ID_FORMAT",
-      });
+      }); return;
     }
 
     const result = await paymentsService.refundPayment(
@@ -464,11 +464,11 @@ router.post("/:paymentId/refund", async function (req, res) {
     });
   } catch (error) {
     if (error.message === "Payment not found") {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
         error: "PAYMENT_NOT_FOUND",
-      });
+      }); return;
     }
 
     res.status(500).json({
@@ -489,11 +489,11 @@ router.post("/:paymentId/send-receipt", async function (req, res) {
     const { paymentId } = req.params;
 
     if (!isValidObjectId(paymentId)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Invalid payment ID format",
         error: "INVALID_ID_FORMAT",
-      });
+      }); return;
     }
 
     const result = await paymentsService.sendPaymentReceipt(paymentId);
@@ -508,19 +508,19 @@ router.post("/:paymentId/send-receipt", async function (req, res) {
       error.message === "Payment not found" ||
       error.message === "Sales order not found"
     ) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
         error: "NOT_FOUND",
-      });
+      }); return;
     }
 
     if (error.message === "Can only send receipt for successful payments") {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: error.message,
         error: "INVALID_PAYMENT_STATUS",
-      });
+      }); return;
     }
 
     res.status(500).json({

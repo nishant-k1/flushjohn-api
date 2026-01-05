@@ -116,7 +116,7 @@ export const createPaymentLink = async ({
     // Ensure amount is in cents
     const amountInCents = amountToCents(amount);
 
-    const paymentLink = await stripe.paymentLinks.create({
+    const paymentLink = await stripe.payment(Links as any).create({
       line_items: [
         {
           price_data: {
@@ -192,7 +192,7 @@ export const createPaymentIntent = async ({
       paymentIntentData.setup_future_usage = "off_session";
     }
 
-    const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+    const paymentIntent = await stripe.payment(Intents as any).create(paymentIntentData);
 
     return paymentIntent;
   } catch (error) {
@@ -271,7 +271,7 @@ export const attachPaymentMethodToCustomer = async (
 export const createSetupIntent = async (customerId) => {
   try {
     const stripe = getStripeClient();
-    const setupIntent = await stripe.setupIntents.create({
+    const setupIntent = await stripe.setup(Intents as any).create({
       customer: customerId,
       payment_method_types: ["card"],
     });

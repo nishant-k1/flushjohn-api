@@ -17,28 +17,28 @@ export const create = async (data) => {
  * Find conversation log by ID
  */
 export const findById = async (id) => {
-  return await ConversationLog.findById(id);
+  return await (ConversationLog as any).findById(id);
 };
 
 /**
  * Find conversation logs by lead ID
  */
 export const findByLeadId = async (leadId) => {
-  return await ConversationLog.find({ lead: leadId }).sort({ createdAt: -1 });
+  return await (ConversationLog as any).find({ lead: leadId }).sort({ createdAt: -1 });
 };
 
 /**
  * Update conversation log
  */
 export const update = async (id, data) => {
-  return await ConversationLog.findByIdAndUpdate(id, data, { new: true });
+  return await (ConversationLog as any).findByIdAndUpdate(id, data, { new: true });
 };
 
 /**
  * Update all conversation logs for a lead when SalesOrder is created
  */
 export const updateOnSalesOrderCreated = async (leadId, salesOrderId) => {
-  return await ConversationLog.updateMany(
+  return await (ConversationLog as any).updateMany(
     { lead: leadId },
     {
       salesOrderId: salesOrderId,
@@ -52,7 +52,7 @@ export const updateOnSalesOrderCreated = async (leadId, salesOrderId) => {
  * This confirms the sale is closed!
  */
 export const updateOnJobOrderCreated = async (leadId, jobOrderId) => {
-  return await ConversationLog.updateMany(
+  return await (ConversationLog as any).updateMany(
     { lead: leadId },
     {
       jobOrderId: jobOrderId,
@@ -65,7 +65,7 @@ export const updateOnJobOrderCreated = async (leadId, jobOrderId) => {
  * Mark conversation as processed with extracted learnings
  */
 export const markAsProcessed = async (id, extractedLearnings) => {
-  return await ConversationLog.findByIdAndUpdate(
+  return await (ConversationLog as any).findByIdAndUpdate(
     id,
     {
       extractedLearnings,
@@ -98,7 +98,7 @@ export const findSuccessfulConversations = async (options = {}) => {
     query["extractedInfo.location.state"] = state;
   }
 
-  return await ConversationLog.find(query)
+  return await (ConversationLog as any).find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
     .select(
@@ -112,7 +112,7 @@ export const findSuccessfulConversations = async (options = {}) => {
 export const getLearningStats = async () => {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const stats = await ConversationLog.aggregate([
+  const stats = await (ConversationLog as any).aggregate([
     {
       $match: {
         createdAt: { $gte: thirtyDaysAgo },
@@ -151,7 +151,7 @@ export const getLearningStats = async () => {
 export const findByOutcome = async (outcome, options = {}) => {
   const { limit = 20, skip = 0 } = options;
 
-  return await ConversationLog.find({ outcome })
+  return await (ConversationLog as any).find({ outcome })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -161,5 +161,5 @@ export const findByOutcome = async (outcome, options = {}) => {
  * Delete conversation log
  */
 export const deleteById = async (id) => {
-  return await ConversationLog.findByIdAndDelete(id);
+  return await (ConversationLog as any).findByIdAndDelete(id);
 };

@@ -3,11 +3,11 @@ import User from "../models/User.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { AsyncRouteHandler, MongooseFilter } from "../../../types/common.js";
 
-const router = express.Router();
+const router: any = express.Router();
 
 router.get("/", (async (req, res) => {
   try {
-    const users = await User.find({} as MongooseFilter, { password: 0 }); // Exclude password field
+    const users = await (User as any).find({} as MongooseFilter, { password: 0 }); // Exclude password field
 
     res.status(200).json({
       success: true,
@@ -23,8 +23,8 @@ router.get("/", (async (req, res) => {
 
 router.get("/:userId", (async (req, res) => {
   try {
-    const user = await User.findOne(
-      { userId: req.params.userId } as MongooseFilter<{ userId: string }>,
+    const user = await (User as any).findOne(
+      { userId: req.params.userId } as any,
       { password: 0 }
     );
 
@@ -52,8 +52,8 @@ router.put("/:userId", (async (req, res) => {
   try {
     const { fName, lName, email, role, isActive } = req.body;
 
-    const user = await User.findOneAndUpdate(
-      { userId: req.params.userId } as MongooseFilter<{ userId: string }>,
+    const user = await (User as any).findOneAndUpdate(
+      { userId: req.params.userId } as any,
       { fName, lName, email, role, isActive },
       { new: true, select: "-password" }
     );
@@ -104,8 +104,8 @@ router.post("/update-avatar", authenticateToken, (async (req, res) => {
     if (lName !== undefined) updateData.lName = lName;
     if (phone !== undefined) updateData.phone = phone;
 
-    const user = await User.findOneAndUpdate(
-      { userId } as MongooseFilter<{ userId: string }>,
+    const user = await (User as any).findOneAndUpdate(
+      { userId } as any,
       updateData,
       {
         new: true,
@@ -150,9 +150,9 @@ router.delete("/:userId", (async (req, res) => {
       return;
     }
 
-    const user = await User.findOneAndDelete({
+    const user = await (User as any).findOneAndDelete({
       userId: req.params.userId,
-    } as MongooseFilter<{ userId: string }>);
+    } as any);
 
     if (!user) {
       res.status(404).json({

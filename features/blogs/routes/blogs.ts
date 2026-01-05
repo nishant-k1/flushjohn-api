@@ -16,7 +16,7 @@ import {
   MongooseFilter,
 } from "../../../types/common.js";
 
-const router = Router();
+const router: any = Router();
 
 router.post("/", (async function (req, res) {
   try {

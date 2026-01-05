@@ -10,7 +10,7 @@ export const findAll = async ({
   skip = 0,
   limit = 100,
 }) => {
-  return Payments.find(query)
+  return (Payments as any).find(query)
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -19,11 +19,11 @@ export const findAll = async ({
 };
 
 export const findById = async (id) => {
-  return Payments.findById(id).populate("salesOrder customer");
+  return (Payments as any).findById(id).populate("salesOrder customer");
 };
 
 export const findOne = async (query, select = null) => {
-  const queryBuilder = Payments.findOne(query);
+  const queryBuilder = (Payments as any).findOne(query);
   if (select) {
     return queryBuilder.select(select);
   }
@@ -36,7 +36,7 @@ export const create = async (data) => {
 };
 
 export const updateById = async (id, updateData) => {
-  return Payments.findByIdAndUpdate(
+  return (Payments as any).findByIdAndUpdate(
     id,
     { $set: updateData },
     { new: true, runValidators: true }
@@ -52,27 +52,27 @@ export const findOneAndUpdate = async (query, updateData) => {
 };
 
 export const deleteById = async (id) => {
-  return Payments.findByIdAndDelete(id);
+  return (Payments as any).findByIdAndDelete(id);
 };
 
 export const count = async (query = {}) => {
-  return Payments.countDocuments(query);
+  return (Payments as any).countDocuments(query);
 };
 
 export const findBySalesOrder = async (salesOrderId) => {
-  return Payments.find({ salesOrder: salesOrderId })
+  return (Payments as any).find({ salesOrder: salesOrderId })
     .sort({ createdAt: -1 })
     .populate("salesOrder customer");
 };
 
 export const findByStripePaymentIntentId = async (paymentIntentId) => {
-  return Payments.findOne({ stripePaymentIntentId: paymentIntentId });
+  return (Payments as any).findOne({ stripePaymentIntentId: paymentIntentId });
 };
 
 export const findByStripePaymentLinkId = async (paymentLinkId) => {
-  return Payments.findOne({ stripePaymentLinkId: paymentLinkId });
+  return (Payments as any).findOne({ stripePaymentLinkId: paymentLinkId });
 };
 
 export const findByStripeChargeId = async (chargeId) => {
-  return Payments.findOne({ stripeChargeId: chargeId });
+  return (Payments as any).findOne({ stripeChargeId: chargeId });
 };

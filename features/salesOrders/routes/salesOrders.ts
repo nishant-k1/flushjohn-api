@@ -6,7 +6,7 @@ import { Router } from "express";
 import * as salesOrdersService from "../services/salesOrdersService.js";
 import validateAndRecalculateProducts from "../../../middleware/validateProducts.js";
 
-const router = Router();
+const router: any = Router();
 
 router.post("/", validateAndRecalculateProducts, async function (req, res) {
   try {

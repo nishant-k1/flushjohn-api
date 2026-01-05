@@ -239,13 +239,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use("/logos", express.static("public/logos"));
 
-app.use("/pdf", pdfAccessRouter);
-app.use("/", indexRouter);
-app.use("/auth", authRouter);
+app.use("/pdf", pdfAccessRouter as any);
+app.use("/", indexRouter as any);
+app.use("/auth", authRouter as any);
 // ✅ PERFORMANCE: Add rate limiting to public and expensive endpoints
-app.use("/contact", publicLimiter, contactRouter);
-app.use("/file-upload", authenticateToken, uploadLimiter, fileUploadRouter);
-app.use("/s3-cors", s3CorsRouter);
+app.use("/contact", publicLimiter, contactRouter as any);
+app.use("/file-upload", authenticateToken, uploadLimiter, fileUploadRouter as any);
+app.use("/s3-cors", s3CorsRouter as any);
 // Public lead submission endpoint (POST /leads - no auth required)
 // ✅ PERFORMANCE: Add rate limiting to prevent abuse
 app.post("/leads", publicLimiter, async (req: Request, res: Response) => {
@@ -324,30 +324,30 @@ app.post("/leads", publicLimiter, async (req: Request, res: Response) => {
     });
   }
 });
-app.use("/users", authenticateToken, authorizeRoles("admin"), usersRouter); // Only admins can manage users
+app.use("/users", authenticateToken, authorizeRoles("admin"), usersRouter as any); // Only admins can manage users
 // Other lead routes (GET, PUT, DELETE) require authentication
-app.use("/leads", authenticateToken, leadsRouter);
-app.use("/blogs", blogsRouter); // Keep public for marketing
-app.use("/vendors", authenticateToken, vendorsRouter);
-app.use("/customers", authenticateToken, customersRouter);
-app.use("/quotes", authenticateToken, quotesRouter);
-app.use("/salesOrders", authenticateToken, salesOrdersRouter);
-app.use("/jobOrders", authenticateToken, jobOrdersRouter);
-app.use("/payments", authenticateToken, paymentsRouter);
+app.use("/leads", authenticateToken, leadsRouter as any);
+app.use("/blogs", blogsRouter as any); // Keep public for marketing
+app.use("/vendors", authenticateToken, vendorsRouter as any);
+app.use("/customers", authenticateToken, customersRouter as any);
+app.use("/quotes", authenticateToken, quotesRouter as any);
+app.use("/salesOrders", authenticateToken, salesOrdersRouter as any);
+app.use("/jobOrders", authenticateToken, jobOrdersRouter as any);
+app.use("/payments", authenticateToken, paymentsRouter as any);
 // app.use("/phone", phoneRouter); // Commented out - will be enabled in future
 app.use(
   "/blog-automation",
   authenticateToken,
   authorizeRoles("admin"),
-  blogAutomationRouter
+  blogAutomationRouter as any
 ); // Only admins can automate blogs
 // ✅ PERFORMANCE: Add strict rate limiting to dashboard (expensive queries)
 // app.use("/dashboard", authenticateToken, strictLimiter, dashboardRouter); // TODO: dashboardRouter not found
-app.use("/notes", authenticateToken, notesRouter);
-app.use("/notifications", authenticateToken, notificationsRouter);
-app.use("/contacts", authenticateToken, contactsRouter);
-app.use("/sales-assist", salesAssistRouter);
-app.use("/sales-assist", speechRecognitionRouter);
+app.use("/notes", authenticateToken, notesRouter as any);
+app.use("/notifications", authenticateToken, notificationsRouter as any);
+app.use("/contacts", authenticateToken, contactsRouter as any);
+app.use("/sales-assist", salesAssistRouter as any);
+app.use("/sales-assist", speechRecognitionRouter as any);
 
 dbConnect()
   .then(() => {

@@ -308,10 +308,10 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
         "../../vendors/models/Vendors.js"
       );
 
-      let vendor = await Vendors.findById(jobOrderData.vendor._id);
+      let vendor = await (Vendors as any).findById(jobOrderData.vendor._id);
 
       if (!vendor && jobOrderData.vendor.name) {
-        vendor = await Vendors.findOne({ name: jobOrderData.vendor.name });
+        vendor = await (Vendors as any).findOne({ name: jobOrderData.vendor.name });
       }
 
       if (vendor) {

@@ -16,11 +16,12 @@ import {
   canUpdate,
   canDelete,
 } from "../../auth/middleware/permissions.js";
+import { safeStringQuery } from "../../../types/common.js";
 
 // Fallback for contacts resource if not defined
 const CONTACTS_RESOURCE = RESOURCES.CONTACTS || "contacts";
 
-const router = Router();
+const router: any = Router();
 
 router.get(
   "/",
@@ -47,20 +48,20 @@ router.get(
         limit
       );
       if (validationErrors.length > 0) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: validationErrors.join(", "),
-          error: "INVALID_PARAMETERS",
         });
+        return;
       }
 
       const result = await contactsService.getAllContacts({
         page,
         limit,
-        sortBy,
-        sortOrder,
-        status,
-        search,
+        sortBy: safeStringQuery(sortBy, "createdAt"),
+        sortOrder: safeStringQuery(sortOrder, "desc"),
+        status: status ? safeStringQuery(status) : undefined,
+        search: search ? safeStringQuery(search) : undefined,
         ...columnFilters,
       });
 
@@ -71,11 +72,11 @@ router.get(
       });
     } catch (error) {
       if (error.name === "CastError") {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid ID format",
           error: "INVALID_ID_FORMAT",
-        });
+        }); return;
       }
 
       res.status(500).json({
@@ -106,19 +107,19 @@ router.get(
       });
     } catch (error) {
       if (error.name === "NotFoundError") {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: error.message,
           error: "CONTACT_NOT_FOUND",
-        });
+        }); return;
       }
 
       if (error.name === "CastError") {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid ID format",
           error: "INVALID_ID_FORMAT",
-        });
+        }); return;
       }
 
       res.status(500).json({
@@ -142,19 +143,19 @@ router.put(
       const { id } = req.params;
 
       if (!contactsService.isValidObjectId(id)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid contact ID format",
           error: "INVALID_ID_FORMAT",
-        });
+        }); return;
       }
 
       if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Request body is required for update",
           error: "EMPTY_REQUEST_BODY",
-        });
+        }); return;
       }
 
       const contact = await contactsService.updateContact(id, req.body);
@@ -166,19 +167,19 @@ router.put(
       });
     } catch (error) {
       if (error.name === "NotFoundError") {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: error.message,
           error: "CONTACT_NOT_FOUND",
-        });
+        }); return;
       }
 
       if (error.name === "CastError") {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid ID format",
           error: "INVALID_ID_FORMAT",
-        });
+        }); return;
       }
 
       res.status(500).json({
@@ -209,19 +210,19 @@ router.delete(
       });
     } catch (error) {
       if (error.name === "NotFoundError") {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: error.message,
           error: "CONTACT_NOT_FOUND",
-        });
+        }); return;
       }
 
       if (error.name === "CastError") {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid ID format",
           error: "INVALID_ID_FORMAT",
-        });
+        }); return;
       }
 
       res.status(500).json({

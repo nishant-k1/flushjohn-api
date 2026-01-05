@@ -2,7 +2,7 @@ import { Router } from "express";
 import * as notificationsService from "../services/notificationsService.js";
 import { authenticateToken } from "../../auth/middleware/auth.js";
 
-const router = Router();
+const router: any = Router();
 
 // Get user's notifications
 router.get("/", authenticateToken, async (req, res) => {
@@ -75,11 +75,11 @@ router.put("/:id/read", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Error marking notification as read:", error);
     if (error.message === "Notification not found or unauthorized") {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
         error: "NOTIFICATION_NOT_FOUND",
-      });
+      }); return;
     }
     res.status(500).json({
       success: false,
@@ -127,11 +127,11 @@ router.delete("/:id", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Error deleting notification:", error);
     if (error.message === "Notification not found or unauthorized") {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
         error: "NOTIFICATION_NOT_FOUND",
-      });
+      }); return;
     }
     res.status(500).json({
       success: false,

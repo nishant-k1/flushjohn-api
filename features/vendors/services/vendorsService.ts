@@ -221,9 +221,9 @@ export const getAllVendors = async ({
   // Combine $expr conditions if any exist
   if (exprConditions.length > 0) {
     if (exprConditions.length === 1) {
-      query.$expr = exprConditions[0];
+      (query as any).$expr = exprConditions[0];
     } else {
-      query.$expr = { $and: exprConditions };
+      (query as any).$expr = { $and: exprConditions };
     }
   }
   if (search) {

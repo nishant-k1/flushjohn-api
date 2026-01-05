@@ -38,11 +38,12 @@ router.get("/", async (req, res) => {
     console.error("Error getting S3 CORS configuration:", error);
     
     if (error.name === "NoSuchCORSConfiguration") {
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "No CORS configuration found",
         corsConfiguration: [],
       });
+      return;
     }
 
     res.status(500).json({

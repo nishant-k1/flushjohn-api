@@ -13,7 +13,7 @@ export const createLeadNotification = async (lead) => {
     }
 
     // Get all active users
-    const users = await User.find({ isActive: true }).select("_id").lean();
+    const users = await (User as any).find({ isActive: true }).select("_id").lean();
 
     if (!users || users.length === 0) {
       console.log("No active users found for notification creation");

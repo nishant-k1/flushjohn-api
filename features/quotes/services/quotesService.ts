@@ -76,7 +76,7 @@ export const createQuote = async (quoteData) => {
     }
 
     if (leadNo) {
-      const lead = await Leads.findOne({ leadNo });
+      const lead = await (Leads as any).findOne({ leadNo });
       if (lead) {
         leadId = lead._id;
       }
@@ -421,8 +421,8 @@ const getAllQuotesWithAggregation = async ({
 
   // Execute both pipelines
   const [results, countResult] = await Promise.all([
-    Quotes.aggregate(pipeline),
-    Quotes.aggregate(countPipeline),
+    (Quotes as any).aggregate(pipeline),
+    (Quotes as any).aggregate(countPipeline),
   ]);
 
   const total = countResult[0]?.total || 0;
@@ -674,7 +674,7 @@ export const getAllQuotes = async ({
 
     if (leadNumbers.length > 0) {
       // ✅ Batch fetch all leads in one query
-      const leads = await Leads.find({ leadNo: { $in: leadNumbers } }).lean();
+      const leads = await (Leads as any).find({ leadNo: { $in: leadNumbers } }).lean();
       leads.forEach((lead) => {
         leadsMap.set(lead.leadNo, lead);
       });
@@ -747,7 +747,7 @@ export const getQuoteById = async (id) => {
     }
 
     if (leadNo) {
-      lead = await Leads.findOne({ leadNo });
+      lead = await (Leads as any).findOne({ leadNo });
     }
   }
 
@@ -786,7 +786,7 @@ export const updateQuote = async (id, updateData) => {
     }
 
     if (leadNo) {
-      const lead = await Leads.findOne({ leadNo });
+      const lead = await (Leads as any).findOne({ leadNo });
       if (lead) {
         leadId = lead._id;
       }
@@ -817,7 +817,7 @@ export const updateQuote = async (id, updateData) => {
   // ✅ Update the associated Lead if it exists and there are lead fields to update
   if (leadId && Object.keys(leadFields).length > 0) {
     const Leads = (await import("../../leads/models/Leads.js")).default;
-    await Leads.findByIdAndUpdate(
+    await (Leads as any).findByIdAndUpdate(
       leadId,
       { $set: leadFields },
       { new: true, runValidators: true }
@@ -873,7 +873,7 @@ export const deleteQuote = async (id) => {
     await import("../../salesOrders/models/SalesOrders.js")
   ).default;
 
-  const salesOrdersCount = await SalesOrder.countDocuments({
+  const salesOrdersCount = await (SalesOrder as any).countDocuments({
     $or: [{ quote: id }, { quoteNo: existingQuote.quoteNo }],
   });
 

@@ -11,14 +11,14 @@ import Contacts from "../models/Contacts.js";
  * Create a new contact
  */
 export const create = async (contactData) => {
-  return await Contacts.create(contactData);
+  return await (Contacts as any).create(contactData);
 };
 
 /**
  * Find all contacts with filters, sorting, and pagination
  */
 export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await Contacts.find(query)
+  return await (Contacts as any).find(query)
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -29,28 +29,28 @@ export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) =
  * Count contacts matching query
  */
 export const count = async (query = {}) => {
-  return await Contacts.countDocuments(query);
+  return await (Contacts as any).countDocuments(query);
 };
 
 /**
  * Find a contact by ID
  */
 export const findById = async (id) => {
-  return await Contacts.findById(id);
+  return await (Contacts as any).findById(id);
 };
 
 /**
  * Find one contact matching query
  */
 export const findOne = async (query, projection = null) => {
-  return await Contacts.findOne(query, projection).sort({ createdAt: -1 });
+  return await (Contacts as any).findOne(query, projection).sort({ createdAt: -1 });
 };
 
 /**
  * Update a contact by ID
  */
 export const updateById = async (id, updateData) => {
-  return await Contacts.findByIdAndUpdate(
+  return await (Contacts as any).findByIdAndUpdate(
     id,
     updateData,
     { new: true, runValidators: true }
@@ -61,7 +61,7 @@ export const updateById = async (id, updateData) => {
  * Delete a contact by ID
  */
 export const deleteById = async (id) => {
-  return await Contacts.findByIdAndDelete(id);
+  return await (Contacts as any).findByIdAndDelete(id);
 };
 
 /**

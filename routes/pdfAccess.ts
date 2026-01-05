@@ -7,7 +7,7 @@ import {
 import { getCurrentDateTime } from "../lib/dayjs.js";
 import { getPDFSignedUrl } from "../features/common/services/s3Service.js";
 
-const router = Router();
+const router: any = Router();
 
 router.get(
   "/:documentType/:documentId",
@@ -19,19 +19,19 @@ router.get(
 
       const validTypes = ["quote", "salesOrder", "jobOrder"];
       if (!validTypes.includes(documentType)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid document type",
           error: "INVALID_DOCUMENT_TYPE",
-        });
+        }); return;
       }
 
       if (!documentId.match(/^[0-9a-fA-F]{24}$/)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid document ID format",
           error: "INVALID_DOCUMENT_ID",
-        });
+        }); return;
       }
 
       // Generate S3 key for PDF
@@ -47,11 +47,12 @@ router.get(
       } catch (error) {
         // If PDF doesn't exist in S3, return 404
         if (error.name === "NoSuchKey" || error.Code === "NoSuchKey") {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: "PDF not found",
           error: "PDF_NOT_FOUND",
         });
+        return;
       }
         
         // For other errors, return 500
@@ -61,6 +62,7 @@ router.get(
           message: "Error accessing PDF file",
           error: "PDF_ACCESS_ERROR",
           });
+          return;
         }
     } catch (error) {
       console.error("PDF access error:", error);
@@ -95,19 +97,19 @@ router.get(
 
       const validTypes = ["quote", "salesOrder", "jobOrder"];
       if (!validTypes.includes(documentType)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid document type",
           error: "INVALID_DOCUMENT_TYPE",
-        });
+        }); return;
       }
 
       if (!documentId.match(/^[0-9a-fA-F]{24}$/)) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid document ID format",
           error: "INVALID_DOCUMENT_ID",
-        });
+        }); return;
       }
 
       // Generate S3 key for PDF
@@ -139,11 +141,12 @@ router.get(
       } catch (error) {
         // If PDF doesn't exist in S3, return 404
         if (error.name === "NoSuchKey" || error.Code === "NoSuchKey") {
-          return res.status(404).json({
+          res.status(404).json({
             success: false,
             message: "PDF not found. Please generate the PDF first.",
             error: "PDF_NOT_FOUND",
           });
+          return;
         }
         
         throw error;

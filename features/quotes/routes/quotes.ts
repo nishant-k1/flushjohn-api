@@ -7,7 +7,7 @@ import * as quotesService from "../services/quotesService.js";
 import * as quoteAIRateService from "../services/quoteAIRateService.js";
 import validateAndRecalculateProducts from "../../../middleware/validateProducts.js";
 
-const router = Router();
+const router: any = Router();
 
 router.post("/", validateAndRecalculateProducts, async function (req, res) {
   try {

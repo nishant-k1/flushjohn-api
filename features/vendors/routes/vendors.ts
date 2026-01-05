@@ -5,7 +5,7 @@
 import { Router } from "express";
 import * as vendorsService from "../services/vendorsService.js";
 
-const router = Router();
+const router: any = Router();
 
 router.post("/", async function (req, res) {
   try {

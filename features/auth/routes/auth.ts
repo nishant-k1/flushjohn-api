@@ -13,7 +13,7 @@ import {
   isDuplicateKeyError,
 } from "../../../types/common.js";
 
-const router = express.Router();
+const router: any = express.Router();
 
 // Rate limiter for authentication endpoints
 // Disabled in development to prevent issues during testing
@@ -45,9 +45,9 @@ router.post("/", authLimiter, (async (req, res) => {
       return;
     }
 
-    const user = await User.findOne({
+    const user = await (User as any).findOne({
       userId,
-    } as MongooseFilter<{ userId: string }>).select("+password"); // Include password field for authentication
+    } as any).select("+password"); // Include password field for authentication
 
     if (user) {
       if (user.isLocked()) {
@@ -171,9 +171,9 @@ router.post(
         return;
       }
 
-      const existingUser = await User.findOne({
+      const existingUser = await (User as any).findOne({
         $or: [{ userId }, { email }],
-      } as MongooseFilter<{ userId: string; email: string }>);
+      } as any);
     if (existingUser) {
       res.status(400).json({
         success: false,
@@ -244,9 +244,9 @@ router.get("/verify", (async (req, res) => {
       return;
     }
 
-    const user = await User.findOne({
+    const user = await (User as any).findOne({
       userId: decoded.userId,
-    } as MongooseFilter<{ userId: string }>);
+    } as any);
 
     if (!user) {
       res.status(401).json({

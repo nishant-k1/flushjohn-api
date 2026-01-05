@@ -75,10 +75,10 @@ router.post("/trigger", async (req, res) => {
     const { jobName } = req.body;
 
     if (!jobName) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Job name is required",
-      });
+      }); return;
     }
 
     const validJobs = [
@@ -89,10 +89,11 @@ router.post("/trigger", async (req, res) => {
       "healthCheck",
     ];
     if (!validJobs.includes(jobName)) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: `Invalid job name. Must be one of: ${validJobs.join(", ")}`,
       });
+      return;
     }
 
     await triggerJob(jobName);

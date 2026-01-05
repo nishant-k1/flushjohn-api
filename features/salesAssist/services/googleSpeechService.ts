@@ -114,7 +114,10 @@ export const createRecognitionConfig = () => {
  * @param {Function} onError - Callback for errors
  * @returns {Object} StreamingRecognizeClient and request configuration
  */
-export const startStreamingRecognition = (onTranscript, onError) => {
+export const startStreamingRecognition = (
+  onTranscript: (transcript: string) => void,
+  onError: (error: Error) => void
+): any => {
   // Lazy initialization - initialize on first use
   if (!speechClient) {
     speechClient = initializeSpeechClient();

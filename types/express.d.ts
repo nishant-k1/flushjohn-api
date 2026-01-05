@@ -35,4 +35,55 @@ declare global {
   }
 }
 
+// Extend Express to allow route handlers to return Response
+declare module "express-serve-static-core" {
+  interface IRouter {
+    use(...handlers: any[]): this;
+    get<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+    post<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+    put<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+    delete<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+    patch<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+  }
+  
+  interface Application {
+    use(...handlers: any[]): this;
+    get<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+    post<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+    put<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+    delete<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+    patch<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(
+      path: any,
+      ...handlers: any[]
+    ): this;
+  }
+}
+
 export {};

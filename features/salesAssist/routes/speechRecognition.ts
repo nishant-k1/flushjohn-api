@@ -7,7 +7,7 @@ import { Router } from "express";
 import { authenticateToken } from "../../auth/middleware/auth.js";
 import * as googleSpeechService from "../services/googleSpeechService.js";
 
-const router = Router();
+const router: any = Router();
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -44,11 +44,11 @@ router.post("/speech/recognize", async (req, res) => {
     const { audioData } = req.body; // Base64 encoded audio data
 
     if (!audioData) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Audio data is required",
         error: "INVALID_REQUEST",
-      });
+      }); return;
     }
 
     // Convert base64 to buffer

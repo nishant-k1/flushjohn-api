@@ -88,7 +88,7 @@ export const createSalesOrder = async (salesOrderData) => {
 
   // Always check by email if provided
   if (salesOrderData.email) {
-    customerQuery.$or.push({ email: salesOrderData.email });
+    (customerQuery as any).$or.push({ email: salesOrderData.email });
   }
 
   // Add phone number search if phone is provided
@@ -99,14 +99,14 @@ export const createSalesOrder = async (salesOrderData) => {
       // This handles various phone formats like "(123) 456-7890", "123-456-7890", "1234567890", etc.
       // The pattern looks for the digits in order, allowing for non-digit characters between them
       const phonePattern = normalizedPhone.split("").join("\\D*");
-      customerQuery.$or.push({
+      (customerQuery as any).$or.push({
         phone: { $regex: phonePattern },
       });
     }
   }
 
   // Only execute query if we have at least one search criteria
-  if (customerQuery.$or.length > 0) {
+  if ((customerQuery as any).$or.length > 0) {
     const existingCustomer = await customersRepository.findOne(customerQuery);
 
     if (existingCustomer) {
@@ -522,8 +522,8 @@ const getAllSalesOrdersWithAggregation = async ({
 
   // Execute both pipelines
   const [results, countResult] = await Promise.all([
-    SalesOrders.aggregate(pipeline),
-    SalesOrders.aggregate(countPipeline),
+    (SalesOrders as any).aggregate(pipeline),
+    (SalesOrders as any).aggregate(countPipeline),
   ]);
 
   const total = countResult[0]?.total || 0;
@@ -746,9 +746,9 @@ export const getAllSalesOrders = async ({
   // Combine $expr conditions if any exist
   if (exprConditions.length > 0) {
     if (exprConditions.length === 1) {
-      query.$expr = exprConditions[0];
+      (query as any).$expr = exprConditions[0];
     } else {
-      query.$expr = { $and: exprConditions };
+      (query as any).$expr = { $and: exprConditions };
     }
   }
 
@@ -873,7 +873,7 @@ export const updateSalesOrder = async (id, updateData) => {
   // ✅ Update the associated Lead if it exists and there are lead fields to update
   if (leadId && Object.keys(leadFields).length > 0) {
     const Leads = (await import("../../leads/models/Leads.js")).default;
-    await Leads.findByIdAndUpdate(
+    await (Leads as any).findByIdAndUpdate(
       leadId,
       { $set: leadFields },
       { new: true, runValidators: true }
@@ -953,7 +953,7 @@ export const cancelSalesOrder = async (id) => {
   const Payments = (await import("../../payments/models/Payments.js"))
     .default;
 
-  const payments = await Payments.find({
+  const payments = await (Payments as any).find({
     salesOrder: id,
     status: { $in: ["succeeded", "partially_refunded"] },
   });
@@ -992,7 +992,7 @@ export const deleteSalesOrder = async (id) => {
   const JobOrder = (await import("../../jobOrders/models/JobOrders.js"))
     .default;
 
-  const jobOrdersCount = await JobOrder.countDocuments({
+  const jobOrdersCount = await (JobOrder as any).countDocuments({
     $or: [
       { salesOrder: id },
       { salesOrderNo: existingSalesOrder.salesOrderNo },
@@ -1049,7 +1049,7 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
   }
 
   const Leads = (await import("../../leads/models/Leads.js")).default;
-  const lead = await Leads.findById(salesOrder.lead);
+  const lead = await (Leads as any).findById(salesOrder.lead);
 
   if (!lead) {
     return;
@@ -1072,36 +1072,36 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
   const Customers = (await import("../../customers/models/Customers.js"))
     .default;
 
-  let customer = await Customers.findOne({
+  let customer = await (Customers as any).findOne({
     email: customerData.email,
   });
 
   if (!customer) {
-    const latestCustomer = await Customers.findOne({}, "customerNo");
+    const latestCustomer = await (Customers as any).findOne({}, "customerNo");
     const customerNo = latestCustomer?.customerNo
       ? latestCustomer.customerNo + 1
       : 1000;
 
-    customer = await Customers.create({
+    customer = await (Customers as any).create({
       ...customerData,
       customerNo,
       salesOrders: [salesOrder._id],
       ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
     });
 
-    await Leads.findByIdAndUpdate(lead._id, {
+    await (Leads as any).findByIdAndUpdate(lead._id, {
       customer: customer._id,
     });
 
     if (salesOrder.quote) {
       const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
-      await Quotes.findByIdAndUpdate(salesOrder.quote, {
+      await (Quotes as any).findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });
     }
   } else {
-    await Customers.findByIdAndUpdate(customer._id, {
+    await (Customers as any).findByIdAndUpdate(customer._id, {
       $addToSet: {
         salesOrders: salesOrder._id,
         ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
@@ -1110,14 +1110,14 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
 
     // Also update Lead's customer reference when Customer already exists
     // This ensures the Lead shows up in "Show Customers Only" filter
-    await Leads.findByIdAndUpdate(lead._id, {
+    await (Leads as any).findByIdAndUpdate(lead._id, {
       customer: customer._id,
     });
 
     if (salesOrder.quote) {
       const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
-      await Quotes.findByIdAndUpdate(salesOrder.quote, {
+      await (Quotes as any).findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });
     }

@@ -5,7 +5,7 @@
 import SalesOrders from "../models/SalesOrders.js";
 
 export const create = async (salesOrderData) => {
-  return await SalesOrders.create(salesOrderData);
+  return await (SalesOrders as any).create(salesOrderData);
 };
 
 export const findAll = async ({
@@ -14,7 +14,7 @@ export const findAll = async ({
   skip = 0,
   limit = 10,
 }) => {
-  return await SalesOrders.find(query)
+  return await (SalesOrders as any).find(query)
     .populate("lead")
     .populate("quote")
     .sort(sort)
@@ -24,28 +24,28 @@ export const findAll = async ({
 };
 
 export const count = async (query = {}) => {
-  return await SalesOrders.countDocuments(query);
+  return await (SalesOrders as any).countDocuments(query);
 };
 
 export const findById = async (id) => {
-  return await SalesOrders.findById(id).populate("lead").populate("quote");
+  return await (SalesOrders as any).findById(id).populate("lead").populate("quote");
 };
 
 export const findOne = async (query, projection = null) => {
-  return await SalesOrders.findOne(query, projection).sort({
+  return await (SalesOrders as any).findOne(query, projection).sort({
     salesOrderNo: -1,
   });
 };
 
 export const updateById = async (id, updateData) => {
-  return await SalesOrders.findByIdAndUpdate(id, updateData, {
+  return await (SalesOrders as any).findByIdAndUpdate(id, updateData, {
     new: true,
     runValidators: true,
   });
 };
 
 export const deleteById = async (id) => {
-  return await SalesOrders.findByIdAndDelete(id);
+  return await (SalesOrders as any).findByIdAndDelete(id);
 };
 
 export const exists = async (id) => {

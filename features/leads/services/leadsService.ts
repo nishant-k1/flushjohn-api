@@ -298,9 +298,9 @@ export const getAllLeads = async ({
   // Combine $expr conditions if any exist
   if (exprConditions.length > 0) {
     if (exprConditions.length === 1) {
-      query.$expr = exprConditions[0];
+      (query as any).$expr = exprConditions[0];
     } else {
-      query.$expr = { $and: exprConditions };
+      (query as any).$expr = { $and: exprConditions };
     }
   }
 
@@ -432,7 +432,7 @@ export const getAllLeads = async ({
     const hasOtherFilters = Object.keys(query).some(
       (key) => key !== "$or" && key !== "$and" && key !== "$expr"
     );
-    const hasExpr = query.$expr;
+    const hasExpr = (query as any).$expr;
 
     if (hasOtherFilters || hasExpr) {
       const andConditions = [{ $or: searchConditions }];
@@ -444,7 +444,7 @@ export const getAllLeads = async ({
       });
 
       if (hasExpr) {
-        andConditions.push({ $expr: query.$expr });
+        andConditions.push({ $expr: (query as any).$expr });
       }
 
       query = { $and: andConditions };
@@ -563,13 +563,13 @@ export const deleteLead = async (id) => {
     .default;
 
   const [quotesCount, salesOrdersCount, jobOrdersCount] = await Promise.all([
-    Quote.countDocuments({
+    (Quote as any).countDocuments({
       $or: [{ lead: id }, { leadId: id }, { leadNo: existingLead.leadNo }],
     }),
-    SalesOrder.countDocuments({
+    (SalesOrder as any).countDocuments({
       $or: [{ lead: id }, { leadId: id }, { leadNo: existingLead.leadNo }],
     }),
-    JobOrder.countDocuments({
+    (JobOrder as any).countDocuments({
       $or: [{ lead: id }, { leadId: id }, { leadNo: existingLead.leadNo }],
     }),
   ]);

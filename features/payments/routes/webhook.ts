@@ -6,7 +6,7 @@
 import { Router } from "express";
 import * as paymentsService from "../services/paymentsService.js";
 
-const router = Router();
+const router: any = Router();
 
 router.post("/", async function (req, res) {
   try {
@@ -14,11 +14,11 @@ router.post("/", async function (req, res) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Webhook secret not configured",
         error: "WEBHOOK_SECRET_MISSING",
-      });
+      }); return;
     }
 
     const { stripe } = await import("../services/stripeService.js");
@@ -29,7 +29,7 @@ router.post("/", async function (req, res) {
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
       console.error("Webhook signature verification failed:", err.message);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+      res.status(400).send(`Webhook Error: ${err.message}`); return;
     }
 
     // Handle the event

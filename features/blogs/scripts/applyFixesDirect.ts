@@ -120,7 +120,7 @@ async function fixBlog(blog) {
 
     // Apply updates directly to database
     if (hasUpdates) {
-      await Blog.findByIdAndUpdate(blog._id, { $set: updates }, { new: true });
+      await (Blog as any).findByIdAndUpdate(blog._id, { $set: updates }, { new: true });
       stats.fixed++;
       console.log(`  ✅ Blog updated successfully`);
       return true;
@@ -143,7 +143,7 @@ async function applyFixes() {
 
     // Fetch all published blogs
     console.log("📚 Fetching published blogs...");
-    const blogs = await Blog.find({ status: "published" }).lean();
+    const blogs = await (Blog as any).find({ status: "published" }).lean();
     stats.total = blogs.length;
 
     if (blogs.length === 0) {

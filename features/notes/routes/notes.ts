@@ -2,7 +2,7 @@ import { Router } from "express";
 import * as notesService from "../services/notesService.js";
 import { authenticateToken } from "../../auth/middleware/auth.js";
 
-const router = Router();
+const router: any = Router();
 
 // Get user's notes
 router.get("/", authenticateToken, async (req, res) => {
@@ -31,10 +31,10 @@ router.post("/save", authenticateToken, async (req, res) => {
     const { content } = req.body;
 
     if (content === undefined) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Content is required",
-      });
+      }); return;
     }
 
     const notes = await notesService.saveUserNotes(userId, content);

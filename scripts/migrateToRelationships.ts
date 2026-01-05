@@ -77,7 +77,7 @@ const migrateQuotes = async () => {
       let lead = null;
 
       if (quote.leadId) {
-        lead = await Lead.findById(quote.leadId);
+        lead = await (Lead as any).findById(quote.leadId);
       }
 
       if (!lead && quote.leadNo) {

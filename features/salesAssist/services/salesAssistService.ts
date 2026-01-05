@@ -155,19 +155,19 @@ export const getVendorPricing = async ({
     }
 
     if (city) {
-      if (!query.$or) query.$or = [];
-      query.$or.push({ city: { $regex: city, $options: "i" } });
-      query.$or.push({ serviceCities: { $regex: city, $options: "i" } });
+      if (!(query as any).$or) query.$or = [];
+      (query as any).$or.push({ city: { $regex: city, $options: "i" } });
+      (query as any).$or.push({ serviceCities: { $regex: city, $options: "i" } });
     }
 
     if (state) {
-      if (!query.$or) query.$or = [];
-      query.$or.push({ state: { $regex: state, $options: "i" } });
-      query.$or.push({ serviceStates: { $regex: state, $options: "i" } });
+      if (!(query as any).$or) query.$or = [];
+      (query as any).$or.push({ state: { $regex: state, $options: "i" } });
+      (query as any).$or.push({ serviceStates: { $regex: state, $options: "i" } });
     }
 
     const vendors = await vendorsRepository.findAll({
-      query: query.$or && query.$or.length > 0 ? { $or: query.$or } : query,
+      query: (query as any).$or && (query as any).$or.length > 0 ? { $or: (query as any).$or } : query,
       sort: { createdAt: -1 },
       skip: 0,
       limit: 10,
@@ -398,7 +398,7 @@ export const submitVendorQuote = async (quoteData) => {
       quotedDate: getCurrentDateTime(),
     };
 
-    const savedQuote = await vendorPricingRepository.create(pricingHistory);
+    const savedQuote = await vendor(PricingRepository as any).create(pricingHistory);
 
     return {
       id: savedQuote._id,

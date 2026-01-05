@@ -568,9 +568,9 @@ export const getAllBlogs = async ({
   // Combine $expr conditions if any exist
   if (exprConditions.length > 0) {
     if (exprConditions.length === 1) {
-      query.$expr = exprConditions[0];
+      (query as any).$expr = exprConditions[0];
     } else {
-      query.$expr = { $and: exprConditions };
+      (query as any).$expr = { $and: exprConditions };
     }
   }
 
@@ -640,7 +640,7 @@ export const getAllBlogs = async ({
     const hasOtherFilters = Object.keys(query).some(
       (key) => key !== "$or" && key !== "$and" && key !== "$expr"
     );
-    const hasExpr = query.$expr;
+    const hasExpr = (query as any).$expr;
 
     if (hasOtherFilters || hasExpr) {
       const andConditions = [{ $or: searchConditions }];
@@ -652,7 +652,7 @@ export const getAllBlogs = async ({
       });
 
       if (hasExpr) {
-        andConditions.push({ $expr: query.$expr });
+        andConditions.push({ $expr: (query as any).$expr });
       }
 
       query = { $and: andConditions };

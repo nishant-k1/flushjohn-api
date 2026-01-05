@@ -359,8 +359,8 @@ const getAllJobOrdersWithAggregation = async ({
 
   // Execute both pipelines
   const [results, countResult] = await Promise.all([
-    JobOrders.aggregate(pipeline),
-    JobOrders.aggregate(countPipeline),
+    (JobOrders as any).aggregate(pipeline),
+    (JobOrders as any).aggregate(countPipeline),
   ]);
 
   const total = countResult[0]?.total || 0;
@@ -500,7 +500,7 @@ export const updateJobOrder = async (id, updateData) => {
   // ✅ Update the associated Lead if it exists and there are lead fields to update
   if (leadId && Object.keys(leadFields).length > 0) {
     const Leads = (await import("../../leads/models/Leads.js")).default;
-    await Leads.findByIdAndUpdate(
+    await (Leads as any).findByIdAndUpdate(
       leadId,
       { $set: leadFields },
       { new: true, runValidators: true }
@@ -571,14 +571,14 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
   const SalesOrders = (
     await import("../../salesOrders/models/SalesOrders.js")
   ).default;
-  const salesOrder = await SalesOrders.findById(jobOrder.salesOrder);
+  const salesOrder = await (SalesOrders as any).findById(jobOrder.salesOrder);
 
   if (!salesOrder) {
     return;
   }
 
   const Leads = (await import("../../leads/models/Leads.js")).default;
-  const lead = salesOrder.lead ? await Leads.findById(salesOrder.lead) : null;
+  const lead = salesOrder.lead ? await (Leads as any).findById(salesOrder.lead) : null;
 
   if (!lead) {
     return;
@@ -601,17 +601,17 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
   const Customers = (await import("../../customers/models/Customers.js"))
     .default;
 
-  let customer = await Customers.findOne({
+  let customer = await (Customers as any).findOne({
     email: customerData.email,
   });
 
   if (!customer) {
-    const latestCustomer = await Customers.findOne({}, "customerNo");
+    const latestCustomer = await (Customers as any).findOne({}, "customerNo");
     const customerNo = latestCustomer?.customerNo
       ? latestCustomer.customerNo + 1
       : 1000;
 
-    customer = await Customers.create({
+    customer = await (Customers as any).create({
       ...customerData,
       customerNo,
       salesOrders: [salesOrder._id],
@@ -619,19 +619,19 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
       ...(salesOrder.quote && { quotes: [salesOrder.quote] }),
     });
 
-    await Leads.findByIdAndUpdate(lead._id, {
+    await (Leads as any).findByIdAndUpdate(lead._id, {
       customer: customer._id,
     });
 
     if (salesOrder.quote) {
       const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
-      await Quotes.findByIdAndUpdate(salesOrder.quote, {
+      await (Quotes as any).findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });
     }
   } else {
-    await Customers.findByIdAndUpdate(customer._id, {
+    await (Customers as any).findByIdAndUpdate(customer._id, {
       $addToSet: {
         salesOrders: salesOrder._id,
         jobOrders: jobOrder._id,
@@ -642,13 +642,13 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     if (salesOrder.quote) {
       const Quotes = (await import("../../quotes/models/Quotes.js"))
         .default;
-      await Quotes.findByIdAndUpdate(salesOrder.quote, {
+      await (Quotes as any).findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });
     }
   }
 
-  await SalesOrders.findByIdAndUpdate(salesOrder._id, {
+  await (SalesOrders as any).findByIdAndUpdate(salesOrder._id, {
     customerNo: customer.customerNo,
   });
 

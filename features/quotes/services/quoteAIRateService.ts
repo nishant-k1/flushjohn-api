@@ -98,7 +98,7 @@ export const getAISuggestedRate = async ({
         locationQuery["lead.state"] = { $regex: state, $options: "i" };
       }
 
-      const jobOrders = await JobOrders.find(locationQuery)
+      const jobOrders = await (JobOrders as any).find(locationQuery)
         .populate("lead")
         .sort({ createdAt: -1 })
         .limit(20)
@@ -144,7 +144,7 @@ export const getAISuggestedRate = async ({
         locationQuery["lead.state"] = { $regex: state, $options: "i" };
       }
 
-      const salesOrders = await SalesOrders.find(locationQuery)
+      const salesOrders = await (SalesOrders as any).find(locationQuery)
         .populate("lead")
         .sort({ createdAt: -1 })
         .limit(20)
@@ -188,7 +188,7 @@ export const getAISuggestedRate = async ({
         locationQuery["lead.state"] = { $regex: state, $options: "i" };
       }
 
-      const quotes = await Quotes.find(locationQuery)
+      const quotes = await (Quotes as any).find(locationQuery)
         .populate("lead")
         .sort({ createdAt: -1 })
         .limit(20)

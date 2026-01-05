@@ -2,8 +2,11 @@
  * Common type definitions for the API
  */
 
-import { Request, Response, NextFunction, ParsedQs } from "express";
+import { Request, Response, NextFunction } from "express";
 import { JwtPayload } from "jsonwebtoken";
+
+// ParsedQs type for query parameters
+export type ParsedQs = Record<string, string | string[] | undefined>;
 
 /**
  * Express route handler type
@@ -51,7 +54,11 @@ export interface ParsedPagination {
  */
 export type MongooseFilter<T = Record<string, unknown>> = {
   [K in keyof T]?: T[K] | { $or?: Array<{ [key: string]: unknown }> };
-} & Record<string, unknown>;
+} & Record<string, unknown> & {
+  $expr?: any;
+  $or?: Array<{ [key: string]: unknown }>;
+  $and?: Array<{ [key: string]: unknown }>;
+};
 
 /**
  * JWT decoded payload with userId
@@ -141,7 +148,7 @@ export function parsePaginationQuery(query: PaginationQuery): ParsedPagination {
  * Safe string conversion for query parameters
  */
 export function safeStringQuery(
-  value: string | string[] | ParsedQs | ParsedQs[] | undefined,
+  value: string | string[] | ParsedQs | undefined,
   defaultValue: string = ""
 ): string {
   if (Array.isArray(value)) {

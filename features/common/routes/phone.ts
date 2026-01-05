@@ -9,7 +9,7 @@ import { canRead } from "../../auth/middleware/permissions.js";
 import { RESOURCES } from "../../auth/middleware/permissions.js";
 import { body, validationResult } from "express-validator";
 
-const router = Router();
+const router: any = Router();
 
 /**
  * POST /phone/call

@@ -17,14 +17,14 @@ export const create = async (data) => {
  * Find vendor conversation log by ID
  */
 export const findById = async (id) => {
-  return await VendorConversationLog.findById(id);
+  return await (VendorConversationLog as any).findById(id);
 };
 
 /**
  * Find all unprocessed vendor conversations for AI learning
  */
 export const findUnprocessed = async (limit = 10) => {
-  return await VendorConversationLog.find({ processed: false })
+  return await (VendorConversationLog as any).find({ processed: false })
     .sort({ createdAt: -1 })
     .limit(limit);
 };
@@ -33,7 +33,7 @@ export const findUnprocessed = async (limit = 10) => {
  * Mark a conversation as processed
  */
 export const markAsProcessed = async (id, extractedLearnings) => {
-  return await VendorConversationLog.findByIdAndUpdate(
+  return await (VendorConversationLog as any).findByIdAndUpdate(
     id,
     {
       processed: true,
@@ -51,7 +51,7 @@ export const markAsProcessed = async (id, extractedLearnings) => {
 export const findProcessedForLearning = async (options = {}) => {
   const { limit = 10, daysBack = 60 } = options;
 
-  return await VendorConversationLog.find({
+  return await (VendorConversationLog as any).find({
     processed: true,
     createdAt: {
       $gte: new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000),
@@ -66,7 +66,7 @@ export const findProcessedForLearning = async (options = {}) => {
  * Get all effective phrases from processed conversations
  */
 export const getEffectivePhrases = async (limit = 50) => {
-  const conversations = await VendorConversationLog.find({
+  const conversations = await (VendorConversationLog as any).find({
     processed: true,
     "extractedLearnings.effectivePhrases": { $exists: true, $ne: [] },
   })
@@ -89,7 +89,7 @@ export const getEffectivePhrases = async (limit = 50) => {
  * Get all negotiation tactics from processed conversations
  */
 export const getNegotiationTactics = async (limit = 50) => {
-  const conversations = await VendorConversationLog.find({
+  const conversations = await (VendorConversationLog as any).find({
     processed: true,
     "extractedLearnings.negotiationTactics": { $exists: true, $ne: [] },
   })
@@ -113,7 +113,7 @@ export const getNegotiationTactics = async (limit = 50) => {
 export const getLearningStats = async () => {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  const stats = await VendorConversationLog.aggregate([
+  const stats = await (VendorConversationLog as any).aggregate([
     {
       $match: {
         createdAt: { $gte: thirtyDaysAgo },
@@ -146,5 +146,5 @@ export const getLearningStats = async () => {
  * Delete vendor conversation log
  */
 export const deleteById = async (id) => {
-  return await VendorConversationLog.findByIdAndDelete(id);
+  return await (VendorConversationLog as any).findByIdAndDelete(id);
 };

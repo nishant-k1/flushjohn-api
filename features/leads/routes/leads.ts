@@ -26,7 +26,7 @@ import {
   canDelete,
 } from "../../auth/middleware/permissions.js";
 
-const router = Router();
+const router: any = Router();
 
 // POST /leads is now public (handled in app.js)
 // This route is kept for backward compatibility but won't be used

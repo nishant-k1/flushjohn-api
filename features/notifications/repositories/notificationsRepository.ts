@@ -9,7 +9,7 @@ export const findByUserId = async (userId, options = {}) => {
       query.read = read === true || read === "true";
     }
 
-    const notifications = await Notification.find(query)
+    const notifications = await (Notification as any).find(query)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip))
@@ -24,7 +24,7 @@ export const findByUserId = async (userId, options = {}) => {
 
 export const findUnreadCount = async (userId) => {
   try {
-    const count = await Notification.countDocuments({
+    const count = await (Notification as any).countDocuments({
       userId,
       read: false,
     });
@@ -37,7 +37,7 @@ export const findUnreadCount = async (userId) => {
 
 export const findById = async (notificationId) => {
   try {
-    const notification = await Notification.findById(notificationId).lean();
+    const notification = await (Notification as any).findById(notificationId).lean();
     return notification;
   } catch (error) {
     console.error("Error finding notification by ID:", error);
@@ -47,7 +47,7 @@ export const findById = async (notificationId) => {
 
 export const findByUserIdAndLeadId = async (userId, leadId) => {
   try {
-    const notification = await Notification.findOne({
+    const notification = await (Notification as any).findOne({
       userId,
       leadId,
     }).lean();
@@ -105,7 +105,7 @@ export const markAsRead = async (notificationId, userId) => {
 
 export const markAllAsRead = async (userId) => {
   try {
-    const result = await Notification.updateMany(
+    const result = await (Notification as any).updateMany(
       { userId, read: false },
       { read: true, readAt: new Date() }
     );
@@ -131,7 +131,7 @@ export const deleteById = async (notificationId, userId) => {
 
 export const deleteByLeadId = async (leadId) => {
   try {
-    const result = await Notification.deleteMany({ leadId });
+    const result = await (Notification as any).deleteMany({ leadId });
     return result;
   } catch (error) {
     console.error("Error deleting notifications by leadId:", error);
@@ -141,7 +141,7 @@ export const deleteByLeadId = async (leadId) => {
 
 export const deleteAll = async (userId) => {
   try {
-    const result = await Notification.deleteMany({ userId });
+    const result = await (Notification as any).deleteMany({ userId });
     return result;
   } catch (error) {
     console.error("Error deleting all notifications:", error);
@@ -153,7 +153,7 @@ export const deleteOldNotifications = async (daysOld = 30) => {
   try {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-    const result = await Notification.deleteMany({
+    const result = await (Notification as any).deleteMany({
       createdAt: { $lt: cutoffDate },
     });
     return result;

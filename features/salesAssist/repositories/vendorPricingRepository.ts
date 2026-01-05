@@ -5,11 +5,11 @@
 import VendorPricingHistory from "../models/VendorPricingHistory.js";
 
 export const create = async (pricingData) => {
-  return await VendorPricingHistory.create(pricingData);
+  return await (VendorPricingHistory as any).create(pricingData);
 };
 
 export const findById = async (id) => {
-  return await VendorPricingHistory.findById(id);
+  return await (VendorPricingHistory as any).findById(id);
 };
 
 export const findRecentPricing = async ({
@@ -41,14 +41,14 @@ export const findRecentPricing = async ({
     };
   }
 
-  return await VendorPricingHistory.find(query)
+  return await (VendorPricingHistory as any).find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
 };
 
 export const findByVendorId = async (vendorId, limit = 10) => {
-  return await VendorPricingHistory.find({ vendorId })
+  return await (VendorPricingHistory as any).find({ vendorId })
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
@@ -87,7 +87,7 @@ export const calculateAveragePricing = async ({
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   query.createdAt = { $gte: ninetyDaysAgo };
 
-  const pricingHistory = await VendorPricingHistory.find(query)
+  const pricingHistory = await (VendorPricingHistory as any).find(query)
     .sort({ createdAt: -1 })
     .lean();
 
@@ -114,12 +114,12 @@ export const calculateAveragePricing = async ({
 };
 
 export const update = async (id, updateData) => {
-  return await VendorPricingHistory.findByIdAndUpdate(id, updateData, {
+  return await (VendorPricingHistory as any).findByIdAndUpdate(id, updateData, {
     new: true,
     runValidators: true,
   });
 };
 
 export const deleteById = async (id) => {
-  return await VendorPricingHistory.findByIdAndDelete(id);
+  return await (VendorPricingHistory as any).findByIdAndDelete(id);
 };

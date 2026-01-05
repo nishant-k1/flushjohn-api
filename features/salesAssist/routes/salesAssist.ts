@@ -7,7 +7,7 @@ import * as salesAssistService from "../services/salesAssistService.js";
 import * as vendorConversationLogRepository from "../repositories/vendorConversationLogRepository.js";
 import { authenticateToken } from "../../auth/middleware/auth.js";
 
-const router = Router();
+const router: any = Router();
 
 // Apply authentication to all routes
 router.use(authenticateToken);

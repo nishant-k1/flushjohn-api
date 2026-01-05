@@ -4,8 +4,9 @@
 
 import { Router } from "express";
 import * as customersService from "../services/customersService.js";
+import { safeStringQuery } from "../../../types/common.js";
 
-const router = Router();
+const router: any = Router();
 
 router.post("/", async function (req, res) {
   try {
@@ -54,9 +55,9 @@ router.get("/", async function (req, res) {
     const result = await customersService.getAllCustomers({
       page: pageNum,
       limit: limitNum,
-      sortBy,
-      sortOrder,
-      search: search || searchQuery,
+      sortBy: safeStringQuery(sortBy, "createdAt"),
+      sortOrder: safeStringQuery(sortOrder, "desc"),
+      search: safeStringQuery(search || searchQuery, ""),
       ...columnFilters,
     });
 

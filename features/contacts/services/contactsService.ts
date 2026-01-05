@@ -195,7 +195,7 @@ export const getAllContacts = async ({
     const hasOtherFilters = Object.keys(query).some(
       (key) => key !== "$or" && key !== "$and" && key !== "$expr"
     );
-    const hasExpr = query.$expr;
+    const hasExpr = (query as any).$expr;
 
     if (hasOtherFilters || hasExpr) {
       const andConditions = [{ $or: searchConditions }];
@@ -207,7 +207,7 @@ export const getAllContacts = async ({
       });
 
       if (hasExpr) {
-        andConditions.push({ $expr: query.$expr });
+        andConditions.push({ $expr: (query as any).$expr });
       }
 
       query = { $and: andConditions };

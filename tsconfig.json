@@ -16,6 +16,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "noEmitOnError": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": false,

@@ -44,9 +44,9 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       });
     }
 
-    const user = await User.findOne({
+    const user = await (User as any).findOne({
       userId: decoded.userId,
-    } as MongooseFilter<{ userId: string }>);
+    } as any);
 
     if (!user) {
       return res.status(401).json({
@@ -154,9 +154,9 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       return next();
     }
 
-    const user = await User.findOne({
+    const user = await (User as any).findOne({
       userId: decoded.userId,
-    } as MongooseFilter<{ userId: string }>);
+    } as any);
 
     if (user && user.isActive && !user.isLocked()) {
       req.user = {

@@ -6,7 +6,7 @@ import {
 } from "../../auth/middleware/auth.js";
 import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
-const router = Router();
+const router: any = Router();
 
 /**
  * GET /pdf-cleanup - Manually trigger PDF cleanup
@@ -21,11 +21,11 @@ router.get(
       const maxAgeInDays = parseInt(req.query.days) || 1;
 
       if (maxAgeInDays < 1 || maxAgeInDays > 365) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "Invalid age parameter. Must be between 1 and 365 days",
           error: "INVALID_AGE_PARAMETER",
-        });
+        }); return;
       }
 
       const result = await cleanupOldPDFs(maxAgeInDays);
@@ -72,14 +72,14 @@ router.get(
       const tempDir = path.join(process.cwd(), "public", "temp");
 
       if (!fs.existsSync(tempDir)) {
-        return res.json({
+        res.json({
           success: true,
           data: {
             totalFiles: 0,
             totalSize: 0,
             files: [],
           },
-        });
+        }); return;
       }
 
       const files = await readdir(tempDir);

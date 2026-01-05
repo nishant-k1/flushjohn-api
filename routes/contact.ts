@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import nodemailer from "nodemailer";
 import * as contactsService from "../features/contacts/services/contactsService.js";
 
-const router = Router();
+const router: any = Router();
 
 interface ContactEmailData {
   firstName: string;
@@ -18,10 +18,11 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
 
     // Validate required fields
     if (!emailData.firstName || !emailData.lastName || !emailData.email || !emailData.message) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Missing required fields",
       });
+      return;
     }
 
     // Save contact to database
@@ -69,14 +70,14 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       `,
     });
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       status: "Success",
       message: "Contact message sent successfully",
     });
   } catch (err: any) {
     console.error("Error sending contact email:", err);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       error: "Failed to send email",
       message: err.message || "Internal server error",

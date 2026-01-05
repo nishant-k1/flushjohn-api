@@ -32,9 +32,9 @@ router.post("/", async (req, res) => {
     const { name, type } = req.body;
 
     if (!name || !type) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Invalid request: Missing name or type",
-      });
+      }); return;
     }
 
     const params = {
@@ -63,9 +63,9 @@ router.put("/", async (req, res) => {
     const { name, type } = req.body;
 
     if (!name || !type) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Invalid request: Missing name or type",
-      });
+      }); return;
     }
 
     const params = {
@@ -91,9 +91,9 @@ router.post("/blog-content-image", async (req, res) => {
     const { name, type, fileData } = req.body;
 
     if (!name || !type || !fileData) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Invalid request: Missing name, type, or fileData",
-      });
+      }); return;
     }
 
     // Validate file size (max 5MB for images)
@@ -104,30 +104,30 @@ router.post("/blog-content-image", async (req, res) => {
       // Estimate size from base64 (base64 is ~33% larger than binary)
       const estimatedSize = (base64Data.length * 3) / 4;
       if (estimatedSize > maxSizeBytes) {
-        return res.status(400).json({
+        res.status(400).json({
           error: "File size exceeds maximum allowed size of 5MB",
-        });
+        }); return;
       }
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
       const estimatedSize = (fileData.length * 3) / 4;
       if (estimatedSize > maxSizeBytes) {
-        return res.status(400).json({
+        res.status(400).json({
           error: "File size exceeds maximum allowed size of 5MB",
-        });
+        }); return;
       }
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Invalid fileData format",
-      });
+      }); return;
     }
 
     // Validate actual buffer size
     if (fileBuffer.length > maxSizeBytes) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "File size exceeds maximum allowed size of 5MB",
-      });
+      }); return;
     }
 
     const timestamp = Date.now();
@@ -174,9 +174,9 @@ router.put("/blog-cover-image", async (req, res) => {
     const { blogId, type, fileData } = req.body;
 
     if (!blogId) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Invalid request: Missing blogId",
-      });
+      }); return;
     }
 
     if (fileData === null) {
@@ -252,22 +252,22 @@ router.put("/blog-cover-image", async (req, res) => {
         await updateBlog(blogId, { coverImage: null });
       } catch (dbError) {
         console.error("Error updating database:", dbError);
-        return res.status(500).json({
+        res.status(500).json({
           error: "Failed to update database",
           message: "Cover image deleted from S3 but database update failed",
-        });
+        }); return;
       }
 
-      return res.status(200).json({
+      res.status(200).json({
         message: "Cover image deleted successfully",
         success: true,
-      });
+      }); return;
     }
 
     if (!type || !fileData) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Invalid request: Missing type or fileData for upload",
-      });
+      }); return;
     }
 
     // Validate file size (max 5MB for cover images)
@@ -278,30 +278,30 @@ router.put("/blog-cover-image", async (req, res) => {
       // Estimate size from base64 (base64 is ~33% larger than binary)
       const estimatedSize = (base64Data.length * 3) / 4;
       if (estimatedSize > maxSizeBytes) {
-        return res.status(400).json({
+        res.status(400).json({
           error: "File size exceeds maximum allowed size of 5MB",
-        });
+        }); return;
       }
       fileBuffer = Buffer.from(base64Data, "base64");
     } else if (typeof fileData === "string") {
       const estimatedSize = (fileData.length * 3) / 4;
       if (estimatedSize > maxSizeBytes) {
-        return res.status(400).json({
+        res.status(400).json({
           error: "File size exceeds maximum allowed size of 5MB",
-        });
+        }); return;
       }
       fileBuffer = Buffer.from(fileData, "base64");
     } else {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Invalid fileData format",
-      });
+      }); return;
     }
 
     // Validate actual buffer size
     if (fileBuffer.length > maxSizeBytes) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "File size exceeds maximum allowed size of 5MB",
-      });
+      }); return;
     }
 
     const timestamp = Date.now();
@@ -339,10 +339,10 @@ router.put("/blog-cover-image", async (req, res) => {
       });
     } catch (dbError) {
       console.error("Error updating database:", dbError);
-      return res.status(500).json({
+      res.status(500).json({
         error: "Failed to update database",
         message: "Cover image uploaded to S3 but database update failed",
-      });
+      }); return;
     }
 
     if (existingBlog?.coverImage?.src) {
@@ -368,7 +368,7 @@ router.delete("/", async (req, res) => {
     const { name } = req.body; // Read JSON body
 
     if (!name) {
-      return res.status(400).json({ error: "Filename missing" });
+      res.status(400).json({ error: "Filename missing" }); return;
     }
 
     const params = {
