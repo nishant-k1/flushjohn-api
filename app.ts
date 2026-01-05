@@ -46,6 +46,7 @@ import {
   uploadLimiter,
   publicLimiter,
 } from "./middleware/rateLimiter.js";
+import { csrfProtection } from "./middleware/csrf.js";
 
 // All routers are now directly imported above
 
@@ -146,6 +147,9 @@ app.use(
 app.use(json({ limit: "10mb" }));
 app.use(urlencoded({ extended: false, limit: "10mb" }));
 app.use(cookieParser());
+
+// CSRF Protection - Apply to all routes except public endpoints
+app.use(csrfProtection);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.headers["x-http-method-override"]) {
