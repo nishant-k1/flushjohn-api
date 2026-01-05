@@ -46,6 +46,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# build output
+dist/
+
 public/temp/*
 # WhatsApp Web JS session data
 .wwebjs_auth/

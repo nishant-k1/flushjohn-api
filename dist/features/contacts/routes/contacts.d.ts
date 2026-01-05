@@ -1,9 +1,0 @@
-/**
- * Contacts Routes - HTTP Request Handling Layer
- *
- * This layer handles HTTP requests/responses only.
- * All business logic is delegated to the service layer.
- */
-declare const router: import("express-serve-static-core").Router;
-export default router;
-//# sourceMappingURL=contacts.d.ts.map
