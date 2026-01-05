@@ -15,18 +15,21 @@ import {
 const router = express.Router();
 
 // Rate limiter for authentication endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
-  message: {
-    success: false,
-    message:
-      "Too many authentication attempts from this IP, please try again later.",
-    error: "RATE_LIMIT_EXCEEDED",
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
+// Disabled in development to prevent issues during testing
+const authLimiter = process.env.NODE_ENV === "production"
+  ? rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 5, // limit each IP to 5 requests per windowMs
+      message: {
+        success: false,
+        message:
+          "Too many authentication attempts from this IP, please try again later.",
+        error: "RATE_LIMIT_EXCEEDED",
+      },
+      standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+      legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    })
+  : (req: express.Request, res: express.Response, next: express.NextFunction) => next(); // No-op middleware in development
 
 // Apply rate limiting to login endpoint
 router.post("/", authLimiter, (async (req, res) => {
