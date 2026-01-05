@@ -179,8 +179,32 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     "Vary",
     "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
   );
+  
+  // Security Headers
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  
+  // Content-Security-Policy (CSP) - Strict policy for API
+  // Note: Adjust based on your needs (images, fonts, etc.)
+  const cspPolicy = [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'", // Allow inline styles (some libraries need this)
+    "img-src 'self' data: https:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+  res.setHeader("Content-Security-Policy", cspPolicy);
+  
+  // HSTS (HTTP Strict Transport Security) - Only in production
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  }
 
   res.setHeader("X-Timestamp", Date.now().toString());
   res.setHeader("X-Request-ID", Math.random().toString(36).substring(7));
