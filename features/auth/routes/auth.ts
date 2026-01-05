@@ -213,13 +213,11 @@ router.post(
 
 router.get("/verify", (async (req, res) => {
   try {
-    let token = req.cookies.token; // Try cookie first
+    const authHeader = req.headers.authorization;
+    let token = null;
 
-    if (!token) {
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7);
-      }
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7);
     }
 
     if (!token) {
@@ -280,16 +278,6 @@ router.get("/verify", (async (req, res) => {
 
 router.post("/logout", (req, res): void => {
   try {
-    const isProduction = process.env.NODE_ENV === "production";
-    const cookieOptions = {
-      httpOnly: true,
-      path: "/",
-      secure: isProduction, // Only send over HTTPS in production
-      sameSite: (isProduction ? "none" : "lax") as "none" | "lax" | "strict",
-    };
-
-    res.clearCookie("token", cookieOptions);
-
     res.status(200).json({
       success: true,
       message: "Logout successful",

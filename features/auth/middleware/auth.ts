@@ -22,8 +22,6 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
       token = authHeader.substring(7);
     } else if (queryToken) {
       token = queryToken;
-    } else if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
     }
 
     if (!token) {
@@ -142,8 +140,6 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       token = authHeader.substring(7);
     } else if (queryToken) {
       token = queryToken;
-    } else if (req.cookies && req.cookies.token) {
-      token = req.cookies.token;
     }
 
     if (!token) {
