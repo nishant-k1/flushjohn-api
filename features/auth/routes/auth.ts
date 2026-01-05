@@ -19,7 +19,7 @@ const router = express.Router();
 const authLimiter = process.env.NODE_ENV === "production"
   ? rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 5, // limit each IP to 5 requests per windowMs
+      max: 20, // limit each IP to 20 requests per windowMs
       message: {
         success: false,
         message:
