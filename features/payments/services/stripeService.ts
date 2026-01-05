@@ -5,10 +5,23 @@ import Stripe from "stripe";
  * Handles all Stripe payment operations
  */
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-12-18.acacia",
-});
+// Lazy initialization to ensure environment variables are loaded
+let stripe: Stripe | null = null;
+
+const getStripeClient = (): Stripe => {
+  if (!stripe) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error(
+        "STRIPE_SECRET_KEY environment variable is required for Stripe operations"
+      );
+    }
+    stripe = new Stripe(secretKey, {
+      apiVersion: "2024-12-18.acacia",
+    });
+  }
+  return stripe;
+};
 
 /**
  * Calculate order total from products array
@@ -43,6 +56,7 @@ const centsToAmount = (cents) => {
  */
 export const createOrGetStripeCustomer = async (email, name, metadata = {}) => {
   try {
+    const stripe = getStripeClient();
     // Check if customer exists
     const existingCustomers = await stripe.customers.list({
       email: email,
@@ -72,6 +86,7 @@ export const createOrGetStripeCustomer = async (email, name, metadata = {}) => {
  */
 export const retrievePaymentLink = async (paymentLinkId) => {
   try {
+    const stripe = getStripeClient();
     const paymentLink = await stripe.paymentLinks.retrieve(paymentLinkId);
     return {
       paymentLinkId: paymentLink.id,
@@ -97,6 +112,7 @@ export const createPaymentLink = async ({
   returnUrl,
 }) => {
   try {
+    const stripe = getStripeClient();
     // Ensure amount is in cents
     const amountInCents = amountToCents(amount);
 
@@ -151,6 +167,7 @@ export const createPaymentIntent = async ({
   savePaymentMethod = false,
 }) => {
   try {
+    const stripe = getStripeClient();
     const amountInCents = amountToCents(amount);
 
     const paymentIntentData = {
@@ -192,6 +209,7 @@ export const attachPaymentMethodToCustomer = async (
   customerId
 ) => {
   try {
+    const stripe = getStripeClient();
     // First, check if the payment method is already attached to this customer
     try {
       const existingMethods = await stripe.paymentMethods.list({
@@ -252,6 +270,7 @@ export const attachPaymentMethodToCustomer = async (
  */
 export const createSetupIntent = async (customerId) => {
   try {
+    const stripe = getStripeClient();
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
       payment_method_types: ["card"],
@@ -269,6 +288,7 @@ export const createSetupIntent = async (customerId) => {
  */
 export const retrievePaymentIntent = async (paymentIntentId) => {
   try {
+    const stripe = getStripeClient();
     return await stripe.paymentIntents.retrieve(paymentIntentId);
   } catch (error) {
     console.error("Error retrieving payment intent:", error);
@@ -281,6 +301,7 @@ export const retrievePaymentIntent = async (paymentIntentId) => {
  */
 export const retrievePaymentMethod = async (paymentMethodId) => {
   try {
+    const stripe = getStripeClient();
     return await stripe.paymentMethods.retrieve(paymentMethodId);
   } catch (error) {
     console.error("Error retrieving payment method:", error);
@@ -299,6 +320,7 @@ export const processRefund = async ({
   metadata = {},
 }) => {
   try {
+    const stripe = getStripeClient();
     const refundData = {
       metadata,
     };
@@ -330,6 +352,7 @@ export const processRefund = async ({
  */
 export const retrieveCharge = async (chargeId) => {
   try {
+    const stripe = getStripeClient();
     return await stripe.charges.retrieve(chargeId);
   } catch (error) {
     console.error("Error retrieving charge:", error);
@@ -342,6 +365,7 @@ export const retrieveCharge = async (chargeId) => {
  */
 export const listCustomerPaymentMethods = async (customerId) => {
   try {
+    const stripe = getStripeClient();
     const paymentMethods = await stripe.paymentMethods.list({
       customer: customerId,
       type: "card",
@@ -359,6 +383,7 @@ export const listCustomerPaymentMethods = async (customerId) => {
  */
 export const detachPaymentMethodFromCustomer = async (paymentMethodId) => {
   try {
+    const stripe = getStripeClient();
     const paymentMethod = await stripe.paymentMethods.detach(paymentMethodId);
     return paymentMethod;
   } catch (error) {
@@ -367,4 +392,6 @@ export const detachPaymentMethodFromCustomer = async (paymentMethodId) => {
   }
 };
 
-export { stripe };
+// Export getter function for backward compatibility
+// Note: Direct stripe export removed - use getStripeClient() internally
+export { getStripeClient as stripe };
