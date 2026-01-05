@@ -3,6 +3,9 @@ import express, { json, urlencoded, Request, Response, NextFunction, Application
 import { config } from "dotenv";
 import debug from "debug";
 
+// Load environment variables FIRST before any other imports that might depend on them
+config({ path: "./.env" });
+
 import cookieParser from "cookie-parser";
 import logger from "morgan";
 import cors from "cors";
@@ -45,8 +48,6 @@ import {
 } from "./middleware/rateLimiter.js";
 
 // All routers are now directly imported above
-
-config({ path: "./.env" });
 
 // Validate critical environment variables
 if (!process.env.SECRET_KEY) {
@@ -134,8 +135,7 @@ app.use(
   express.raw({ type: "application/json" }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const paymentsFeature = await import("./features/payments.js");
-      const webhookRouter = paymentsFeature.default.routes.webhook;
+      const { default: webhookRouter } = await import("./features/payments/routes/webhook.js");
       return webhookRouter(req, res, next);
     } catch (error: any) {
       next(error);
@@ -206,12 +206,13 @@ app.post("/leads", publicLimiter, async (req: Request, res: Response) => {
 
     // Basic validation
     if (!leadData.email || !leadData.fName || !leadData.phone) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message:
           "Missing required fields: email, fName, and phone are required",
         error: "VALIDATION_ERROR",
       });
+      return;
     }
 
     // Use the service to create the lead
@@ -244,7 +245,7 @@ app.post("/leads", publicLimiter, async (req: Request, res: Response) => {
     console.error("❌ Error creating lead via public endpoint:", error);
 
     if (error.name === "ValidationError") {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Validation failed",
         error: "VALIDATION_ERROR",
@@ -252,14 +253,16 @@ app.post("/leads", publicLimiter, async (req: Request, res: Response) => {
           ? Object.values(error.errors).map((err: any) => err.message)
           : [error.message],
       });
+      return;
     }
 
     if (error.code === 11000) {
-      return res.status(409).json({
+      res.status(409).json({
         success: false,
         message: "Lead already exists",
         error: "DUPLICATE_LEAD",
       });
+      return;
     }
 
     res.status(500).json({
