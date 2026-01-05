@@ -26,11 +26,11 @@ const createAdminUser = async () => {
 
     // Admin user details
     const adminUser = {
-      userId: "admin",
-      email: "admin@flushjohn.com",
-      password: "Admin123!@#", // This will be hashed by the pre-save hook
-      fName: "Admin",
-      lName: "User",
+      userId: "testadmin",
+      email: "testadmin@flushjohn.com",
+      password: "TestAdmin123!@#", // This will be hashed by the pre-save hook
+      fName: "Test",
+      lName: "Admin",
       role: "admin",
       isActive: true,
     };
