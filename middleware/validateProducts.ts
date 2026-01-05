@@ -99,12 +99,13 @@ const validateAndRecalculateProducts = (
     next();
   } catch (error: any) {
     // Product validation error
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Failed to validate product calculations",
       error: "VALIDATION_ERROR",
       details: error.message,
     });
+    return;
   }
 };
 

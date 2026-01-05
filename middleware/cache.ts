@@ -44,7 +44,8 @@ export const cacheMiddleware = (
     if (cached && Date.now() < cached.expiresAt) {
       // Return cached response
       res.setHeader("X-Cache", "HIT");
-      return res.json(cached.data);
+      res.json(cached.data);
+      return;
     }
 
     // Store original json method

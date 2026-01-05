@@ -189,8 +189,8 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
         message: "Validation failed",
         error: "VALIDATION_ERROR",
         details: error.errors
-          ? Object.values(error.errors).map((err) => err.message)
-          : [error.message],
+          ? Object.values(error.errors).map((err: any) => err.message)
+          : [(error as any).message],
       });
     }
 
@@ -364,7 +364,7 @@ router.post(
             "../../payments/services/paymentsService.js"
           );
           const paymentLinkData =
-            await paymentsService.createSalesOrderPaymentLink(id);
+            await paymentsService.createSalesOrderPaymentLink(id, undefined);
           paymentLinkUrl = paymentLinkData.url;
         } catch (paymentLinkError) {
           // Log error but continue with email without payment link

@@ -86,11 +86,11 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
 
       // Store leadId and mode if provided
       const context = conversationContexts.get(socket.id);
-      if (options.leadId) {
-        context.leadId = options.leadId;
+      if ((options as any).leadId) {
+        context.leadId = (options as any).leadId;
       }
-      if (options.mode) {
-        context.mode = options.mode; // "sales" or "vendor"
+      if ((options as any).mode) {
+        context.mode = (options as any).mode; // "sales" or "vendor"
       }
       context.startTime = Date.now();
 
@@ -126,6 +126,7 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
 
               const pronunciationResult =
                 await pronunciationAnalysisService.analyzePronunciation({
+                  audioChunk: null, // Audio chunk not available in this context
                   transcript: data.transcript,
                   confidence: confidence,
                   wordLevelConfidence: wordLevelConfidence,
@@ -930,7 +931,7 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
           lineCount: context.transcript.split("\n").filter(Boolean).length,
           duration: duration,
           operatorId: socket.userId || null,
-          operatorNotes: options.feedback || null,
+          operatorNotes: (options as any).feedback || null,
           processed: false,
         };
 
@@ -968,11 +969,11 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
             : {},
           quotedPrice: context.lastQuotedPrice || null,
           pricingBreakdown: context.lastPricingBreakdown || null,
-          outcome: options.outcome || "pending",
+          outcome: (options as any).outcome || "pending",
           operatorId: socket.userId || null,
           duration: duration,
-          operatorFeedback: options.feedback || null,
-          aiHelpful: options.aiHelpful || null,
+          operatorFeedback: (options as any).feedback || null,
+          aiHelpful: (options as any).aiHelpful || null,
         };
 
         const savedLog = await conversationLogRepository.create(

@@ -36,5 +36,5 @@ export const deleteById = async (id) => {
 };
 
 export const exists = async (id) => {
-  return await Vendors.exists({ _id: id });
+  return await (Vendors as any).exists({ _id: id });
 };

@@ -462,7 +462,7 @@ const getAllSalesOrdersWithAggregation = async ({
 
   // Add date range filter
   if (startDate || endDate) {
-    const dateFilter = {};
+    const dateFilter: any = {};
     if (startDate) {
       dateFilter.$gte = new Date(startDate);
     }
@@ -754,12 +754,12 @@ export const getAllSalesOrders = async ({
 
   // Add date range filter
   if (startDate || endDate) {
-    query.createdAt = {};
+    (query as any).createdAt = {};
     if (startDate) {
-      query.createdAt.$gte = new Date(startDate);
+      (query as any).createdAt.$gte = new Date(startDate);
     }
     if (endDate) {
-      query.createdAt.$lte = new Date(endDate);
+      (query as any).createdAt.$lte = new Date(endDate);
     }
   }
 
@@ -1005,7 +1005,7 @@ export const deleteSalesOrder = async (id) => {
         `Please delete these records first or contact an administrator.`
     );
     error.name = "DeletionBlockedError";
-    error.details = { jobOrdersCount };
+    (error as any).details = { jobOrdersCount };
     throw error;
   }
 
