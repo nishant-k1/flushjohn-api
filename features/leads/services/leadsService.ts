@@ -351,8 +351,8 @@ export const getAllLeads = async ({
           input: {
             $ifNull: [
               {
-                $dateToString: {
-                  format: "%B %d, %Y, %H:%M",
+            $dateToString: {
+              format: "%B %d, %Y, %H:%M",
                   date: {
                     $convert: {
                       input: "$createdAt",

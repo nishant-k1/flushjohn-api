@@ -1,5 +1,12 @@
 import createError, { HttpError } from "http-errors";
-import express, { json, urlencoded, Request, Response, NextFunction, Application } from "express";
+import express, {
+  json,
+  urlencoded,
+  Request,
+  Response,
+  NextFunction,
+  Application,
+} from "express";
 import { config } from "dotenv";
 import debug from "debug";
 
@@ -87,7 +94,10 @@ const server: Server = createServer(app);
 socketConnect(server);
 
 const corsOptions: cors.CorsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) => {
     const allowedOrigins = getAllowedOrigins();
 
     if (!origin) {
@@ -140,7 +150,9 @@ app.use(
   express.raw({ type: "application/json" }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { default: webhookRouter } = await import("./features/payments/routes/webhook.js");
+      const { default: webhookRouter } = await import(
+        "./features/payments/routes/webhook.js"
+      );
       return webhookRouter(req, res, next);
     } catch (error: any) {
       next(error);
@@ -157,7 +169,9 @@ app.use(csrfProtection);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (req.headers["x-http-method-override"]) {
-    req.method = (req.headers["x-http-method-override"] as string).toUpperCase();
+    req.method = (
+      req.headers["x-http-method-override"] as string
+    ).toUpperCase();
   }
   next();
 });
@@ -187,13 +201,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     "Vary",
     "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
   );
-  
+
   // Security Headers
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  
+
   // Content-Security-Policy (CSP) - Strict policy for API
   // Note: Adjust based on your needs (images, fonts, etc.)
   const cspPolicy = [
@@ -208,10 +222,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     "form-action 'self'",
   ].join("; ");
   res.setHeader("Content-Security-Policy", cspPolicy);
-  
+
   // HSTS (HTTP Strict Transport Security) - Only in production
   if (process.env.NODE_ENV === "production") {
-    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+    res.setHeader(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload"
+    );
   }
 
   res.setHeader("X-Timestamp", Date.now().toString());
@@ -339,8 +356,8 @@ dbConnect()
   .catch((error: Error) => {
     console.error("❌ Database connection failed:", error.message);
     console.error("Please check your MONGO_DB_URI in .env file");
-  process.exit(1);
-});
+    process.exit(1);
+  });
 
 try {
   initializeCronJobs();
@@ -391,10 +408,15 @@ function onError(error: NodeJS.ErrnoException): void {
 
 function onListening(): void {
   const addr = server.address();
-  const bind = typeof addr === "string" ? "pipe " + addr : "port " + (addr?.port || port);
+  const bind =
+    typeof addr === "string" ? "pipe " + addr : "port " + (addr?.port || port);
   console.log("🚀 Server started successfully!");
   console.log(`🌐 Listening on ${bind}`);
-  console.log(`📡 API ready at http://localhost:${typeof addr === "object" && addr ? addr.port : port}`);
+  console.log(
+    `📡 API ready at http://localhost:${
+      typeof addr === "object" && addr ? addr.port : port
+    }`
+  );
   log("Listening on " + bind);
 }
 
