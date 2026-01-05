@@ -143,6 +143,7 @@ export const getAllLeads = async ({
   assignedTo,
   leadSource,
   search,
+  hasCustomerNo,
   ...columnFilters
 }) => {
   const query = {};
@@ -153,6 +154,12 @@ export const getAllLeads = async ({
   if (status) query.leadStatus = status;
   if (assignedTo) query.assignedTo = assignedTo;
   if (leadSource) query.leadSource = leadSource;
+  
+  // Filter for leads that have been converted to customers
+  // When hasCustomerNo is true, filter leads that have a customer reference
+  if (hasCustomerNo === true || hasCustomerNo === "true") {
+    query.customer = { $exists: true, $ne: null };
+  }
 
   // Handle column-specific filters (all fields are in the leads collection)
   const allowedColumnFilters = [
