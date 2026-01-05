@@ -115,7 +115,7 @@ const corsOptions: cors.CorsOptions = {
     "X-Session-ID",
     "X-CSRF-Token",
   ],
-  exposedHeaders: ["Content-Length", "X-Request-ID"],
+  exposedHeaders: ["Content-Length", "X-Request-ID", "X-CSRF-Token"],
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 204,
