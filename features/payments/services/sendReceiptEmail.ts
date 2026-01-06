@@ -8,6 +8,12 @@ import { getPooledTransporter } from "../../common/services/emailService.js";
 import receiptEmailTemplate from "../templates/email.js";
 import * as salesOrdersRepository from "../../salesOrders/repositories/salesOrdersRepository.js";
 import { generateReceiptPDFBuffer } from "../../fileManagement/services/pdfService.js";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Send sales receipt email after successful payment
@@ -109,19 +115,38 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
       to: customerEmail,
       subject: subject,
       html: emailContent,
+      attachments: [],
     };
+
+    // Attach logo as inline CID attachment (PNG format for better email client support)
+    // This is how Stripe and other email services embed logos - as inline CID attachments
+    try {
+      const logoPath = join(
+        __dirname,
+        "../../../public/logos/logo_dark_theme.png"
+      );
+      const logoBuffer = readFileSync(logoPath);
+      emailOptions.attachments.push({
+        filename: "flushjohn-logo.png",
+        content: logoBuffer,
+        cid: "logo-flushjohn", // Content-ID for referencing in HTML
+        contentType: "image/png",
+        contentDisposition: "inline", // Critical: inline embeds it in HTML, not as separate attachment
+      });
+    } catch (logoError) {
+      console.warn("⚠️  Could not attach logo to email:", logoError);
+      // Continue without logo attachment
+    }
 
     // Attach PDF if generated successfully
     if (pdfBuffer) {
-      emailOptions.attachments = [
-        {
-          filename: `Payment_Receipt_${
-            salesOrder.salesOrderNo || payment._id
-          }.pdf`,
-          content: pdfBuffer,
-          contentType: "application/pdf",
-        },
-      ];
+      emailOptions.attachments.push({
+        filename: `Payment_Receipt_${
+          salesOrder.salesOrderNo || payment._id
+        }.pdf`,
+        content: pdfBuffer,
+        contentType: "application/pdf",
+      });
     }
 
     // Send email
