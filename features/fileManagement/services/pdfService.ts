@@ -1,8 +1,13 @@
 import { uploadPDFToS3 } from "../../common/services/s3Service.js";
 
+// @ts-ignore - PDF templates may not exist at compile time
 import quoteTemplate from "../../quotes/templates/pdf.js";
+// @ts-ignore
 import salesOrderTemplate from "../../salesOrders/templates/pdf.js";
+// @ts-ignore
 import jobOrderTemplate from "../../jobOrders/templates/pdf.js";
+// @ts-ignore
+import receiptTemplate from "../../payments/templates/pdf.js";
 
 let browserLib = null;
 let usePuppeteer = false;
@@ -167,6 +172,9 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       case "jobOrder":
         htmlContent = jobOrderTemplate(documentData);
         break;
+      case "receipt":
+        htmlContent = receiptTemplate(documentData);
+        break;
       default:
         throw new Error(`Unknown document type: ${documentType}`);
     }
@@ -271,7 +279,23 @@ export const generatePDF = async (documentData, documentType, documentId) => {
         // Ignore
       }
     }
-    throw error;
+
+    // Enhance error with more context
+    const errorMessage = error.message || String(error);
+    const enhancedError = new Error(
+      `PDF generation failed for ${documentType} (ID: ${documentId}): ${errorMessage}`
+    );
+    enhancedError.stack = error.stack;
+    enhancedError.cause = error;
+
+    console.error("❌ PDF generation error:", {
+      documentType,
+      documentId,
+      error: errorMessage,
+      stack: error.stack,
+    });
+
+    throw enhancedError;
   }
 };
 
@@ -311,7 +335,9 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
       let vendor = await (Vendors as any).findById(jobOrderData.vendor._id);
 
       if (!vendor && jobOrderData.vendor.name) {
-        vendor = await (Vendors as any).findOne({ name: jobOrderData.vendor.name });
+        vendor = await (Vendors as any).findOne({
+          name: jobOrderData.vendor.name,
+        });
       }
 
       if (vendor) {
@@ -326,4 +352,123 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
   }
 
   return generatePDF(jobOrderData, "jobOrder", jobOrderId);
+};
+
+/**
+ * Generate PDF buffer for receipt (without uploading to S3)
+ * Used for email attachments
+ * @param {Object} receiptData - Receipt data { salesOrder, amount, createdAt, paymentMethod, cardLast4, cardBrand }
+ * @returns {Promise<Buffer>} - PDF buffer
+ */
+export const generateReceiptPDFBuffer = async (receiptData) => {
+  let context = null;
+  let page = null;
+
+  try {
+    // Generate HTML content from receipt template
+    const htmlContent = receiptTemplate(receiptData);
+
+    if (!htmlContent) {
+      throw new Error("Failed to generate HTML template for receipt");
+    }
+
+    // Get pooled browser (reuses existing or launches new)
+    const browser = await getPooledBrowser();
+    let pdfBuffer;
+
+    if (usePuppeteer) {
+      // Puppeteer: use incognito context for isolation
+      try {
+        context = await browser.createBrowserContext();
+        page = await context.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+
+        pdfBuffer = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          margin: {
+            top: "0.5in",
+            right: "0.5in",
+            bottom: "0.5in",
+            left: "0.5in",
+          },
+        });
+      } finally {
+        // Close page and context, but NOT the browser (it's pooled)
+        if (page) {
+          try {
+            await page.close();
+          } catch (closeError) {
+            // Ignore - page may already be closed
+          }
+        }
+        if (context) {
+          try {
+            await context.close();
+          } catch (closeError) {
+            // Ignore - context may already be closed
+          }
+        }
+      }
+    } else {
+      // Playwright: use context for isolation
+      try {
+        context = await browser.newContext();
+        page = await context.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle" });
+
+        pdfBuffer = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          margin: {
+            top: "0.5in",
+            right: "0.5in",
+            bottom: "0.5in",
+            left: "0.5in",
+          },
+        });
+      } finally {
+        // Close page and context, but NOT the browser (it's pooled)
+        if (page) {
+          try {
+            await page.close();
+          } catch (closeError) {
+            // Ignore - page may already be closed
+          }
+        }
+        if (context) {
+          try {
+            await context.close();
+          } catch (closeError) {
+            // Ignore - context may already be closed
+          }
+        }
+      }
+    }
+
+    return pdfBuffer;
+  } catch (error) {
+    // Clean up context/page on error (browser stays in pool)
+    if (page) {
+      try {
+        await page.close();
+      } catch (closeError) {
+        // Ignore
+      }
+    }
+    if (context) {
+      try {
+        await context.close();
+      } catch (closeError) {
+        // Ignore
+      }
+    }
+
+    console.error("❌ Receipt PDF generation error:", {
+      error: error.message,
+      stack: error.stack,
+    });
+
+    throw error;
+  }
 };

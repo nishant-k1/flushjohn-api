@@ -1,9 +1,12 @@
 import { createTransport } from "nodemailer";
-import { flushjohn, quengenesis } from "../../../constants.js";
 
+// @ts-ignore - email templates may not exist at compile time
 import quoteEmailTemplate from "../../quotes/templates/email.js";
+// @ts-ignore
 import salesOrderEmailTemplate from "../../salesOrders/templates/email.js";
+// @ts-ignore
 import invoiceEmailTemplate from "../../salesOrders/templates/invoice.js";
+// @ts-ignore
 import jobOrderEmailTemplate from "../../jobOrders/templates/email.js";
 import { downloadPDFFromS3 } from "./s3Service.js";
 
@@ -23,7 +26,7 @@ const transporterTimers = new Map();
  * @param {Object} emailConfig - Email credentials { user, pass }
  * @returns {Promise<Transporter>} Nodemailer transporter
  */
-const getPooledTransporter = async (emailConfig) => {
+export const getPooledTransporter = async (emailConfig) => {
   const cacheKey = emailConfig.user;
 
   // Reset idle timer on each use
@@ -156,11 +159,11 @@ export const closeEmailPool = () => {
 
 /**
  * Send email with PDF attachment from S3
- * 
+ *
  * OPTIMIZATION: Uses pooled SMTP connections for faster email sending
  * - First email takes normal time (establishes connection)
  * - Subsequent emails reuse connection (50%+ faster)
- * 
+ *
  * @param {Object} documentData - Document data
  * @param {string} documentType - 'quote', 'salesOrder', 'invoice', or 'jobOrder'
  * @param {string} documentId - Document ID
@@ -179,42 +182,44 @@ export const sendEmailWithS3PDF = async (
     switch (documentType) {
       case "quote":
         emailConfig = {
-          user: process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID,
+          user: process.env.FLUSH_JOHN_EMAIL_ID,
           pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
         };
         emailTemplate = quoteEmailTemplate;
-        subject = `${flushjohn.cName}: Quote`;
-        companyName = flushjohn.cName;
+        subject = `${process.env.FLUSH_JOHN_COMPANY_NAME}: Quote`;
+        companyName = process.env.FLUSH_JOHN_COMPANY_NAME;
         break;
 
       case "salesOrder":
         emailConfig = {
-          user: process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID,
+          user: process.env.FLUSH_JOHN_EMAIL_ID,
           pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
         };
         emailTemplate = salesOrderEmailTemplate;
-        subject = `${flushjohn.cName}: Sales Order Confirmation`;
-        companyName = flushjohn.cName;
+        subject = `${process.env.FLUSH_JOHN_COMPANY_NAME}: Sales Order Confirmation`;
+        companyName = process.env.FLUSH_JOHN_COMPANY_NAME;
         break;
 
       case "invoice":
         emailConfig = {
-          user: process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID,
+          user: process.env.FLUSH_JOHN_EMAIL_ID,
           pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
         };
         emailTemplate = invoiceEmailTemplate;
-        subject = `${flushjohn.cName}: Invoice #${documentData.salesOrderNo || "N/A"}`;
-        companyName = flushjohn.cName;
+        subject = `${process.env.FLUSH_JOHN_COMPANY_NAME}: Invoice #${
+          documentData.salesOrderNo || "N/A"
+        }`;
+        companyName = process.env.FLUSH_JOHN_COMPANY_NAME;
         break;
 
       case "jobOrder":
         emailConfig = {
-          user: process.env.NEXT_PUBLIC_QUENGENESIS_EMAIL_ID,
+          user: process.env.QUENGENESIS_EMAIL_ID,
           pass: process.env.QUENGENESIS_EMAIL_PASSWORD,
         };
         emailTemplate = jobOrderEmailTemplate;
-        subject = `${quengenesis.cName}: Job Order Confirmation`;
-        companyName = quengenesis.cName;
+        subject = `${process.env.QUENGENESIS_COMPANY_NAME}: Job Order Confirmation`;
+        companyName = process.env.QUENGENESIS_COMPANY_NAME;
         break;
 
       default:
@@ -251,7 +256,7 @@ export const sendEmailWithS3PDF = async (
     };
 
     if (documentData.ccEmail) {
-      emailOptions.cc = documentData.ccEmail;
+      (emailOptions as any).cc = documentData.ccEmail;
     }
 
     await transporter.sendMail(emailOptions);
@@ -311,7 +316,7 @@ export const sendSalesOrderEmail = async (
   const emailDataWithPaymentLink = paymentLinkUrl
     ? { ...salesOrderData, paymentLinkUrl }
     : salesOrderData;
-  
+
   return sendEmailWithS3PDF(
     emailDataWithPaymentLink,
     "salesOrder",
@@ -354,7 +359,7 @@ export const sendInvoiceEmail = async (
     ...invoiceData,
     paymentLinkUrl,
   };
-  
+
   return sendEmailWithS3PDF(
     emailDataWithPaymentLink,
     "invoice",
