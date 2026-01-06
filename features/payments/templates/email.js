@@ -10,7 +10,8 @@ const template = (paymentData) => {
   const flushjohn_cName = process.env.FLUSH_JOHN_COMPANY_NAME;
   const flushjohn_phone = process.env.FLUSH_JOHN_PHONE;
   const flushjohn_email = process.env.FLUSH_JOHN_EMAIL_ID;
-  const flushjohn_address = process.env.FLUSH_JOHN_ADDRESS;
+  const flushjohn_website =
+    process.env.FLUSH_JOHN_HOMEPAGE || process.env.WEBSITE_URL;
   const { salesOrder, amount, createdAt, paymentMethod, cardLast4, cardBrand } =
     paymentData;
 
@@ -204,7 +205,11 @@ const template = (paymentData) => {
               <p style="margin: 0; font-size: 12px; color: #4b5563; line-height: 1.6;">
                 ${flushjohn_phone ? `Phone: ${flushjohn_phone}<br>` : ""}
                 ${flushjohn_email ? `Email: ${flushjohn_email}<br>` : ""}
-                ${flushjohn_address ? `${flushjohn_address}` : ""}
+                ${
+                  flushjohn_website
+                    ? `Website: <a href="${flushjohn_website}" style="color: #0066cc; text-decoration: underline;">${flushjohn_website}</a>`
+                    : ""
+                }
               </p>
             </td>
           </tr>
