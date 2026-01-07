@@ -209,7 +209,7 @@ export const handleValidationErrors = (req, res, next) => {
       success: false,
       message: "Validation failed",
       error: "VALIDATION_ERROR",
-      details: errors.array().map((err) => ({
+      details: errors.array().map((err: any) => ({
         field: err.path,
         message: err.msg,
       })),

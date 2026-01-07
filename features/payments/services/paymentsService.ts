@@ -384,7 +384,21 @@ export const chargeSalesOrder = async (
     // The webhook is the source of truth, so we update here for immediate UI feedback
     await updateSalesOrderPaymentTotals(salesOrderId);
 
-    // Note: Receipt email is sent only via webhook to prevent duplicates
+    // Send receipt email immediately when payment succeeds
+    // Webhook will also try to send, but sendReceiptAndMarkSent prevents duplicates
+    try {
+      const updatedPayment = await paymentsRepository.findById(payment._id);
+      const updatedSalesOrder = await salesOrdersRepository.findById(
+        salesOrderId
+      );
+      await sendReceiptAndMarkSent(updatedPayment, updatedSalesOrder);
+    } catch (receiptError) {
+      // Log error but don't fail the payment - receipt can be sent manually later
+      console.error(
+        "❌ Error sending receipt email immediately:",
+        receiptError
+      );
+    }
   }
 
   return {
@@ -640,8 +654,50 @@ export const getPaymentsBySalesOrder = async (salesOrderId) => {
 };
 
 /**
+ * Send receipt email and mark as sent (prevents duplicates)
+ * Internal helper function
+ */
+const sendReceiptAndMarkSent = async (payment, salesOrder) => {
+  // Check if receipt was already sent
+  if (payment.receiptSent) {
+    console.log(
+      `ℹ️ Receipt already sent for payment ${payment._id}, skipping duplicate send`
+    );
+    return true;
+  }
+
+  try {
+    const { sendSalesReceiptEmail } = await import("./sendReceiptEmail.js");
+    const success = await sendSalesReceiptEmail(payment, salesOrder);
+
+    if (success) {
+      // Mark receipt as sent
+      await paymentsRepository.updateById(payment._id, {
+        receiptSent: true,
+        receiptSentAt: new Date(),
+      });
+      console.log(
+        `✅ Payment receipt email sent successfully for payment ${payment._id}`
+      );
+      return true;
+    } else {
+      console.warn(
+        `⚠️ Payment receipt email failed to send for payment ${payment._id}`
+      );
+      return false;
+    }
+  } catch (error) {
+    console.error(
+      `❌ Error sending receipt email for payment ${payment._id}:`,
+      error
+    );
+    return false;
+  }
+};
+
+/**
  * Manually send payment receipt email
- * Can be called multiple times for the same payment
+ * Can be called multiple times for the same payment (will skip if already sent)
  */
 export const sendPaymentReceipt = async (paymentId) => {
   const payment = await paymentsRepository.findById(paymentId);
@@ -666,11 +722,10 @@ export const sendPaymentReceipt = async (paymentId) => {
     throw new Error("Sales order not found");
   }
 
-  // Send receipt email
-  const { sendSalesReceiptEmail } = await import("./sendReceiptEmail.js");
-  const success = await sendSalesReceiptEmail(payment, salesOrder);
+  // Send receipt email (will skip if already sent)
+  const success = await sendReceiptAndMarkSent(payment, salesOrder);
 
-  if (!success) {
+  if (!success && !payment.receiptSent) {
     throw new Error("Failed to send receipt email");
   }
 
@@ -702,8 +757,8 @@ export const syncPaymentLinkStatus = async (paymentId) => {
   }
 
   try {
-    const stripeService = await import("./stripeService.js");
-    const { stripe } = stripeService;
+    const { getStripeClient } = await import("./stripeService.js");
+    const stripe = getStripeClient();
 
     // List checkout sessions for this payment link
     const sessions = await (stripe as any).checkout.sessions.list({
@@ -769,6 +824,21 @@ export const syncPaymentLinkStatus = async (paymentId) => {
 
       await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
 
+      // Send receipt email automatically when payment succeeds via sync
+      try {
+        const finalPayment = await paymentsRepository.findById(payment._id);
+        const finalSalesOrder = await salesOrdersRepository.findById(
+          salesOrderIdForUpdate
+        );
+        await sendReceiptAndMarkSent(finalPayment, finalSalesOrder);
+      } catch (receiptError) {
+        // Log error but don't fail the sync - receipt can be sent manually later
+        console.error(
+          "❌ Error sending receipt email after sync:",
+          receiptError
+        );
+      }
+
       return { success: true, message: "Payment status updated to succeeded" };
     }
 
@@ -831,13 +901,19 @@ export const cancelPaymentLink = async (paymentId) => {
  * Handle Stripe webhook event
  */
 export const handleStripeWebhook = async (event) => {
+  console.log(`📥 Processing Stripe webhook: ${event.type} (ID: ${event.id})`);
+
   switch (event.type) {
     case "checkout.session.completed": {
       // Handle payment link payments
       const session = event.data.object;
+      console.log(
+        `  📋 Checkout session: ${session.id}, payment_status: ${session.payment_status}`
+      );
 
       // Only process if payment_status is "paid"
       if (session.payment_status !== "paid") {
+        console.log(`  ⏭️  Skipping: payment_status is not "paid"`);
         break;
       }
 
@@ -895,11 +971,19 @@ export const handleStripeWebhook = async (event) => {
       }
 
       if (!payment) {
+        console.log(
+          `  ⚠️  Payment not found for checkout session ${session.id}`
+        );
         break;
       }
 
+      console.log(
+        `  ✅ Found payment: ${payment._id}, current status: ${payment.status}`
+      );
+
       // Only process if payment is not already succeeded (prevent duplicate processing)
       if (payment.status === "succeeded") {
+        console.log(`  ⏭️  Skipping: payment already succeeded`);
         break;
       }
 
@@ -956,30 +1040,60 @@ export const handleStripeWebhook = async (event) => {
         console.error("Failed to emit paymentUpdated event:", error);
       }
 
-      await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
-
-      // Send sales receipt email (only once via webhook)
       try {
-        const { sendSalesReceiptEmail } = await import("./sendReceiptEmail.js");
+        await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
+      } catch (totalsError) {
+        console.error("❌ Error updating sales order payment totals:", totalsError);
+        // Emit error event for frontend notification
+        try {
+          const { emitPaymentError } = await import(
+            "../../salesOrders/sockets/salesOrders.js"
+          );
+          emitPaymentError(
+            salesOrderIdForUpdate,
+            "payment_totals_update_failed",
+            "Failed to update payment totals. Please refresh the page.",
+            { paymentId: payment._id, error: totalsError.message }
+          );
+        } catch (emitError) {
+          console.error("Failed to emit payment error event:", emitError);
+        }
+      }
+
+      // Send sales receipt email (only once, prevents duplicates via receiptSent flag)
+      console.log(
+        `  📧 Attempting to send receipt email for payment ${payment._id}`
+      );
+      try {
         const updatedPayment = await paymentsRepository.findById(payment._id);
         const salesOrder = await salesOrdersRepository.findById(
           salesOrderIdForUpdate
         );
-        const emailSent = await sendSalesReceiptEmail(
+        const receiptSent = await sendReceiptAndMarkSent(
           updatedPayment,
           salesOrder
         );
-        if (emailSent) {
-          console.log(
-            `✅ Payment receipt email sent successfully for payment ${payment._id}`
-          );
+        if (receiptSent) {
+          console.log(`  ✅ Receipt email sent successfully`);
         } else {
-          console.warn(
-            `⚠️ Payment receipt email failed to send for payment ${payment._id}`
-          );
+          console.log(`  ⚠️  Receipt email not sent (may already be sent)`);
         }
       } catch (emailError) {
         console.error("❌ Error sending receipt email:", emailError);
+        // Emit error event for frontend notification
+        try {
+          const { emitPaymentError } = await import(
+            "../../salesOrders/sockets/salesOrders.js"
+          );
+          emitPaymentError(
+            salesOrderIdForUpdate,
+            "receipt_send_failed",
+            "Payment succeeded but failed to send receipt email. You can manually send it from the payment details.",
+            { paymentId: payment._id, error: emailError.message }
+          );
+        } catch (emitError) {
+          console.error("Failed to emit payment error event:", emitError);
+        }
         // Don't throw - email failure shouldn't break webhook processing
       }
       break;
@@ -987,13 +1101,20 @@ export const handleStripeWebhook = async (event) => {
 
     case "payment_intent.succeeded": {
       const paymentIntent = event.data.object;
+      console.log(`  💳 Payment intent: ${paymentIntent.id}`);
+
       const payment = await paymentsRepository.findByStripePaymentIntentId(
         paymentIntent.id
       );
 
       if (payment) {
+        console.log(
+          `  ✅ Found payment: ${payment._id}, current status: ${payment.status}`
+        );
+
         // Only process if payment is not already succeeded (prevent duplicate processing)
         if (payment.status === "succeeded") {
+          console.log(`  ⏭️  Skipping: payment already succeeded`);
           break;
         }
 
@@ -1036,34 +1157,65 @@ export const handleStripeWebhook = async (event) => {
           console.error("Failed to emit paymentUpdated event:", error);
         }
 
-        await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
-
-        // Send sales receipt email (only once via webhook)
         try {
-          const { sendSalesReceiptEmail } = await import(
-            "./sendReceiptEmail.js"
-          );
+          await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
+        } catch (totalsError) {
+          console.error("❌ Error updating sales order payment totals:", totalsError);
+          // Emit error event for frontend notification
+          try {
+            const { emitPaymentError } = await import(
+              "../../salesOrders/sockets/salesOrders.js"
+            );
+            emitPaymentError(
+              salesOrderIdForUpdate,
+              "payment_totals_update_failed",
+              "Failed to update payment totals. Please refresh the page.",
+              { paymentId: payment._id, error: totalsError.message }
+            );
+          } catch (emitError) {
+            console.error("Failed to emit payment error event:", emitError);
+          }
+        }
+
+        // Send sales receipt email (only once, prevents duplicates via receiptSent flag)
+        console.log(
+          `  📧 Attempting to send receipt email for payment ${payment._id}`
+        );
+        try {
           const updatedPayment = await paymentsRepository.findById(payment._id);
           const salesOrder = await salesOrdersRepository.findById(
             salesOrderIdForUpdate
           );
-          const emailSent = await sendSalesReceiptEmail(
+          const receiptSent = await sendReceiptAndMarkSent(
             updatedPayment,
             salesOrder
           );
-          if (emailSent) {
-            console.log(
-              `✅ Payment receipt email sent successfully for payment ${payment._id}`
-            );
+          if (receiptSent) {
+            console.log(`  ✅ Receipt email sent successfully`);
           } else {
-            console.warn(
-              `⚠️ Payment receipt email failed to send for payment ${payment._id}`
-            );
+            console.log(`  ⚠️  Receipt email not sent (may already be sent)`);
           }
         } catch (receiptError) {
-          // Log error but don't fail the webhook processing
+          // Log error and emit error event for frontend notification
           console.error("❌ Failed to send receipt email:", receiptError);
+          try {
+            const { emitPaymentError } = await import(
+              "../../salesOrders/sockets/salesOrders.js"
+            );
+            emitPaymentError(
+              salesOrderIdForUpdate,
+              "receipt_send_failed",
+              "Payment succeeded but failed to send receipt email. You can manually send it from the payment details.",
+              { paymentId: payment._id, error: receiptError.message }
+            );
+          } catch (emitError) {
+            console.error("Failed to emit payment error event:", emitError);
+          }
         }
+      } else {
+        console.log(
+          `  ⚠️  Payment not found for payment intent ${paymentIntent.id}`
+        );
       }
       break;
     }
@@ -1075,11 +1227,60 @@ export const handleStripeWebhook = async (event) => {
       );
 
       if (payment) {
-        await paymentsRepository.updateById(payment._id, {
-          status: "failed",
-          errorMessage:
-            paymentIntent.last_payment_error?.message || "Payment failed",
-        });
+        const errorMessage =
+          paymentIntent.last_payment_error?.message || "Payment failed";
+
+        try {
+          await paymentsRepository.updateById(payment._id, {
+            status: "failed",
+            errorMessage,
+          });
+
+          // Get sales order ID to emit error event
+          const salesOrderIdForUpdate =
+            typeof payment.salesOrder === "object" && payment.salesOrder?._id
+              ? payment.salesOrder._id
+              : payment.salesOrder;
+
+          if (salesOrderIdForUpdate) {
+            // Emit error event for frontend notification
+            try {
+              const { emitPaymentError } = await import(
+                "../../salesOrders/sockets/salesOrders.js"
+              );
+              emitPaymentError(
+                salesOrderIdForUpdate,
+                "payment_failed",
+                `Payment failed: ${errorMessage}`,
+                { paymentId: payment._id, paymentIntentId: paymentIntent.id }
+              );
+            } catch (emitError) {
+              console.error("Failed to emit payment error event:", emitError);
+            }
+          }
+        } catch (updateError) {
+          console.error("❌ Error updating payment status to failed:", updateError);
+          // Emit error event for frontend notification
+          try {
+            const salesOrderIdForUpdate =
+              typeof payment.salesOrder === "object" && payment.salesOrder?._id
+                ? payment.salesOrder._id
+                : payment.salesOrder;
+            if (salesOrderIdForUpdate) {
+              const { emitPaymentError } = await import(
+                "../../salesOrders/sockets/salesOrders.js"
+              );
+              emitPaymentError(
+                salesOrderIdForUpdate,
+                "payment_status_update_failed",
+                "Payment failed but status update encountered an error. Please refresh the page.",
+                { paymentId: payment._id, error: updateError.message }
+              );
+            }
+          } catch (emitError) {
+            console.error("Failed to emit payment error event:", emitError);
+          }
+        }
       }
       break;
     }

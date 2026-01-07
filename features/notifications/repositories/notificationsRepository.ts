@@ -1,15 +1,16 @@
 import Notification from "../models/Notifications.js";
 
-export const findByUserId = async (userId, options = {}) => {
+export const findByUserId = async (userId, options: any = {}) => {
   try {
     const { limit = 50, skip = 0, read = null } = options;
-    const query = { userId };
+    const query: any = { userId };
 
     if (read !== null) {
       query.read = read === true || read === "true";
     }
 
-    const notifications = await (Notification as any).find(query)
+    const notifications = await (Notification as any)
+      .find(query)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip(parseInt(skip))
@@ -37,7 +38,9 @@ export const findUnreadCount = async (userId) => {
 
 export const findById = async (notificationId) => {
   try {
-    const notification = await (Notification as any).findById(notificationId).lean();
+    const notification = await (Notification as any)
+      .findById(notificationId)
+      .lean();
     return notification;
   } catch (error) {
     console.error("Error finding notification by ID:", error);
@@ -47,10 +50,12 @@ export const findById = async (notificationId) => {
 
 export const findByUserIdAndLeadId = async (userId, leadId) => {
   try {
-    const notification = await (Notification as any).findOne({
-      userId,
-      leadId,
-    }).lean();
+    const notification = await (Notification as any)
+      .findOne({
+        userId,
+        leadId,
+      })
+      .lean();
     return notification;
   } catch (error) {
     console.error("Error finding notification by userId and leadId:", error);
@@ -162,4 +167,3 @@ export const deleteOldNotifications = async (daysOld = 30) => {
     throw error;
   }
 };
-

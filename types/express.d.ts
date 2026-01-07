@@ -22,7 +22,7 @@ declare global {
         discrepancies: Array<{
           index: number;
           item: string;
-          qty: number;
+          quantity: number;
           rate: number;
           frontendAmount: number;
           serverAmount: number;

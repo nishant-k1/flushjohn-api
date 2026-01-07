@@ -23,32 +23,34 @@ export const findRecentPricing = async ({
   const query = {};
 
   if (zipCode) {
-    query.zipCode = zipCode;
+    (query as any).zipCode = zipCode;
   } else if (city && state) {
-    query.city = { $regex: city, $options: "i" };
-    query.state = { $regex: state, $options: "i" };
+    (query as any).city = { $regex: city, $options: "i" };
+    (query as any).state = { $regex: state, $options: "i" };
   }
 
   if (eventType) {
-    query.eventType = eventType;
+    (query as any).eventType = eventType;
   }
 
   // Find pricing within similar quantity range (±50% to account for variations)
   if (quantity) {
-    query.quantity = {
+    (query as any).quantity = {
       $gte: Math.floor(quantity * 0.5),
       $lte: Math.ceil(quantity * 1.5),
     };
   }
 
-  return await (VendorPricingHistory as any).find(query)
+  return await (VendorPricingHistory as any)
+    .find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
 };
 
 export const findByVendorId = async (vendorId, limit = 10) => {
-  return await (VendorPricingHistory as any).find({ vendorId })
+  return await (VendorPricingHistory as any)
+    .find({ vendorId })
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
@@ -61,7 +63,7 @@ export const calculateAveragePricing = async ({
   eventType,
   quantity,
 }) => {
-  const query = {};
+  const query: any = {};
 
   if (zipCode) {
     query.zipCode = zipCode;
@@ -71,7 +73,7 @@ export const calculateAveragePricing = async ({
   }
 
   if (eventType) {
-    query.eventType = eventType;
+    (query as any).eventType = eventType;
   }
 
   // Find pricing within similar quantity range
@@ -87,7 +89,8 @@ export const calculateAveragePricing = async ({
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   query.createdAt = { $gte: ninetyDaysAgo };
 
-  const pricingHistory = await (VendorPricingHistory as any).find(query)
+  const pricingHistory = await (VendorPricingHistory as any)
+    .find(query)
     .sort({ createdAt: -1 })
     .lean();
 

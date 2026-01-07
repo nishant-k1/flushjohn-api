@@ -294,12 +294,19 @@ router.post(
         });
       }
 
+      console.error("❌ Sales order PDF generation error:", {
+        salesOrderId: id,
+        error: error.message,
+        stack: error.stack,
+      });
+
       res.status(500).json({
         success: false,
         message: "Failed to generate PDF",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
           details: error.message,
+          stack: error.stack,
         }),
       });
     }
@@ -395,6 +402,10 @@ router.post(
           await sendSalesOrderEmail(emailData, id, pdfUrls.pdfUrl, null);
         }
       } catch (pdfError) {
+        // Distinguish between PDF generation errors and email sending errors
+        if (pdfError.message?.includes("PDF generation failed")) {
+          throw new Error(`PDF generation failed: ${pdfError.message}`);
+        }
         throw pdfError;
       }
 
@@ -429,12 +440,26 @@ router.post(
         });
       }
 
+      // Distinguish between PDF and email errors
+      const isPdfError = error.message?.includes("PDF generation failed");
+      const errorMessage = isPdfError
+        ? "Failed to generate PDF"
+        : "Failed to send email";
+
+      console.error("❌ Sales order email error:", {
+        salesOrderId: id,
+        error: error.message,
+        stack: error.stack,
+        isPdfError,
+      });
+
       res.status(500).json({
         success: false,
-        message: "Failed to send email",
+        message: errorMessage,
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
           details: error.message,
+          stack: error.stack,
         }),
       });
     }

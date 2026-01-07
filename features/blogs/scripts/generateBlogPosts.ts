@@ -73,7 +73,7 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
     // This helps event/construction posts that mention cities get geo-targeting
     let extractedLocation = { city: null, state: null };
     if (!postData.city || !postData.state) {
-      extractedLocation = blogGeneratorService.extractCityAndState(
+      extractedLocation = await blogGeneratorService.extractCityAndState(
         postData.title,
         content
       );

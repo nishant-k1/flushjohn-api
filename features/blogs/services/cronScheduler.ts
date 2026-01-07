@@ -109,7 +109,7 @@ async function weeklyBlogGenerationJob() {
     );
   } finally {
     jobStatus[jobName].isRunning = false;
-    const duration = new Date() - startTime;
+    const duration = new Date().getTime() - startTime.getTime();
   }
 }
 
@@ -147,7 +147,7 @@ async function midWeekBlogGenerationJob() {
     );
   } finally {
     jobStatus[jobName].isRunning = false;
-    const duration = new Date() - startTime;
+    const duration = new Date().getTime() - startTime.getTime();
   }
 }
 
@@ -185,7 +185,7 @@ async function weeklyProblemSolvingJob() {
     );
   } finally {
     jobStatus[jobName].isRunning = false;
-    const duration = new Date() - startTime;
+    const duration = new Date().getTime() - startTime.getTime();
   }
 }
 
@@ -218,7 +218,7 @@ async function dailyStatusCheckJob() {
     console.error(`❌ Daily status check failed:`, error.message);
   } finally {
     jobStatus[jobName].isRunning = false;
-    const duration = new Date() - startTime;
+    const duration = new Date().getTime() - startTime.getTime();
   }
 }
 
@@ -266,7 +266,7 @@ async function healthCheckJob() {
     console.error(`❌ Health check failed:`, error.message);
   } finally {
     jobStatus[jobName].isRunning = false;
-    const duration = new Date() - startTime;
+    const duration = new Date().getTime() - startTime.getTime();
   }
 }
 

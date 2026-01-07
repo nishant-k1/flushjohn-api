@@ -105,6 +105,15 @@ const PaymentsSchema = new mongoose.Schema({
   cardBrand: {
     type: String,
   },
+
+  // Receipt tracking
+  receiptSent: {
+    type: Boolean,
+    default: false,
+  },
+  receiptSentAt: {
+    type: Date,
+  },
 });
 
 // Indexes
@@ -116,7 +125,7 @@ PaymentsSchema.index({ status: 1, createdAt: -1 });
 
 // Update updatedAt before save
 PaymentsSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
+  this.updatedAt = new Date(Date.now());
   next();
 });
 

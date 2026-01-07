@@ -157,8 +157,8 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
         message: "Validation failed",
         error: "VALIDATION_ERROR",
         details: error.errors
-          ? Object.values(error.errors).map((err) => err.message)
-          : [error.message],
+          ? Object.values(error.errors).map((err: any) => err.message)
+          : [(error as any).message],
       });
     }
 

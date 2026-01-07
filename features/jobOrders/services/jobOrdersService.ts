@@ -150,8 +150,8 @@ export const createJobOrder = async (jobOrderData) => {
   if (existingJobOrder) {
     const error = new Error("A job order already exists for this sales order");
     error.name = "DuplicateError";
-    error.existingJobOrderId = existingJobOrder._id;
-    error.jobOrderNo = existingJobOrder.jobOrderNo;
+    (error as any).existingJobOrderId = existingJobOrder._id;
+    (error as any).jobOrderNo = existingJobOrder.jobOrderNo;
     throw error;
   }
 
@@ -315,7 +315,7 @@ const getAllJobOrdersWithAggregation = async ({
 
   // Add date range filter
   if (startDate || endDate) {
-    const dateFilter = {};
+    const dateFilter: any = {};
     if (startDate) {
       dateFilter.$gte = new Date(startDate);
     }
@@ -393,10 +393,10 @@ export const getAllJobOrders = async ({
 
   // Lead fields that require $lookup aggregation
   const leadFields = ["fName", "lName", "cName", "email", "phone", "usageType"];
-  
+
   // Check if any lead field is being filtered
-  const hasLeadFieldFilter = Object.keys(columnFilters).some(key => 
-    leadFields.includes(key) && columnFilters[key]
+  const hasLeadFieldFilter = Object.keys(columnFilters).some(
+    (key) => leadFields.includes(key) && columnFilters[key]
   );
 
   // If global search OR lead field filtering is requested, use aggregation with $lookup
@@ -414,15 +414,15 @@ export const getAllJobOrders = async ({
 
   // Otherwise, use regular query (faster for non-lead fields)
   let query = {};
-  
+
   // Add date range filter
   if (startDate || endDate) {
-    query.createdAt = {};
+    (query as any).createdAt = {};
     if (startDate) {
-      query.createdAt.$gte = new Date(startDate);
+      (query as any).createdAt.$gte = new Date(startDate);
     }
     if (endDate) {
-      query.createdAt.$lte = new Date(endDate);
+      (query as any).createdAt.$lte = new Date(endDate);
     }
   }
 
@@ -568,9 +568,8 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     return;
   }
 
-  const SalesOrders = (
-    await import("../../salesOrders/models/SalesOrders.js")
-  ).default;
+  const SalesOrders = (await import("../../salesOrders/models/SalesOrders.js"))
+    .default;
   const salesOrder = await (SalesOrders as any).findById(jobOrder.salesOrder);
 
   if (!salesOrder) {
@@ -578,7 +577,9 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
   }
 
   const Leads = (await import("../../leads/models/Leads.js")).default;
-  const lead = salesOrder.lead ? await (Leads as any).findById(salesOrder.lead) : null;
+  const lead = salesOrder.lead
+    ? await (Leads as any).findById(salesOrder.lead)
+    : null;
 
   if (!lead) {
     return;
@@ -624,8 +625,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     });
 
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes.js"))
-        .default;
+      const Quotes = (await import("../../quotes/models/Quotes.js")).default;
       await (Quotes as any).findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });
@@ -640,8 +640,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
     });
 
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes.js"))
-        .default;
+      const Quotes = (await import("../../quotes/models/Quotes.js")).default;
       await (Quotes as any).findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });

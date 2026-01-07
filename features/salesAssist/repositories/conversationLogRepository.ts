@@ -24,14 +24,18 @@ export const findById = async (id) => {
  * Find conversation logs by lead ID
  */
 export const findByLeadId = async (leadId) => {
-  return await (ConversationLog as any).find({ lead: leadId }).sort({ createdAt: -1 });
+  return await (ConversationLog as any)
+    .find({ lead: leadId })
+    .sort({ createdAt: -1 });
 };
 
 /**
  * Update conversation log
  */
 export const update = async (id, data) => {
-  return await (ConversationLog as any).findByIdAndUpdate(id, data, { new: true });
+  return await (ConversationLog as any).findByIdAndUpdate(id, data, {
+    new: true,
+  });
 };
 
 /**
@@ -80,7 +84,7 @@ export const markAsProcessed = async (id, extractedLearnings) => {
  * Find successful conversations for AI learning context
  * Returns conversations that led to actual sales
  */
-export const findSuccessfulConversations = async (options = {}) => {
+export const findSuccessfulConversations = async (options: any = {}) => {
   const { limit = 10, daysBack = 30, eventType = null, state = null } = options;
 
   const query = {
@@ -98,7 +102,8 @@ export const findSuccessfulConversations = async (options = {}) => {
     query["extractedInfo.location.state"] = state;
   }
 
-  return await (ConversationLog as any).find(query)
+  return await (ConversationLog as any)
+    .find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
     .select(
@@ -148,10 +153,11 @@ export const getLearningStats = async () => {
 /**
  * Find conversations by outcome
  */
-export const findByOutcome = async (outcome, options = {}) => {
+export const findByOutcome = async (outcome, options: any = {}) => {
   const { limit = 20, skip = 0 } = options;
 
-  return await (ConversationLog as any).find({ outcome })
+  return await (ConversationLog as any)
+    .find({ outcome })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);

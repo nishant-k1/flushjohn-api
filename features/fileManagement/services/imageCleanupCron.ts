@@ -5,15 +5,19 @@
 
 import cron from "node-cron";
 import { deleteImageFromS3 } from "./imageCleanupService.js";
-import blogsRepository from "../../blogs/repositories/blogsRepository.js";
+import * as blogsRepository from "../../blogs/repositories/blogsRepository.js";
 
 /**
  * Find and clean up orphaned images
  */
 const cleanupOrphanedImages = async () => {
   try {
-
-    const blogs = await blogsRepository.findAll();
+    const blogs = await blogsRepository.findAll({
+      query: {},
+      sort: {},
+      skip: 0,
+      limit: 1000,
+    });
     const referencedImages = new Set();
 
     blogs.forEach((blog) => {
@@ -29,7 +33,6 @@ const cleanupOrphanedImages = async () => {
         }
       }
     });
-
   } catch (error) {
     console.error("❌ Error in orphaned image cleanup:", error);
   }
@@ -56,7 +59,6 @@ export const startCleanupJobs = () => {
   cron.schedule("0 */6 * * *", () => {
     cleanupTempImages();
   });
-
 };
 
 /**

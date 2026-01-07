@@ -27,7 +27,7 @@ export const getAllContacts = async ({
   search,
   ...columnFilters
 }) => {
-  const query = {};
+  let query: any = {};
   const exprConditions = [];
   const dayjs = (await import("../../../lib/dayjs.js")).dayjs;
 
@@ -125,9 +125,9 @@ export const getAllContacts = async ({
   // Combine $expr conditions if any exist
   if (exprConditions.length > 0) {
     if (exprConditions.length === 1) {
-      query.$expr = exprConditions[0];
+      (query as any).$expr = exprConditions[0];
     } else {
-      query.$expr = { $and: exprConditions };
+      (query as any).$expr = { $and: exprConditions };
     }
   }
 
@@ -160,7 +160,7 @@ export const getAllContacts = async ({
             options: "i",
           },
         },
-      },
+      } as any,
       {
         $expr: {
           $regexMatch: {
@@ -174,7 +174,7 @@ export const getAllContacts = async ({
             options: "i",
           },
         },
-      },
+      } as any,
       {
         $expr: {
           $regexMatch: {
@@ -188,7 +188,7 @@ export const getAllContacts = async ({
             options: "i",
           },
         },
-      }
+      } as any
     );
 
     // Combine search with existing filters
@@ -207,12 +207,12 @@ export const getAllContacts = async ({
       });
 
       if (hasExpr) {
-        andConditions.push({ $expr: (query as any).$expr });
+        andConditions.push({ $expr: (query as any).$expr } as any);
       }
 
-      query = { $and: andConditions };
+      query = { $and: andConditions } as any;
     } else {
-      query = { $or: searchConditions };
+      query = { $or: searchConditions } as any;
     }
   }
 
@@ -222,8 +222,8 @@ export const getAllContacts = async ({
   const skip = (page - 1) * limit;
 
   const [contacts, total] = await Promise.all([
-    contactsRepository.findAll({ query, sort, skip, limit }),
-    contactsRepository.count(query),
+    contactsRepository.findAll({ query: query as any, sort, skip, limit }),
+    contactsRepository.count(query as any),
   ]);
 
   return {
@@ -335,4 +335,3 @@ export const validatePaginationParams = (page, limit) => {
 export const isValidObjectId = (id) => {
   return /^[0-9a-fA-F]{24}$/.test(id);
 };
-

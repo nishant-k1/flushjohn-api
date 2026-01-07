@@ -223,7 +223,7 @@ export async function runAutomatedBlogGeneration(
     const publishedBlog = await publishAutomatedBlogPost(blogData);
 
     const endTime = new Date();
-    const duration = endTime - startTime;
+    const duration = endTime.getTime() - startTime.getTime();
     return {
       success: true,
       blogPost: publishedBlog,
@@ -232,7 +232,7 @@ export async function runAutomatedBlogGeneration(
     };
   } catch (error) {
     const endTime = new Date();
-    const duration = endTime - startTime;
+    const duration = endTime.getTime() - startTime.getTime();
 
     return {
       success: false,
@@ -290,7 +290,7 @@ Requirements:
     });
 
     if (unsplashResponse.ok) {
-      const imageData = await unsplashResponse.json();
+      const imageData: any = await unsplashResponse.json();
       // Use Unsplash's raw URL with proper transformation parameters
       const baseUrl = imageData.urls.raw;
       return `${baseUrl}?w=1200&h=630&fit=crop&crop=center`;
@@ -352,7 +352,7 @@ export async function getAutomationStats() {
     });
 
     const recentAutomatedPosts =
-      automatedPosts.blogs?.filter(
+      (automatedPosts as any).blogs?.filter(
         (post) =>
           post.automated && new Date(post.automationDate) >= thirtyDaysAgo
       ) || [];

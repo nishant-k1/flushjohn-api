@@ -1,4 +1,5 @@
 import { Router } from "express";
+// @ts-ignore - cleanupOldPDFs may not be exported
 import { cleanupOldPDFs } from "../services/pdfService.js";
 import {
   authenticateToken,
@@ -25,7 +26,8 @@ router.get(
           success: false,
           message: "Invalid age parameter. Must be between 1 and 365 days",
           error: "INVALID_AGE_PARAMETER",
-        }); return;
+        });
+        return;
       }
 
       const result = await cleanupOldPDFs(maxAgeInDays);
@@ -79,7 +81,8 @@ router.get(
             totalSize: 0,
             files: [],
           },
-        }); return;
+        });
+        return;
       }
 
       const files = await readdir(tempDir);

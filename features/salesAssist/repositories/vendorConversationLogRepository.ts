@@ -24,7 +24,8 @@ export const findById = async (id) => {
  * Find all unprocessed vendor conversations for AI learning
  */
 export const findUnprocessed = async (limit = 10) => {
-  return await (VendorConversationLog as any).find({ processed: false })
+  return await (VendorConversationLog as any)
+    .find({ processed: false })
     .sort({ createdAt: -1 })
     .limit(limit);
 };
@@ -48,15 +49,16 @@ export const markAsProcessed = async (id, extractedLearnings) => {
  * Find processed conversations for AI learning context
  * Returns conversations with extracted learnings
  */
-export const findProcessedForLearning = async (options = {}) => {
+export const findProcessedForLearning = async (options: any = {}) => {
   const { limit = 10, daysBack = 60 } = options;
 
-  return await (VendorConversationLog as any).find({
-    processed: true,
-    createdAt: {
-      $gte: new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000),
-    },
-  })
+  return await (VendorConversationLog as any)
+    .find({
+      processed: true,
+      createdAt: {
+        $gte: new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000),
+      },
+    })
     .sort({ createdAt: -1 })
     .limit(limit)
     .select("extractedLearnings transcript createdAt");
@@ -66,10 +68,11 @@ export const findProcessedForLearning = async (options = {}) => {
  * Get all effective phrases from processed conversations
  */
 export const getEffectivePhrases = async (limit = 50) => {
-  const conversations = await (VendorConversationLog as any).find({
-    processed: true,
-    "extractedLearnings.effectivePhrases": { $exists: true, $ne: [] },
-  })
+  const conversations = await (VendorConversationLog as any)
+    .find({
+      processed: true,
+      "extractedLearnings.effectivePhrases": { $exists: true, $ne: [] },
+    })
     .sort({ createdAt: -1 })
     .limit(limit)
     .select("extractedLearnings.effectivePhrases");
@@ -89,10 +92,11 @@ export const getEffectivePhrases = async (limit = 50) => {
  * Get all negotiation tactics from processed conversations
  */
 export const getNegotiationTactics = async (limit = 50) => {
-  const conversations = await (VendorConversationLog as any).find({
-    processed: true,
-    "extractedLearnings.negotiationTactics": { $exists: true, $ne: [] },
-  })
+  const conversations = await (VendorConversationLog as any)
+    .find({
+      processed: true,
+      "extractedLearnings.negotiationTactics": { $exists: true, $ne: [] },
+    })
     .sort({ createdAt: -1 })
     .limit(limit)
     .select("extractedLearnings.negotiationTactics");

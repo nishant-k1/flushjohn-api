@@ -24,7 +24,10 @@ console.log("🔧 Applying SEO Fixes Directly to Database...");
 console.log("");
 
 // Import Blog model
-const BlogsSchema = new mongoose.Schema({}, { strict: false, collection: "blogs" });
+const BlogsSchema = new mongoose.Schema(
+  {},
+  { strict: false, collection: "blogs" }
+);
 const Blog = mongoose.model("Blog", BlogsSchema);
 
 const stats = {
@@ -38,32 +41,42 @@ const stats = {
 
 function isGoodMetaDescription(metaDescription) {
   if (!metaDescription) return false;
-  if (metaDescription.length < 120 || metaDescription.length > 160) return false;
-  const hasKeywords = /porta potty|portable toilet|rental/i.test(metaDescription);
+  if (metaDescription.length < 120 || metaDescription.length > 160)
+    return false;
+  const hasKeywords = /porta potty|portable toilet|rental/i.test(
+    metaDescription
+  );
   const hasCallToAction = /call|quote|contact|get|find/i.test(metaDescription);
   return hasKeywords && hasCallToAction;
 }
 
 async function fixBlog(blog) {
   try {
-    const updates = {};
+    const updates: any = {};
     let hasUpdates = false;
 
     // Fix 1: Add FAQ Schema
     if (!blog.faqSchema && blog.content) {
       const faqSchema = generateFAQSchema(blog.content, blog.title);
-      if (faqSchema && faqSchema.mainEntity && faqSchema.mainEntity.length > 0) {
+      if (
+        faqSchema &&
+        faqSchema.mainEntity &&
+        faqSchema.mainEntity.length > 0
+      ) {
         updates.faqSchema = faqSchema;
         hasUpdates = true;
         stats.faqAdded++;
-        console.log(`  ✅ Adding FAQ schema (${faqSchema.mainEntity.length} questions)`);
+        console.log(
+          `  ✅ Adding FAQ schema (${faqSchema.mainEntity.length} questions)`
+        );
       }
     }
 
     // Fix 2: Regenerate Meta Description
     if (blog.content) {
-      const needsMetaFix = !blog.metaDescription || !isGoodMetaDescription(blog.metaDescription);
-      
+      const needsMetaFix =
+        !blog.metaDescription || !isGoodMetaDescription(blog.metaDescription);
+
       if (needsMetaFix) {
         const keywords = {
           primary: blog.metaKeywords?.[0] || blog.title,
@@ -82,7 +95,9 @@ async function fixBlog(blog) {
             updates.metaDescription = newMetaDescription;
             hasUpdates = true;
             stats.metaRegenerated++;
-            console.log(`  ✅ Regenerating meta description (${newMetaDescription.length} chars)`);
+            console.log(
+              `  ✅ Regenerating meta description (${newMetaDescription.length} chars)`
+            );
           }
         } catch (error) {
           console.log(`  ⚠️  Meta generation failed: ${error.message}`);
@@ -103,24 +118,33 @@ async function fixBlog(blog) {
       ];
 
       const missingQuestionKeywords = questionKeywords.filter(
-        qk => !existingKeywords.some(ek => ek.toLowerCase().includes(qk.toLowerCase()))
+        (qk) =>
+          !existingKeywords.some((ek) =>
+            ek.toLowerCase().includes(qk.toLowerCase())
+          )
       );
 
       if (missingQuestionKeywords.length > 0 && existingKeywords.length < 15) {
         const newKeywords = [
           ...existingKeywords,
-          ...missingQuestionKeywords.slice(0, 15 - existingKeywords.length)
+          ...missingQuestionKeywords.slice(0, 15 - existingKeywords.length),
         ];
         updates.metaKeywords = newKeywords;
         hasUpdates = true;
         stats.keywordsAdded++;
-        console.log(`  ✅ Adding ${missingQuestionKeywords.length} question keywords`);
+        console.log(
+          `  ✅ Adding ${missingQuestionKeywords.length} question keywords`
+        );
       }
     }
 
     // Apply updates directly to database
     if (hasUpdates) {
-      await (Blog as any).findByIdAndUpdate(blog._id, { $set: updates }, { new: true });
+      await (Blog as any).findByIdAndUpdate(
+        blog._id,
+        { $set: updates },
+        { new: true }
+      );
       stats.fixed++;
       console.log(`  ✅ Blog updated successfully`);
       return true;
@@ -192,4 +216,3 @@ async function applyFixes() {
 
 // Run it
 applyFixes();
-

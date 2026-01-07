@@ -243,7 +243,7 @@ const uploadCoverImageToS3 = async (blogId, fileType, fileData) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    const cloudFrontUrl = process.env.CLOUDFRONT_URL;
     const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/images/blog/${encodedName}`
@@ -401,7 +401,7 @@ export const createBlog = async (blogData) => {
   // This helps event/construction posts that mention cities get geo-targeting
   if ((!blogData.city || !blogData.state) && blogData.content) {
     try {
-      const extractedLocation = extractCityAndState(
+      const extractedLocation = await extractCityAndState(
         blogData.title,
         blogData.content
       );
@@ -465,10 +465,10 @@ export const getAllBlogs = async ({
 
   // Legacy filters
   if (slug) {
-    query.slug = slug;
+    (query as any).slug = slug;
   }
   if (status) {
-    query.status = status;
+    (query as any).status = status;
   }
 
   // Handle column-specific filters
@@ -605,7 +605,7 @@ export const getAllBlogs = async ({
             options: "i",
           },
         },
-      },
+      } as any,
       {
         $expr: {
           $regexMatch: {
@@ -619,7 +619,7 @@ export const getAllBlogs = async ({
             options: "i",
           },
         },
-      },
+      } as any,
       {
         $expr: {
           $regexMatch: {
@@ -633,7 +633,7 @@ export const getAllBlogs = async ({
             options: "i",
           },
         },
-      }
+      } as any
     );
 
     // Combine search with existing filters
@@ -652,20 +652,20 @@ export const getAllBlogs = async ({
       });
 
       if (hasExpr) {
-        andConditions.push({ $expr: (query as any).$expr });
+        andConditions.push({ $expr: (query as any).$expr } as any);
       }
 
-      query = { $and: andConditions };
+      query = { $and: andConditions } as any;
     } else {
-      query = { $or: searchConditions };
+      query = { $or: searchConditions } as any;
     }
   }
 
   const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
 
   const [blogs, total] = await Promise.all([
-    blogsRepository.findAll({ query, sort, skip, limit }),
-    blogsRepository.count(query),
+    blogsRepository.findAll({ query: query as any, sort, skip, limit }),
+    blogsRepository.count(query as any),
   ]);
 
   const totalPages = Math.ceil(total / limit);

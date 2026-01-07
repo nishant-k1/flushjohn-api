@@ -10,7 +10,8 @@ export const findAll = async ({
   skip = 0,
   limit = 100,
 }) => {
-  return (Payments as any).find(query)
+  return (Payments as any)
+    .find(query)
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -44,7 +45,7 @@ export const updateById = async (id, updateData) => {
 };
 
 export const findOneAndUpdate = async (query, updateData) => {
-  return Payments.findOneAndUpdate(
+  return (Payments as any).findOneAndUpdate(
     query,
     { $set: updateData },
     { new: true, runValidators: true }
@@ -60,7 +61,8 @@ export const count = async (query = {}) => {
 };
 
 export const findBySalesOrder = async (salesOrderId) => {
-  return (Payments as any).find({ salesOrder: salesOrderId })
+  return (Payments as any)
+    .find({ salesOrder: salesOrderId })
     .sort({ createdAt: -1 })
     .populate("salesOrder customer");
 };

@@ -96,3 +96,31 @@ export function emitSalesOrderUpdated(salesOrderId, salesOrder) {
     salesOrder: salesOrderObj,
   });
 }
+
+/**
+ * Emit payment/webhook error event to notify frontend of failures
+ * @param {string} salesOrderId - The sales order ID
+ * @param {string} errorType - Type of error (e.g., 'receipt_send_failed', 'payment_update_failed', 'webhook_processing_failed')
+ * @param {string} message - Error message to display
+ * @param {Object} metadata - Additional error metadata (optional)
+ */
+export function emitPaymentError(
+  salesOrderId,
+  errorType,
+  message,
+  metadata = {}
+) {
+  if (!global.salesOrdersNamespace) {
+    return;
+  }
+
+  const room = `sales-order-${salesOrderId}`;
+
+  global.salesOrdersNamespace.to(room).emit("paymentError", {
+    salesOrderId: salesOrderId.toString(),
+    errorType,
+    message,
+    metadata,
+    timestamp: new Date().toISOString(),
+  });
+}

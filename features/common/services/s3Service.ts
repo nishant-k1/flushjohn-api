@@ -62,7 +62,7 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
       throw uploadError;
     }
 
-    const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    const cloudFrontUrl = process.env.CLOUDFRONT_URL;
 
     const timestamp = Date.now();
 
@@ -228,7 +228,7 @@ export const generateBlogCoverImagePresignedUrl = async (blogId, fileType, expir
     
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
     
-    const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    const cloudFrontUrl = process.env.CLOUDFRONT_URL;
     const timestamp = Date.now();
     const publicUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/${key}?t=${timestamp}`

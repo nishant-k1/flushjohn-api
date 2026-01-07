@@ -45,15 +45,15 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       port: 465,
       secure: true, // true for 465, false for other ports
       auth: {
-        user: process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID,
+        user: process.env.FLUSH_JOHN_EMAIL_ID,
         pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
       },
       tls: { rejectUnauthorized: false },
     });
 
     await transporter.sendMail({
-      from: `Flush John<${process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID}>`,
-      to: `Flush John<${process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID}>`,
+      from: `Flush John<${process.env.FLUSH_JOHN_EMAIL_ID}>`,
+      to: `Flush John<${process.env.FLUSH_JOHN_EMAIL_ID}>`,
       subject: "Flush John: Contact Message",
       text: `
         From: ${emailData.firstName} ${emailData.lastName}

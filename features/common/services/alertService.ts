@@ -2,6 +2,10 @@ import axios from "axios";
 import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 class AlertService {
+  telegramBotToken: string | undefined;
+  telegramChatId: string | undefined;
+  telegramEnabled: boolean;
+
   constructor() {
     this.telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
     this.telegramChatId = process.env.TELEGRAM_CHAT_ID;
@@ -84,7 +88,7 @@ class AlertService {
       productsText = "\n\n🛍️ *Products:*\n";
       products.forEach((product, index) => {
         productsText += `${index + 1}. ${escapeMarkdown(product.name)} (Qty: ${
-          product.qty
+          product.quantity
         }) - $${product.rate} = $${product.amount}\n`;
       });
     }

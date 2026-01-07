@@ -28,10 +28,15 @@ export const validateCreateQuote = [
       // Normalize: remove all non-digit characters
       const digits = value.replace(/\D/g, "");
       // Validate: must have 10 digits, or 11 digits starting with 1
-      if (digits.length === 10 || (digits.length === 11 && digits.startsWith("1"))) {
+      if (
+        digits.length === 10 ||
+        (digits.length === 11 && digits.startsWith("1"))
+      ) {
         return true;
       }
-      throw new Error("Phone number must be 10 digits (or 11 digits starting with 1)");
+      throw new Error(
+        "Phone number must be 10 digits (or 11 digits starting with 1)"
+      );
     }),
 
   body("zip")
@@ -101,7 +106,7 @@ export const handleValidationErrors = (req, res, next) => {
       success: false,
       message: "Validation failed",
       error: "VALIDATION_ERROR",
-      details: errors.array().map((err) => ({
+      details: errors.array().map((err: any) => ({
         field: err.path,
         message: err.msg,
       })),

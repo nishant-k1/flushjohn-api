@@ -191,8 +191,8 @@ router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
         message: "Validation failed",
         error: "VALIDATION_ERROR",
         details: error.errors
-          ? Object.values(error.errors).map((err) => err.message)
-          : [error.message],
+          ? Object.values(error.errors).map((err: any) => err.message)
+          : [(error as any).message],
       });
     }
 
@@ -254,9 +254,9 @@ router.post(
   "/:id/pdf",
   validateAndRecalculateProducts,
   async function (req, res) {
-    try {
-      const { id } = req.params;
+    const { id } = req.params;
 
+    try {
       if (!quotesService.isValidObjectId(id)) {
         return res.status(400).json({
           success: false,
@@ -296,6 +296,15 @@ router.post(
         },
       });
     } catch (error) {
+      // Always log the error for debugging
+      console.error("❌ Quote PDF generation error:", {
+        quoteId: id,
+        error: error.message,
+        stack: error.stack,
+        name: error.name,
+        cause: error.cause?.message,
+      });
+
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
@@ -304,13 +313,23 @@ router.post(
         });
       }
 
+      // Provide more helpful error message
+      const errorMessage = error.message || "Unknown error";
+      const isDevelopment = process.env.NODE_ENV === "development";
+
       res.status(500).json({
         success: false,
-        message: "Failed to generate PDF",
+        message: `Failed to generate PDF: ${errorMessage}`,
         error: "INTERNAL_SERVER_ERROR",
-        ...(process.env.NODE_ENV === "development" && {
-          details: error.message,
+        ...(isDevelopment && {
+          details: errorMessage,
+          stack: error.stack,
+          name: error.name,
         }),
+        // Always include a hint about common issues
+        hint: isDevelopment
+          ? undefined
+          : "Check server logs for details. Common issues: Playwright/Puppeteer not installed, AWS credentials missing, or template generation failed.",
       });
     }
   }
@@ -398,12 +417,20 @@ router.post(
         });
       }
 
+      console.error("❌ Quote email sending error:", {
+        quoteId: id,
+        error: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+
       res.status(500).json({
         success: false,
         message: "Failed to send email",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
           details: error.message,
+          stack: error.stack,
         }),
       });
     }

@@ -149,7 +149,7 @@ router.post("/blog-content-image", async (req, res) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    const cloudFrontUrl = process.env.CLOUDFRONT_URL;
     const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/images/blog/${encodedName}`
@@ -321,7 +321,7 @@ router.put("/blog-cover-image", async (req, res) => {
     const s3 = getS3Client();
     await s3.send(command);
 
-    const cloudFrontUrl = process.env.CLOUDFRONT_URL || process.env.CDN_URL;
+    const cloudFrontUrl = process.env.CLOUDFRONT_URL;
     const encodedName = encodeURIComponent(fileName);
     const imageUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/images/blog/${encodedName}`

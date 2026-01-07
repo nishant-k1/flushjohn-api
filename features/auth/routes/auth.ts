@@ -94,12 +94,13 @@ router.post("/", authLimiter, (async (req, res) => {
         );
 
         // Generate CSRF token for the session
-        generateCsrfToken(req, res);
+        const csrfToken = generateCsrfToken(req, res);
         
         res.status(200).json({
           success: true,
           message: "Authentication successful",
           token: token, // Include token for desktop apps
+          csrfToken: csrfToken, // Include CSRF token in response body for clients using fetch
           user: {
             userId: user.userId,
             fName: user.fName,
@@ -256,9 +257,13 @@ router.get("/verify", (async (req, res) => {
       return;
     }
 
+    // Generate CSRF token for the session
+    const csrfToken = generateCsrfToken(req, res);
+
     res.status(200).json({
       success: true,
       message: "Token is valid",
+      csrfToken: csrfToken, // Include CSRF token in response body for clients using fetch
       user: {
         userId: user.userId,
         fName: user.fName,

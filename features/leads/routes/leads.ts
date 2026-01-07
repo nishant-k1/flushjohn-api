@@ -45,7 +45,10 @@ router.post(
       // OPTIMIZATION: Emit only the new lead instead of fetching all leads
       if (global.leadsNamespace) {
         try {
-          const payload = { lead: lead.toObject ? lead.toObject() : lead, action: "add" };
+          const payload = {
+            lead: lead.toObject ? lead.toObject() : lead,
+            action: "add",
+          };
           global.leadsNamespace.emit("leadCreated", payload);
           console.log("📢 Emitted leadCreated event to socket clients");
         } catch (emitError) {
@@ -64,7 +67,9 @@ router.post(
           success: false,
           message: "Validation failed",
           error: "VALIDATION_ERROR",
-          details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
+          details: error.errors
+            ? Object.values(error.errors).map((err: any) => err.message)
+            : [(error as any).message],
         });
       }
 
@@ -81,7 +86,7 @@ router.post(
         message: "Failed to create lead",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
-          details: error.message,
+          details: (error as any).message,
         }),
       });
     }
@@ -100,10 +105,10 @@ router.get(
       const limit = parseInt(req.query.limit) || 10;
       const sortBy = req.query.sortBy || "createdAt";
       const sortOrder = req.query.sortOrder || "desc";
-      const { 
-        status, 
-        assignedTo, 
-        leadSource, 
+      const {
+        status,
+        assignedTo,
+        leadSource,
         search,
         hasCustomerNo,
         createdAtStart,
@@ -170,7 +175,7 @@ router.get(
         message: "Failed to retrieve leads",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
-          details: error.message,
+          details: (error as any).message,
           stack: error.stack,
         }),
       });
@@ -198,7 +203,7 @@ router.get(
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
-          message: error.message,
+          message: (error as any).message,
           error: "LEAD_NOT_FOUND",
         });
       }
@@ -216,7 +221,7 @@ router.get(
         message: "Failed to retrieve lead",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
-          details: error.message,
+          details: (error as any).message,
         }),
       });
     }
@@ -261,7 +266,7 @@ router.put(
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
-          message: error.message,
+          message: (error as any).message,
           error: "LEAD_NOT_FOUND",
         });
       }
@@ -271,7 +276,9 @@ router.put(
           success: false,
           message: "Validation failed",
           error: "VALIDATION_ERROR",
-          details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
+          details: error.errors
+            ? Object.values(error.errors).map((err: any) => err.message)
+            : [(error as any).message],
         });
       }
 
@@ -288,7 +295,7 @@ router.put(
         message: "Failed to update lead",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
-          details: error.message,
+          details: (error as any).message,
         }),
       });
     }
@@ -330,7 +337,7 @@ router.put(
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
-          message: error.message,
+          message: (error as any).message,
           error: "LEAD_NOT_FOUND",
         });
       }
@@ -340,7 +347,9 @@ router.put(
           success: false,
           message: "Validation failed",
           error: "VALIDATION_ERROR",
-          details: error.errors ? Object.values(error.errors).map((err) => err.message) : [error.message],
+          details: error.errors
+            ? Object.values(error.errors).map((err: any) => err.message)
+            : [(error as any).message],
         });
       }
 
@@ -357,7 +366,7 @@ router.put(
         message: "Failed to update lead",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
-          details: error.message,
+          details: (error as any).message,
         }),
       });
     }
@@ -384,7 +393,7 @@ router.delete(
       if (error.name === "NotFoundError") {
         return res.status(404).json({
           success: false,
-          message: error.message,
+          message: (error as any).message,
           error: "LEAD_NOT_FOUND",
         });
       }
@@ -392,7 +401,7 @@ router.delete(
       if (error.name === "DeletionBlockedError") {
         return res.status(403).json({
           success: false,
-          message: error.message,
+          message: (error as any).message,
           error: "DELETION_BLOCKED",
           details: error.details,
         });
@@ -411,7 +420,7 @@ router.delete(
         message: "Failed to delete lead",
         error: "INTERNAL_SERVER_ERROR",
         ...(process.env.NODE_ENV === "development" && {
-          details: error.message,
+          details: (error as any).message,
         }),
       });
     }
@@ -423,8 +432,8 @@ router.post("/test-alerts", async function (req, res, next) {
     const result = await alertService.testConnection();
 
     res.status(200).json({
-      success: result.success,
-      message: result.message || "Alert test completed",
+      success: (result as any).success,
+      message: (result as any).message || "Alert test completed",
       data: result,
     });
   } catch (error) {

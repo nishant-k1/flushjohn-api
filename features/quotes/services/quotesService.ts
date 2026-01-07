@@ -639,9 +639,9 @@ export const getAllQuotes = async ({
   // Combine $expr conditions if any exist
   if (exprConditions.length > 0) {
     if (exprConditions.length === 1) {
-      query.$expr = exprConditions[0];
+      (query as any).$expr = exprConditions[0];
     } else {
-      query.$expr = { $and: exprConditions };
+      (query as any).$expr = { $and: exprConditions };
     }
   }
 
@@ -674,7 +674,9 @@ export const getAllQuotes = async ({
 
     if (leadNumbers.length > 0) {
       // ✅ Batch fetch all leads in one query
-      const leads = await (Leads as any).find({ leadNo: { $in: leadNumbers } }).lean();
+      const leads = await (Leads as any)
+        .find({ leadNo: { $in: leadNumbers } })
+        .lean();
       leads.forEach((lead) => {
         leadsMap.set(lead.leadNo, lead);
       });
@@ -869,9 +871,8 @@ export const deleteQuote = async (id) => {
     throw error;
   }
 
-  const SalesOrder = (
-    await import("../../salesOrders/models/SalesOrders.js")
-  ).default;
+  const SalesOrder = (await import("../../salesOrders/models/SalesOrders.js"))
+    .default;
 
   const salesOrdersCount = await (SalesOrder as any).countDocuments({
     $or: [{ quote: id }, { quoteNo: existingQuote.quoteNo }],
@@ -883,7 +884,7 @@ export const deleteQuote = async (id) => {
         `Please delete these records first or contact an administrator.`
     );
     error.name = "DeletionBlockedError";
-    error.details = { salesOrdersCount };
+    (error as any).details = { salesOrdersCount };
     throw error;
   }
 

@@ -18,7 +18,7 @@ import {
 
 const router: any = Router();
 
-router.post("/", (async function (req, res) {
+router.post("/", async function (req, res) {
   try {
     const blog = await blogsService.createBlog(req.body);
     res.status(201).json({ success: true, data: blog });
@@ -41,25 +41,27 @@ router.post("/", (async function (req, res) {
       error: errorMessage,
     });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
-router.get("/", (async function (req, res) {
+router.get("/", async function (req, res) {
   try {
     const pagination = parsePaginationQuery(req.query);
-    const {
-      slug,
-      status,
-      ...columnFilters
-    } = req.query;
+    const { slug, status, ...columnFilters } = req.query;
 
     const slugValue = slug
       ? safeStringQuery(
-          typeof slug === "string" || Array.isArray(slug) ? slug : String(slug)
+          Array.isArray(slug)
+            ? (slug[0] as string)
+            : typeof slug === "string"
+            ? slug
+            : String(slug)
         )
       : null;
     const statusValue = status
       ? safeStringQuery(
-          typeof status === "string" || Array.isArray(status)
+          Array.isArray(status)
+            ? (status[0] as string)
+            : typeof status === "string"
             ? status
             : String(status)
         )
@@ -85,9 +87,9 @@ router.get("/", (async function (req, res) {
       error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({ success: false, error: errorMessage });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
-router.get("/:id", (async function (req, res) {
+router.get("/:id", async function (req, res) {
   try {
     const { id } = req.params;
 
@@ -116,9 +118,9 @@ router.get("/:id", (async function (req, res) {
       error instanceof Error ? error.message : "Unknown error";
     res.status(500).json({ success: false, error: errorMessage });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
-router.put("/:id", (async function (req, res) {
+router.put("/:id", async function (req, res) {
   try {
     const { id } = req.params;
 
@@ -173,9 +175,9 @@ router.put("/:id", (async function (req, res) {
       ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
     });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
-router.delete("/:id", (async function (req, res) {
+router.delete("/:id", async function (req, res) {
   try {
     const { id } = req.params;
 
@@ -213,9 +215,9 @@ router.delete("/:id", (async function (req, res) {
       ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
     });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
-router.post("/:id/cover-image/presigned-url", (async function (req, res) {
+router.post("/:id/cover-image/presigned-url", async function (req, res) {
   try {
     const { id } = req.params;
     const { fileType } = req.body;
@@ -281,9 +283,9 @@ router.post("/:id/cover-image/presigned-url", (async function (req, res) {
       ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
     });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
-router.post("/:id/cover-image/upload-complete", (async function (req, res) {
+router.post("/:id/cover-image/upload-complete", async function (req, res) {
   try {
     const { id } = req.params;
     const { publicUrl, key } = req.body;
@@ -339,9 +341,9 @@ router.post("/:id/cover-image/upload-complete", (async function (req, res) {
       ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
     });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
-router.delete("/:id/cover-image", (async function (req, res) {
+router.delete("/:id/cover-image", async function (req, res) {
   try {
     const { id } = req.params;
 
@@ -390,10 +392,10 @@ router.delete("/:id/cover-image", (async function (req, res) {
       ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
     });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
 // Regenerate excerpt for a blog
-router.post("/:id/regenerate-excerpt", (async function (req, res) {
+router.post("/:id/regenerate-excerpt", async function (req, res) {
   try {
     const { id } = req.params;
 
@@ -437,6 +439,6 @@ router.post("/:id/regenerate-excerpt", (async function (req, res) {
       ...(process.env.NODE_ENV === "development" && { details: errorMessage }),
     });
   }
-}) as AsyncRouteHandler);
+} as AsyncRouteHandler);
 
 export default router;
