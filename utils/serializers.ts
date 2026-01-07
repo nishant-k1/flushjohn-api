@@ -1,9 +1,11 @@
 /**
- * Data Normalization Utilities
+ * Data Serialization Utilities
  *
- * Centralized functions to normalize data into standard formats
+ * Centralized functions to serialize data into standard storage formats
  * before saving to the database. This ensures data consistency
  * across all sources (web forms, CRM, API calls, etc.)
+ *
+ * Serialization = Converting user input → database storage format
  */
 
 /**
@@ -23,7 +25,7 @@
  * @param phone - Phone number in any format
  * @returns Normalized phone in E.164 format or null if invalid
  */
-export const normalizePhoneNumber = (
+export const serializePhoneNumber = (
   phone: string | null | undefined
 ): string | null => {
   if (!phone) return null;
@@ -55,7 +57,7 @@ export const normalizePhoneNumber = (
  * @param zip - ZIP code in any format
  * @returns Normalized 5-digit ZIP or null if invalid
  */
-export const normalizeZipCode = (
+export const serializeZipCode = (
   zip: string | null | undefined
 ): string | null => {
   if (!zip) return null;
@@ -79,7 +81,7 @@ export const normalizeZipCode = (
  * @param email - Email address
  * @returns Normalized email in lowercase
  */
-export const normalizeEmail = (
+export const serializeEmail = (
   email: string | null | undefined
 ): string | null => {
   if (!email) return null;
@@ -92,7 +94,7 @@ export const normalizeEmail = (
  * @param text - Text to normalize
  * @returns Trimmed text
  */
-export const normalizeText = (text: string | null | undefined): string => {
+export const serializeText = (text: string | null | undefined): string => {
   if (!text) return "";
   return text.trim();
 };
@@ -103,7 +105,7 @@ export const normalizeText = (text: string | null | undefined): string => {
  * @param name - Name to normalize
  * @returns Trimmed and capitalized name
  */
-export const normalizeName = (name: string | null | undefined): string => {
+export const serializeName = (name: string | null | undefined): string => {
   if (!name) return "";
   const trimmed = name.trim();
   if (!trimmed) return "";
@@ -118,7 +120,7 @@ export const normalizeName = (name: string | null | undefined): string => {
  * @param usageType - Usage type string
  * @returns Normalized usage type
  */
-export const normalizeUsageType = (
+export const serializeUsageType = (
   usageType: string | null | undefined
 ): string => {
   if (!usageType) return "";
@@ -145,7 +147,7 @@ export const normalizeUsageType = (
  * @param date - Date in any format
  * @returns ISO 8601 string at start of day (midnight UTC) or null if invalid
  */
-export const normalizeDate = (
+export const serializeDate = (
   date: string | Date | null | undefined
 ): string | null => {
   if (!date) return null;
@@ -177,7 +179,7 @@ export const normalizeDate = (
  * @param date - Date in any format
  * @returns ISO 8601 string with time or null if invalid
  */
-export const normalizeDateTime = (
+export const serializeDateTime = (
   date: string | Date | null | undefined
 ): string | null => {
   if (!date) return null;
@@ -203,7 +205,7 @@ export const normalizeDateTime = (
  * @param state - State name or abbreviation
  * @returns Normalized state (uppercase if 2 chars, titlecase otherwise)
  */
-export const normalizeState = (state: string | null | undefined): string => {
+export const serializeState = (state: string | null | undefined): string => {
   if (!state) return "";
   const trimmed = state.trim();
   if (!trimmed) return "";
@@ -227,72 +229,72 @@ export const normalizeState = (state: string | null | undefined): string => {
  * @returns Object with normalized contact data
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const normalizeContactData = (data: any): any => {
+export const serializeContactData = (data: any): any => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalized: any = { ...data };
 
-  // Normalize phone fields
+  // Serialize phone fields
   if (data.phone) {
-    normalized.phone = normalizePhoneNumber(data.phone);
+    normalized.phone = serializePhoneNumber(data.phone);
   }
   if (data.contactPersonPhone) {
-    normalized.contactPersonPhone = normalizePhoneNumber(
+    normalized.contactPersonPhone = serializePhoneNumber(
       data.contactPersonPhone
     );
   }
   if (data.fax) {
-    normalized.fax = normalizePhoneNumber(data.fax);
+    normalized.fax = serializePhoneNumber(data.fax);
   }
 
-  // Normalize email
+  // Serialize email
   if (data.email) {
-    normalized.email = normalizeEmail(data.email);
+    normalized.email = serializeEmail(data.email);
   }
 
-  // Normalize ZIP code
+  // Serialize ZIP code
   if (data.zip) {
-    normalized.zip = normalizeZipCode(data.zip);
+    normalized.zip = serializeZipCode(data.zip);
   }
 
-  // Normalize state
+  // Serialize state
   if (data.state) {
-    normalized.state = normalizeState(data.state);
+    normalized.state = serializeState(data.state);
   }
 
-  // Normalize text fields
+  // Serialize text fields
   if (data.fName !== undefined) {
-    normalized.fName = normalizeText(data.fName);
+    normalized.fName = serializeText(data.fName);
   }
   if (data.lName !== undefined) {
-    normalized.lName = normalizeText(data.lName);
+    normalized.lName = serializeText(data.lName);
   }
   if (data.cName !== undefined) {
-    normalized.cName = normalizeText(data.cName);
+    normalized.cName = serializeText(data.cName);
   }
   if (data.contactPersonName !== undefined) {
-    normalized.contactPersonName = normalizeText(data.contactPersonName);
+    normalized.contactPersonName = serializeText(data.contactPersonName);
   }
   if (data.streetAddress !== undefined) {
-    normalized.streetAddress = normalizeText(data.streetAddress);
+    normalized.streetAddress = serializeText(data.streetAddress);
   }
   if (data.city !== undefined) {
-    normalized.city = normalizeText(data.city);
+    normalized.city = serializeText(data.city);
   }
   if (data.instructions !== undefined) {
-    normalized.instructions = normalizeText(data.instructions);
+    normalized.instructions = serializeText(data.instructions);
   }
 
-  // Normalize usage type
+  // Serialize usage type
   if (data.usageType) {
-    normalized.usageType = normalizeUsageType(data.usageType);
+    normalized.usageType = serializeUsageType(data.usageType);
   }
 
-  // Normalize dates (delivery/pickup dates - use date-only normalization)
+  // Serialize dates (delivery/pickup dates - use date-only serialization)
   if (data.deliveryDate) {
-    normalized.deliveryDate = normalizeDate(data.deliveryDate);
+    normalized.deliveryDate = serializeDate(data.deliveryDate);
   }
   if (data.pickupDate) {
-    normalized.pickupDate = normalizeDate(data.pickupDate);
+    normalized.pickupDate = serializeDate(data.pickupDate);
   }
 
   // Normalize datetime fields (if they exist and need time preserved)
