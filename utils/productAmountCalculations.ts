@@ -1,3 +1,6 @@
+import { dollarsToCents } from "./priceCalculations";
+import { round } from "./numericCalculations";
+
 const MAX_QUANTITY = 1_000_000;
 const MAX_RATE = 1_000_000;
 const MAX_AMOUNT_CENTS = 1_000_000_000_000;
@@ -42,7 +45,8 @@ export const calculateProductAmountCents = (
     throw new Error(`Rate ${rate} exceeds maximum allowed (${MAX_RATE})`);
   }
 
-  const amountInCents = Math.round(qtyValue * productRate * 100);
+  const amountInDollars = qtyValue * productRate;
+  const amountInCents = dollarsToCents(amountInDollars);
 
   if (!Number.isFinite(amountInCents) || amountInCents < 0) {
     throw new Error(

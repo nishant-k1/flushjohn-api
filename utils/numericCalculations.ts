@@ -54,6 +54,18 @@ export const roundToDecimals = (value: number, decimals: number = 2): number => 
 };
 
 /**
+ * Round a number to nearest integer
+ * @param value - Number to round
+ * @returns Rounded integer
+ */
+export const round = (value: number): number => {
+  if (!Number.isFinite(value)) {
+    throw new Error(`Invalid value: ${value}. Value must be a finite number.`);
+  }
+  return Math.round(value);
+};
+
+/**
  * Convert bytes to megabytes
  * @param bytes - Size in bytes
  * @param decimals - Number of decimal places (default: 2)
