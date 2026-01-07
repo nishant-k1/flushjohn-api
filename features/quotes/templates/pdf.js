@@ -8,6 +8,7 @@ import {
   safeCurrency,
   safePhone,
 } from "../../../utils/safeValue.js";
+import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
 
 const itemRows = (products) => {
   if (!products || !Array.isArray(products)) {
@@ -16,10 +17,10 @@ const itemRows = (products) => {
 
   return products
     .map((element, index) => {
-      const { item, desc, qty, rate } = element || {};
-      const safeQty = parseFloat(qty) || 0;
+      const { item, desc, quantity, rate } = element || {};
+      const safeQuantity = parseFloat(quantity) || 0;
       const safeRate = parseFloat(rate) || 0;
-      const total = safeQty * safeRate;
+      const total = calculateProductAmount(safeQuantity, safeRate);
 
       return `<ul key=${index} id=${index} class='items-list'>
           <li>
@@ -29,7 +30,7 @@ const itemRows = (products) => {
             <p>${safeValue(desc)}</p>
           </li>
           <li>
-            <p>${safeValue(qty)}</p>
+            <p>${safeValue(quantity)}</p>
           </li>
           <li>
             <p>${safeCurrency(rate)}</p>
@@ -47,9 +48,9 @@ const totalAmount = (products) => {
     return 0;
   }
   return products.reduce((accumulator, currentValue) => {
-    const qty = parseFloat(currentValue.qty) || 0;
+    const quantity = parseFloat(currentValue.quantity) || 0;
     const rate = parseFloat(currentValue.rate) || 0;
-    return accumulator + qty * rate;
+    return accumulator + parseFloat(calculateProductAmount(quantity, rate));
   }, 0);
 };
 

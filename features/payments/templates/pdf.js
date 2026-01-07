@@ -2,6 +2,7 @@
 import styles from "../../quotes/templates/styles.js";
 import { logoDataUris } from "../../../constants.js";
 import { safeValue, safeCurrency } from "../../../utils/safeValue.js";
+import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
 
 const itemRows = (products) => {
   if (!products || !Array.isArray(products)) {
@@ -10,10 +11,10 @@ const itemRows = (products) => {
 
   return products
     .map((element, index) => {
-      const { item, desc, qty, rate } = element || {};
-      const safeQty = parseFloat(qty) || 0;
+      const { item, desc, quantity, rate } = element || {};
+      const safeQuantity = parseFloat(quantity) || 0;
       const safeRate = parseFloat(rate) || 0;
-      const total = safeQty * safeRate;
+      const total = calculateProductAmount(safeQuantity, safeRate);
 
       return `<ul key=${index} id=${index} class='items-list'>
           <li>
@@ -23,7 +24,7 @@ const itemRows = (products) => {
             <p>${safeValue(desc)}</p>
           </li>
           <li>
-            <p>${safeValue(qty)}</p>
+            <p>${safeValue(quantity)}</p>
           </li>
           <li>
             <p>${safeCurrency(rate)}</p>

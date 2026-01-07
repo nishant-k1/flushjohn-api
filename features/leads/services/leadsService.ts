@@ -10,6 +10,7 @@ import alertService from "../../common/services/alertService.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
 import { createLeadNotification } from "../../notifications/services/notificationHelpers.js";
 import { deleteNotificationsByLeadId } from "../../notifications/services/notificationsService.js";
+import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
 
 /**
  * Transform products based on lead source
@@ -20,37 +21,24 @@ export const transformProductsData = (leadSource, products) => {
   }
 
   const normalizedProducts = products.map((product, index) => {
-    if (product.type && product.quantity !== undefined) {
-      const qty = Number(product.quantity);
-      const rate = Number(product.rate) || 0;
-      const amount = Number(product.amount) || rate * qty;
+    // Always use quantity field (standardized)
+    const quantity = Number(product.quantity) || 0;
+    const rate = Number(product.rate) || 0;
+    // Use utility function for consistent calculation
+    const amount = Number(product.amount) || parseFloat(calculateProductAmount(quantity, rate));
 
-      return {
-        id: product.id || `legacy-${Date.now()}-${index}`,
-        item: String(product.type || ""),
-        desc: String(product.desc || product.type || ""),
-        qty: qty,
-        rate: rate,
-        amount: amount,
-      };
-    } else {
-      const qty = Number(product.qty);
-      const rate = Number(product.rate) || 0;
-      const amount = Number(product.amount) || rate * qty;
-
-      return {
-        id: product.id || `product-${Date.now()}-${index}`,
-        item: String(product.item || ""),
-        desc: String(product.desc || product.item || ""),
-        qty: qty,
-        rate: rate,
-        amount: amount,
-      };
-    }
+    return {
+      id: product.id || `product-${Date.now()}-${index}`,
+      item: String(product.item || product.type || ""),
+      desc: String(product.desc || product.item || product.type || ""),
+      quantity: quantity,
+      rate: rate,
+      amount: amount,
+    };
   });
 
   if (leadSource === "Web Lead" || leadSource === "Web Quick Lead") {
-    return normalizedProducts.filter((product) => product.qty > 0);
+    return normalizedProducts.filter((product) => product.quantity > 0);
   }
 
   return normalizedProducts;
@@ -122,7 +110,7 @@ export const createLead = async (leadData) => {
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
   const lead = await leadsRepository.create(preparedData);
   sendLeadAlerts(lead, leadNo);
-  
+
   // Create notifications for all active users (non-blocking)
   createLeadNotification(lead).catch((error) => {
     console.error("Error creating notifications:", error);
@@ -151,14 +139,14 @@ export const getAllLeads = async ({
   const dayjs = (await import("../../../lib/dayjs.js")).dayjs;
 
   // Legacy filters
-  if (status) query.leadStatus = status;
-  if (assignedTo) query.assignedTo = assignedTo;
-  if (leadSource) query.leadSource = leadSource;
-  
+  if (status) (query as any).leadStatus = status;
+  if (assignedTo) (query as any).assignedTo = assignedTo;
+  if (leadSource) (query as any).leadSource = leadSource;
+
   // Filter for leads that have been converted to customers
   // When hasCustomerNo is true, filter leads that have a customer reference
   if (hasCustomerNo === true || hasCustomerNo === "true") {
-    query.customer = { $exists: true, $ne: null };
+    (query as any).customer = { $exists: true, $ne: null };
   }
 
   // Handle column-specific filters (all fields are in the leads collection)
@@ -333,16 +321,13 @@ export const getAllLeads = async ({
       $expr: {
         $regexMatch: {
           input: {
-            $ifNull: [
-              { $toString: "$leadNo" },
-              "",
-            ],
+            $ifNull: [{ $toString: "$leadNo" }, ""],
           },
           regex: escapedSearch,
           options: "i",
         },
       },
-    });
+    } as any);
 
     // Search createdAt date field with partial matching (handle null/missing dates and string dates)
     searchConditions.push({
@@ -351,8 +336,8 @@ export const getAllLeads = async ({
           input: {
             $ifNull: [
               {
-            $dateToString: {
-              format: "%B %d, %Y, %H:%M",
+                $dateToString: {
+                  format: "%B %d, %Y, %H:%M",
                   date: {
                     $convert: {
                       input: "$createdAt",
@@ -370,7 +355,7 @@ export const getAllLeads = async ({
           options: "i",
         },
       },
-    });
+    } as any);
 
     // Search deliveryDate date field with partial matching (handle null/missing dates and string dates)
     searchConditions.push({
@@ -398,7 +383,7 @@ export const getAllLeads = async ({
           options: "i",
         },
       },
-    });
+    } as any);
 
     // Search pickupDate date field with partial matching (handle null/missing dates and string dates)
     searchConditions.push({
@@ -426,7 +411,7 @@ export const getAllLeads = async ({
           options: "i",
         },
       },
-    });
+    } as any);
 
     // Combine search with existing filters
     const hasOtherFilters = Object.keys(query).some(
@@ -444,12 +429,12 @@ export const getAllLeads = async ({
       });
 
       if (hasExpr) {
-        andConditions.push({ $expr: (query as any).$expr });
+        andConditions.push({ $expr: (query as any).$expr } as any);
       }
 
-      query = { $and: andConditions };
+      query = { $and: andConditions } as any;
     } else {
-      query = { $or: searchConditions };
+      query = { $or: searchConditions } as any;
     }
   }
 
@@ -556,9 +541,8 @@ export const deleteLead = async (id) => {
 
   // Check for related records
   const Quote = (await import("../../quotes/models/Quotes.js")).default;
-  const SalesOrder = (
-    await import("../../salesOrders/models/SalesOrders.js")
-  ).default;
+  const SalesOrder = (await import("../../salesOrders/models/SalesOrders.js"))
+    .default;
   const JobOrder = (await import("../../jobOrders/models/JobOrders.js"))
     .default;
 
@@ -588,12 +572,12 @@ export const deleteLead = async (id) => {
       )}. ` + `Please delete these records first or contact an administrator.`
     );
     error.name = "DeletionBlockedError";
-    error.details = { quotesCount, salesOrdersCount, jobOrdersCount };
+    (error as any).details = { quotesCount, salesOrdersCount, jobOrdersCount };
     throw error;
   }
 
   await leadsRepository.deleteById(id);
-  
+
   // Delete all notifications related to this lead (non-blocking)
   deleteNotificationsByLeadId(id).catch((error) => {
     console.error("Error deleting notifications for lead:", error);

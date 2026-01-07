@@ -1,6 +1,7 @@
 import Leads from "../models/Leads.js";
 import alertService from "../../common/services/alertService.js";
 import { getCurrentDateTime } from "../../../lib/dayjs.js";
+import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
 
 const productsData = (leadSource, products) => {
   if (!Array.isArray(products)) {
@@ -8,37 +9,24 @@ const productsData = (leadSource, products) => {
   }
 
   const normalizedProducts = products.map((product, index) => {
-    if (product.type && product.quantity !== undefined) {
-      const qty = Number(product.quantity);
-      const rate = Number(product.rate) || 0;
-      const amount = Number(product.amount) || rate * qty;
+    // Always use quantity field (standardized)
+    const quantity = Number(product.quantity) || 0;
+    const rate = Number(product.rate) || 0;
+    // Use utility function for consistent calculation
+    const amount = Number(product.amount) || parseFloat(calculateProductAmount(quantity, rate));
 
-      return {
-        id: product.id || `legacy-${Date.now()}-${index}`,
-        item: String(product.type || ""),
-        desc: String(product.desc || product.type || ""),
-        qty: qty,
-        rate: rate,
-        amount: amount,
-      };
-    } else {
-      const qty = Number(product.qty);
-      const rate = Number(product.rate) || 0;
-      const amount = Number(product.amount) || rate * qty;
-
-      return {
-        id: product.id || `product-${Date.now()}-${index}`,
-        item: String(product.item || ""),
-        desc: String(product.desc || product.item || ""),
-        qty: qty,
-        rate: rate,
-        amount: amount,
-      };
-    }
+    return {
+      id: product.id || `product-${Date.now()}-${index}`,
+      item: String(product.item || product.type || ""),
+      desc: String(product.desc || product.item || product.type || ""),
+      quantity: quantity,
+      rate: rate,
+      amount: amount,
+    };
   });
 
   if (leadSource === "Web Lead" || leadSource === "Web Quick Lead") {
-    return normalizedProducts.filter((product) => product.qty > 0);
+    return normalizedProducts.filter((product) => product.quantity > 0);
   }
 
   return normalizedProducts;

@@ -807,15 +807,19 @@ export const getSalesOrderById = async (id) => {
     ? salesOrder.toObject()
     : salesOrder;
   const { calculateOrderTotal } = await import(
-    "../../payments/services/stripeService.js"
+    "../../../utils/productAmountCalculations.js"
   );
-  const calculatedOrderTotal = calculateOrderTotal(
-    salesOrderObj.products || []
+  const calculatedOrderTotal = parseFloat(
+    calculateOrderTotal(salesOrderObj.products || [])
   );
 
   // Check if recalculation is needed: orderTotal doesn't match calculated total, or balanceDue is 0 when it shouldn't be
+  // Use tolerance check for floating point comparison (0.01 cents = $0.0001)
+  const orderTotalDiff = Math.abs(
+    salesOrderObj.orderTotal - calculatedOrderTotal
+  );
   const needsRecalculation =
-    salesOrderObj.orderTotal !== calculatedOrderTotal ||
+    orderTotalDiff > 0.01 ||
     (calculatedOrderTotal > 0 &&
       salesOrderObj.paidAmount === 0 &&
       salesOrderObj.balanceDue === 0);
@@ -950,8 +954,7 @@ export const cancelSalesOrder = async (id) => {
   }
 
   // Check if there are any payments that haven't been fully refunded
-  const Payments = (await import("../../payments/models/Payments.js"))
-    .default;
+  const Payments = (await import("../../payments/models/Payments.js")).default;
 
   const payments = await (Payments as any).find({
     salesOrder: id,
@@ -1094,8 +1097,7 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
     });
 
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes.js"))
-        .default;
+      const Quotes = (await import("../../quotes/models/Quotes.js")).default;
       await (Quotes as any).findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });
@@ -1115,8 +1117,7 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
     });
 
     if (salesOrder.quote) {
-      const Quotes = (await import("../../quotes/models/Quotes.js"))
-        .default;
+      const Quotes = (await import("../../quotes/models/Quotes.js")).default;
       await (Quotes as any).findByIdAndUpdate(salesOrder.quote, {
         customer: customer._id,
       });

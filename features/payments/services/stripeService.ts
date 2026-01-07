@@ -17,31 +17,39 @@ const getStripeClient = (): Stripe => {
       );
     }
     stripe = new Stripe(secretKey, {
-      apiVersion: "2024-12-18.acacia",
+      apiVersion: "2024-12-18.acacia" as any,
     });
   }
   return stripe;
 };
 
 /**
- * Calculate order total from products array
- */
-export const calculateOrderTotal = (products) => {
-  if (!products || !Array.isArray(products)) {
-    return 0;
-  }
-  return products.reduce((total, product) => {
-    const qty = parseFloat(product.qty) || 0;
-    const rate = parseFloat(product.rate) || 0;
-    return total + qty * rate;
-  }, 0);
-};
-
-/**
  * Convert amount to cents (Stripe uses smallest currency unit)
+ * Improved version: handles both number and string, validates input
+ * For best accuracy, use calculateOrderTotalCents() directly when possible
  */
-const amountToCents = (amount) => {
-  return Math.round(amount * 100);
+const amountToCents = (amount: number | string): number => {
+  // If already a string from calculateProductAmount, parse it
+  const amountNum = typeof amount === "string" ? parseFloat(amount) : amount;
+
+  // Validate input
+  if (isNaN(amountNum) || !Number.isFinite(amountNum)) {
+    throw new Error(`Invalid amount for Stripe conversion: ${amount}`);
+  }
+  if (amountNum < 0) {
+    throw new Error(`Amount cannot be negative: ${amount}`);
+  }
+
+  // Use integer arithmetic: convert to cents and round
+  // This is safe because we're rounding a finite number
+  const cents = Math.round(amountNum * 100);
+
+  // Validate result
+  if (!Number.isFinite(cents) || cents < 0) {
+    throw new Error(`Invalid cents value after conversion: ${cents}`);
+  }
+
+  return cents;
 };
 
 /**
@@ -116,7 +124,7 @@ export const createPaymentLink = async ({
     // Ensure amount is in cents
     const amountInCents = amountToCents(amount);
 
-    const paymentLink = await stripe.payment(Links as any).create({
+    const paymentLink = await stripe.paymentLinks.create({
       line_items: [
         {
           price_data: {
@@ -127,7 +135,7 @@ export const createPaymentLink = async ({
             unit_amount: amountInCents,
           },
           quantity: 1,
-        },
+        } as any,
       ],
       metadata: {
         ...metadata,
@@ -181,18 +189,18 @@ export const createPaymentIntent = async ({
     };
 
     if (customerId) {
-      paymentIntentData.customer = customerId;
+      (paymentIntentData as any).customer = customerId;
     }
 
     if (paymentMethodId) {
-      paymentIntentData.payment_method = paymentMethodId;
+      (paymentIntentData as any).payment_method = paymentMethodId;
     }
 
     if (savePaymentMethod && customerId) {
-      paymentIntentData.setup_future_usage = "off_session";
+      (paymentIntentData as any).setup_future_usage = "off_session";
     }
 
-    const paymentIntent = await stripe.payment(Intents as any).create(paymentIntentData);
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
 
     return paymentIntent;
   } catch (error) {
@@ -219,10 +227,12 @@ export const attachPaymentMethodToCustomer = async (
       const isAlreadyAttached = existingMethods.data.some(
         (pm) => pm.id === paymentMethodId
       );
-      
+
       if (isAlreadyAttached) {
         // Payment method is already attached, return it without re-attaching
-        const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+        const paymentMethod = await stripe.paymentMethods.retrieve(
+          paymentMethodId
+        );
         return paymentMethod;
       }
     } catch (checkError) {
@@ -236,7 +246,7 @@ export const attachPaymentMethodToCustomer = async (
 
     // Set as default if no default payment method exists
     const customer = await stripe.customers.retrieve(customerId);
-    if (!customer.invoice_settings.default_payment_method) {
+    if (!(customer as any).invoice_settings?.default_payment_method) {
       await stripe.customers.update(customerId, {
         invoice_settings: {
           default_payment_method: paymentMethodId,
@@ -253,10 +263,15 @@ export const attachPaymentMethodToCustomer = async (
         error.message?.includes("already attached"))
     ) {
       try {
-        const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+        const paymentMethod = await stripe.paymentMethods.retrieve(
+          paymentMethodId
+        );
         return paymentMethod;
       } catch (retrieveError) {
-        console.error("Error retrieving payment method after duplicate attach:", retrieveError);
+        console.error(
+          "Error retrieving payment method after duplicate attach:",
+          retrieveError
+        );
         throw new Error(`Payment method is already attached`);
       }
     }
@@ -271,7 +286,7 @@ export const attachPaymentMethodToCustomer = async (
 export const createSetupIntent = async (customerId) => {
   try {
     const stripe = getStripeClient();
-    const setupIntent = await stripe.setup(Intents as any).create({
+    const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
       payment_method_types: ["card"],
     });
@@ -327,15 +342,15 @@ export const processRefund = async ({
 
     // Use charge ID if available, otherwise use payment intent ID
     if (chargeId) {
-      refundData.charge = chargeId;
+      (refundData as any).charge = chargeId;
     } else if (paymentIntentId) {
-      refundData.payment_intent = paymentIntentId;
+      (refundData as any).payment_intent = paymentIntentId;
     } else {
       throw new Error("Either chargeId or paymentIntentId must be provided");
     }
 
     if (amount !== null) {
-      refundData.amount = amountToCents(amount);
+      (refundData as any).amount = amountToCents(amount);
     }
 
     const refund = await stripe.refunds.create(refundData);
@@ -394,4 +409,4 @@ export const detachPaymentMethodFromCustomer = async (paymentMethodId) => {
 
 // Export getter function for backward compatibility
 // Note: Direct stripe export removed - use getStripeClient() internally
-export { getStripeClient as stripe };
+export { getStripeClient };

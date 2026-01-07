@@ -18,7 +18,8 @@
     "generate-content": "tsx features/blogs/scripts/generateBlogContentFiles.ts",
     "publish-blogs": "tsx features/blogs/scripts/publishBlogPosts.ts",
     "add-indexes": "tsx scripts/addIndexes.ts",
-    "create-admin-user": "tsx scripts/createAdminUser.ts"
+    "create-admin-user": "tsx scripts/createAdminUser.ts",
+    "migrate-qty-to-quantity": "tsx scripts/migrate-qty-to-quantity.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.714.0",

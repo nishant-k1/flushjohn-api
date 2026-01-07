@@ -5,10 +5,11 @@
 
 import { Request, Response, NextFunction } from "express";
 import { getCurrentDateTime } from "../lib/dayjs.js";
+import { calculateProductAmount } from "../utils/productAmountCalculations.js";
 
 interface Product {
   item?: string;
-  qty?: number | string;
+  quantity?: number | string;
   rate?: number | string;
   amount?: number | string;
   usageType?: string;
@@ -32,7 +33,7 @@ const validateAndRecalculateProducts = (
     const discrepancies: Array<{
       index: number;
       item: string;
-      qty: number;
+      quantity: number;
       rate: number;
       frontendAmount: number;
       serverAmount: number;
@@ -41,12 +42,12 @@ const validateAndRecalculateProducts = (
 
     // Recalculate and validate each product
     const validatedProducts = products.map((product, index) => {
-      const qty = Number(product.qty) || 0;
+      const quantity = Number(product.quantity) || 0;
       const rate = Number(product.rate) || 0;
       const frontendAmount = Number(product.amount) || 0;
 
       // Calculate correct amount (server-side source of truth)
-      const serverAmount = qty * rate;
+      const serverAmount = parseFloat(calculateProductAmount(quantity, rate));
 
       // Round to 2 decimal places for comparison
       const serverAmountRounded = Math.round(serverAmount * 100) / 100;
@@ -59,7 +60,7 @@ const validateAndRecalculateProducts = (
         discrepancies.push({
           index,
           item: product.item || "",
-          qty,
+          quantity,
           rate,
           frontendAmount: frontendAmountRounded,
           serverAmount: serverAmountRounded,
@@ -71,7 +72,7 @@ const validateAndRecalculateProducts = (
       // Explicitly preserve all product fields including usageType
       return {
         ...product,
-        qty,
+        quantity,
         rate,
         amount: serverAmountRounded,
         usageType: product.usageType || "", // Explicitly preserve usageType

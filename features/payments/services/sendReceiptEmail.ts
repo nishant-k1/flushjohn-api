@@ -8,6 +8,7 @@ import { getPooledTransporter } from "../../common/services/emailService.js";
 import receiptEmailTemplate from "../templates/email.js";
 import * as salesOrdersRepository from "../../salesOrders/repositories/salesOrdersRepository.js";
 import { generateReceiptPDFBuffer } from "../../fileManagement/services/pdfService.js";
+import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -95,7 +96,37 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
     };
     const emailContent = receiptEmailTemplate(emailData);
     const companyName = process.env.FLUSH_JOHN_COMPANY_NAME || "Flush John";
+    const flushjohn_phone = process.env.FLUSH_JOHN_PHONE;
+    const flushjohn_email = process.env.FLUSH_JOHN_EMAIL_ID;
+    const flushjohn_website =
+      process.env.FLUSH_JOHN_HOMEPAGE || process.env.WEBSITE_URL;
     const subject = `${companyName}: Payment Receipt - Sales Order #${salesOrder.salesOrderNo}`;
+
+    // Format payment date and method for plain text
+    const paymentDate = payment.createdAt
+      ? new Date(payment.createdAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+    const paymentMethodDisplay =
+      payment.paymentMethod === "payment_link"
+        ? "Payment Link"
+        : payment.paymentMethod === "saved_card"
+        ? `Saved Card${payment.cardLast4 ? ` (•••• ${payment.cardLast4})` : ""}`
+        : `Card Payment${
+            payment.cardLast4 ? ` (•••• ${payment.cardLast4})` : ""
+          }`;
 
     // Generate PDF receipt (uses flattened receiptData)
     let pdfBuffer;
@@ -109,13 +140,63 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
       // Continue without PDF attachment if generation fails
     }
 
+    // Generate plain text version for better email client compatibility
+    const plainTextContent = `
+Payment Receipt - Sales Order #${salesOrder.salesOrderNo}
+
+Hi ${receiptData.fName || "Customer"},
+
+Your payment of $${payment.amount.toFixed(2)} has been successfully processed.
+
+Payment Details:
+- Sales Order #: ${salesOrder.salesOrderNo}
+- Payment Date: ${paymentDate}
+- Payment Method: ${paymentMethodDisplay}
+- Amount Paid: $${payment.amount.toFixed(2)}
+
+${
+  salesOrder?.products?.length > 0
+    ? `
+Order Items:
+${salesOrder.products
+  .map((p: any) => {
+    const quantity = p.quantity || 0;
+    const rate = p.rate || 0;
+    const total = calculateProductAmount(quantity, rate);
+    return `- ${p.item || "N/A"} (Quantity: ${quantity}) - $${total}`;
+  })
+  .join("\n")}
+ `
+    : ""
+}
+
+Your payment has been successfully processed and your order is being prepared. If you have any questions about this payment or your order, please don't hesitate to reply to this email.
+
+${companyName}
+${flushjohn_phone ? `Phone: ${flushjohn_phone}` : ""}
+${flushjohn_email ? `Email: ${flushjohn_email}` : ""}
+${flushjohn_website ? `Website: ${flushjohn_website}` : ""}
+    `.trim();
+
     // Prepare email options
     const emailOptions: any = {
       from: `${companyName} <${emailConfig.user}>`,
       to: customerEmail,
       subject: subject,
+      text: plainTextContent, // Plain text version prevents Gmail from collapsing
       html: emailContent,
       attachments: [],
+      // Add headers to prevent Gmail from treating as promotional
+      headers: {
+        "X-Mailer": "FlushJohn Payment System",
+        "X-Priority": "1",
+        Importance: "high",
+        "Auto-Submitted": "auto-generated", // Marks as transactional
+        Precedence: "bulk", // Helps with delivery
+        "X-Auto-Response-Suppress": "All", // Prevents auto-replies
+        "List-Unsubscribe": `<mailto:${emailConfig.user}?subject=Unsubscribe>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     };
 
     // Attach logo as inline CID attachment (PNG format for better email client support)

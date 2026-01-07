@@ -8,10 +8,13 @@ import {
   retrievePaymentIntent,
   retrievePaymentMethod,
   processRefund,
-  calculateOrderTotal,
   listCustomerPaymentMethods,
   retrievePaymentLink,
 } from "./stripeService.js";
+import {
+  calculateOrderTotal,
+  calculateOrderTotalCents,
+} from "../../../utils/productAmountCalculations.js";
 
 /**
  * Payments Service
@@ -27,8 +30,8 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
     throw new Error("Sales Order not found");
   }
 
-  // Calculate order total from products
-  const orderTotal = calculateOrderTotal(salesOrder.products);
+  // Calculate order total from products (as number for calculations)
+  const orderTotal = parseFloat(calculateOrderTotal(salesOrder.products));
 
   // Get all successful payments for this sales order
   const payments = await paymentsRepository.findAll({
@@ -76,10 +79,10 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
   const updatedSalesOrder = await salesOrdersRepository.updateById(
     salesOrderId,
     {
-    orderTotal,
-    paidAmount: netPaidAmount,
-    balanceDue,
-    paymentStatus,
+      orderTotal,
+      paidAmount: netPaidAmount,
+      balanceDue,
+      paymentStatus,
     }
   );
 
@@ -110,8 +113,8 @@ export const createSalesOrderPaymentLink = async (salesOrderId, returnUrl) => {
     throw new Error("Sales Order not found");
   }
 
-  // Calculate order total
-  const orderTotal = calculateOrderTotal(salesOrder.products);
+  // Calculate order total (as number for comparison)
+  const orderTotal = parseFloat(calculateOrderTotal(salesOrder.products));
   if (orderTotal <= 0) {
     throw new Error("Order total must be greater than 0");
   }
@@ -216,8 +219,8 @@ export const chargeSalesOrder = async (
     throw new Error("Sales Order not found");
   }
 
-  // Calculate order total
-  const orderTotal = calculateOrderTotal(salesOrder.products);
+  // Calculate order total (as number for comparison)
+  const orderTotal = parseFloat(calculateOrderTotal(salesOrder.products));
   if (orderTotal <= 0) {
     throw new Error("Order total must be greater than 0");
   }
@@ -321,9 +324,9 @@ export const chargeSalesOrder = async (
   // If payment succeeded, get card details from charge
   if (
     paymentIntent.status === "succeeded" &&
-    paymentIntent.charges?.data?.[0]
+    (paymentIntent as any).charges?.data?.[0]
   ) {
-    const charge = paymentIntent.charges.data[0];
+    const charge = (paymentIntent as any).charges.data[0];
     if (charge.payment_method_details?.card && !cardLast4) {
       const card = charge.payment_method_details.card;
       cardLast4 = card.last4;
@@ -334,7 +337,7 @@ export const chargeSalesOrder = async (
   // Get charge ID if payment succeeded
   const chargeId =
     (paymentIntent.status === "succeeded" &&
-      paymentIntent.charges?.data?.[0]?.id) ||
+      (paymentIntent as any).charges?.data?.[0]?.id) ||
     null;
 
   // Create payment record
@@ -425,9 +428,9 @@ export const refundPayment = async (
 
       if (
         paymentIntent.status === "succeeded" &&
-        paymentIntent.charges?.data?.[0]?.id
+        (paymentIntent as any).charges?.data?.[0]?.id
       ) {
-        chargeId = paymentIntent.charges.data[0].id;
+        chargeId = (paymentIntent as any).charges.data[0].id;
 
         // Update payment record with charge ID for future use
         await paymentsRepository.updateById(paymentId, {
@@ -642,7 +645,7 @@ export const getPaymentsBySalesOrder = async (salesOrderId) => {
  */
 export const sendPaymentReceipt = async (paymentId) => {
   const payment = await paymentsRepository.findById(paymentId);
-  
+
   if (!payment) {
     throw new Error("Payment not found");
   }
@@ -654,11 +657,11 @@ export const sendPaymentReceipt = async (paymentId) => {
   // Get sales order
   const salesOrderId =
     typeof payment.salesOrder === "object" && payment.salesOrder?._id
-    ? payment.salesOrder._id
-    : payment.salesOrder;
-  
+      ? payment.salesOrder._id
+      : payment.salesOrder;
+
   const salesOrder = await salesOrdersRepository.findById(salesOrderId);
-  
+
   if (!salesOrder) {
     throw new Error("Sales order not found");
   }
@@ -666,7 +669,7 @@ export const sendPaymentReceipt = async (paymentId) => {
   // Send receipt email
   const { sendSalesReceiptEmail } = await import("./sendReceiptEmail.js");
   const success = await sendSalesReceiptEmail(payment, salesOrder);
-  
+
   if (!success) {
     throw new Error("Failed to send receipt email");
   }
@@ -701,9 +704,9 @@ export const syncPaymentLinkStatus = async (paymentId) => {
   try {
     const stripeService = await import("./stripeService.js");
     const { stripe } = stripeService;
-    
+
     // List checkout sessions for this payment link
-    const sessions = await stripe.checkout.sessions.list({
+    const sessions = await (stripe as any).checkout.sessions.list({
       payment_link: payment.stripePaymentLinkId,
       limit: 100,
     });
@@ -727,7 +730,7 @@ export const syncPaymentLinkStatus = async (paymentId) => {
             paidSession.payment_intent
           );
 
-          const charges = paymentIntent.charges?.data || [];
+          const charges = (paymentIntent as any).charges?.data || [];
           chargeId = charges.length > 0 ? charges[0].id : null;
 
           if (charges.length > 0 && charges[0].payment_method_details?.card) {
@@ -841,7 +844,7 @@ export const handleStripeWebhook = async (event) => {
       // Primary method: Find payment by sales order ID from metadata
       // This is the most reliable way since we always include salesOrderId in metadata
       let payment = null;
-      
+
       if (session.metadata?.salesOrderId) {
         const salesOrderId = session.metadata.salesOrderId;
         const amountInCents = session.amount_total || 0;
@@ -875,7 +878,7 @@ export const handleStripeWebhook = async (event) => {
         // Get payment link ID from session
         // session.payment_link can be a string ID or an object
         let paymentLinkId = null;
-        
+
         if (typeof session.payment_link === "string") {
           paymentLinkId = session.payment_link;
         } else if (session.payment_link?.id) {
@@ -912,7 +915,7 @@ export const handleStripeWebhook = async (event) => {
             session.payment_intent
           );
 
-          const charges = paymentIntent.charges?.data || [];
+          const charges = (paymentIntent as any).charges?.data || [];
           chargeId = charges.length > 0 ? charges[0].id : null;
 
           if (charges.length > 0 && charges[0].payment_method_details?.card) {
@@ -962,9 +965,21 @@ export const handleStripeWebhook = async (event) => {
         const salesOrder = await salesOrdersRepository.findById(
           salesOrderIdForUpdate
         );
-        await sendSalesReceiptEmail(updatedPayment, salesOrder);
+        const emailSent = await sendSalesReceiptEmail(
+          updatedPayment,
+          salesOrder
+        );
+        if (emailSent) {
+          console.log(
+            `✅ Payment receipt email sent successfully for payment ${payment._id}`
+          );
+        } else {
+          console.warn(
+            `⚠️ Payment receipt email failed to send for payment ${payment._id}`
+          );
+        }
       } catch (emailError) {
-        console.error("Error sending receipt email:", emailError);
+        console.error("❌ Error sending receipt email:", emailError);
         // Don't throw - email failure shouldn't break webhook processing
       }
       break;
@@ -998,10 +1013,10 @@ export const handleStripeWebhook = async (event) => {
         const updatedPayment = await paymentsRepository.updateById(
           payment._id,
           {
-          status: "succeeded",
-          stripeChargeId: chargeId,
-          cardLast4,
-          cardBrand,
+            status: "succeeded",
+            stripeChargeId: chargeId,
+            cardLast4,
+            cardBrand,
           }
         );
 
@@ -1032,10 +1047,22 @@ export const handleStripeWebhook = async (event) => {
           const salesOrder = await salesOrdersRepository.findById(
             salesOrderIdForUpdate
           );
-          await sendSalesReceiptEmail(updatedPayment, salesOrder);
+          const emailSent = await sendSalesReceiptEmail(
+            updatedPayment,
+            salesOrder
+          );
+          if (emailSent) {
+            console.log(
+              `✅ Payment receipt email sent successfully for payment ${payment._id}`
+            );
+          } else {
+            console.warn(
+              `⚠️ Payment receipt email failed to send for payment ${payment._id}`
+            );
+          }
         } catch (receiptError) {
           // Log error but don't fail the webhook processing
-          console.error("Failed to send receipt email:", receiptError);
+          console.error("❌ Failed to send receipt email:", receiptError);
         }
       }
       break;
@@ -1059,18 +1086,19 @@ export const handleStripeWebhook = async (event) => {
 
     case "charge.refunded": {
       const charge = event.data.object;
-      
+
       // Find payment by charge ID
       const payment = await paymentsRepository.findByStripeChargeId(charge.id);
-      
+
       if (!payment) {
         // Payment not found - might have been refunded outside of our system
         // or charge ID doesn't match. Try to find by payment intent if available.
         if (charge.payment_intent) {
-          const paymentByIntent = await paymentsRepository.findByStripePaymentIntentId(
-            charge.payment_intent
-          );
-          
+          const paymentByIntent =
+            await paymentsRepository.findByStripePaymentIntentId(
+              charge.payment_intent
+            );
+
           if (paymentByIntent) {
             // Update charge ID if missing and process refund
             if (!paymentByIntent.stripeChargeId) {
@@ -1078,33 +1106,38 @@ export const handleStripeWebhook = async (event) => {
                 stripeChargeId: charge.id,
               });
             }
-            
+
             // Process refund for this payment
             const amountRefundedInDollars = (charge.amount_refunded || 0) / 100;
             const paymentAmount = paymentByIntent.amount;
-            
+
             // Update payment record
-            const newRefundedAmount = Math.min(amountRefundedInDollars, paymentAmount);
+            const newRefundedAmount = Math.min(
+              amountRefundedInDollars,
+              paymentAmount
+            );
             const newStatus =
-              newRefundedAmount >= paymentAmount ? "refunded" : "partially_refunded";
-            
+              newRefundedAmount >= paymentAmount
+                ? "refunded"
+                : "partially_refunded";
+
             await paymentsRepository.updateById(paymentByIntent._id, {
               refundedAmount: newRefundedAmount,
               status: newStatus,
             });
-            
+
             // Get the updated payment with populated fields
             const updatedPayment = await paymentsRepository.findById(
               paymentByIntent._id
             );
-            
+
             // Get sales order ID
             const salesOrderIdForUpdate =
               typeof updatedPayment.salesOrder === "object" &&
               updatedPayment.salesOrder?._id
                 ? updatedPayment.salesOrder._id
                 : updatedPayment.salesOrder;
-            
+
             if (salesOrderIdForUpdate) {
               // Emit socket event for payment update
               try {
@@ -1115,7 +1148,7 @@ export const handleStripeWebhook = async (event) => {
               } catch (error) {
                 console.error("Failed to emit paymentUpdated event:", error);
               }
-              
+
               // Update sales order payment totals
               await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
             }
@@ -1123,38 +1156,41 @@ export const handleStripeWebhook = async (event) => {
         }
         break;
       }
-      
+
       // Payment found by charge ID - process refund update
       const amountRefundedInDollars = (charge.amount_refunded || 0) / 100;
       const paymentAmount = payment.amount;
-      
+
       // Only update if the refunded amount has changed (prevent duplicate processing)
       const currentRefundedAmount = payment.refundedAmount || 0;
       if (Math.abs(amountRefundedInDollars - currentRefundedAmount) < 0.01) {
         // Refund amount hasn't changed, likely already processed
         break;
       }
-      
+
       // Update payment record
-      const newRefundedAmount = Math.min(amountRefundedInDollars, paymentAmount);
+      const newRefundedAmount = Math.min(
+        amountRefundedInDollars,
+        paymentAmount
+      );
       const newStatus =
         newRefundedAmount >= paymentAmount ? "refunded" : "partially_refunded";
-      
+
       await paymentsRepository.updateById(payment._id, {
         refundedAmount: newRefundedAmount,
         status: newStatus,
       });
-      
+
       // Get the updated payment with populated fields
       const updatedPayment = await paymentsRepository.findById(payment._id);
-      
+
       // Get sales order ID
       const salesOrderIdForUpdate =
         typeof updatedPayment.salesOrder === "object" &&
         updatedPayment.salesOrder?._id
           ? updatedPayment.salesOrder._id
           : updatedPayment.salesOrder;
-      
+
       if (salesOrderIdForUpdate) {
         // Emit socket event for payment update
         try {
@@ -1165,11 +1201,11 @@ export const handleStripeWebhook = async (event) => {
         } catch (error) {
           console.error("Failed to emit paymentUpdated event:", error);
         }
-        
+
         // Update sales order payment totals
         await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
       }
-      
+
       break;
     }
 

@@ -11,6 +11,7 @@ import * as vendorConversationLogRepository from "../repositories/vendorConversa
 import { getCurrentDateTime } from "../../../lib/dayjs.js";
 import * as quoteAIRateService from "../../quotes/services/quoteAIRateService.js";
 import { getStateTaxRate } from "../../../constants/tax/stateTaxRates.js";
+import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
 
 // Lazy initialization of OpenAI client
 let openai = null;
@@ -44,7 +45,7 @@ export const analyzeConversation = async (transcript, context = {}) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    const mode = context.mode || "sales"; // "sales" or "vendor"
+    const mode = (context as any).mode || "sales"; // "sales" or "vendor"
     const isVendorMode = mode === "vendor";
 
     // Mode-aware system prompt - speakers are already identified by audio source
@@ -96,8 +97,8 @@ Return a JSON object with:
 ${transcript}
 
 ${
-  context.operatorName
-    ? `Note: The operator's name is ${context.operatorName}.`
+  (context as any).operatorName
+    ? `Note: The operator's name is ${(context as any).operatorName}.`
     : ""
 }
 
@@ -113,7 +114,9 @@ Identify speaker roles based on what each person says, then extract the relevant
       temperature: 0.3,
     });
 
-    const extractedInfo = JSON.parse(completion.choices[0].message.content);
+    const extractedInfo: any = JSON.parse(
+      completion.choices[0].message.content
+    );
 
     return {
       intent: extractedInfo.intent || null,
@@ -148,26 +151,33 @@ export const getVendorPricing = async ({
     let query = {};
 
     if (zipCode) {
-      query.$or = [
+      (query as any).$or = [
         { serviceZipCodes: { $regex: zipCode, $options: "i" } },
         { zip: zipCode },
       ];
     }
 
     if (city) {
-      if (!(query as any).$or) query.$or = [];
+      if (!(query as any).$or) (query as any).$or = [];
       (query as any).$or.push({ city: { $regex: city, $options: "i" } });
-      (query as any).$or.push({ serviceCities: { $regex: city, $options: "i" } });
+      (query as any).$or.push({
+        serviceCities: { $regex: city, $options: "i" },
+      });
     }
 
     if (state) {
-      if (!(query as any).$or) query.$or = [];
+      if (!(query as any).$or) (query as any).$or = [];
       (query as any).$or.push({ state: { $regex: state, $options: "i" } });
-      (query as any).$or.push({ serviceStates: { $regex: state, $options: "i" } });
+      (query as any).$or.push({
+        serviceStates: { $regex: state, $options: "i" },
+      });
     }
 
     const vendors = await vendorsRepository.findAll({
-      query: (query as any).$or && (query as any).$or.length > 0 ? { $or: (query as any).$or } : query,
+      query:
+        (query as any).$or && (query as any).$or.length > 0
+          ? { $or: (query as any).$or }
+          : query,
       sort: { createdAt: -1 },
       skip: 0,
       limit: 10,
@@ -198,6 +208,7 @@ export const getVendorPricing = async ({
         zipCode,
         city,
         state,
+        streetAddress: null,
         productItem,
         quantity,
         usageType: eventType,
@@ -206,7 +217,8 @@ export const getVendorPricing = async ({
       vendorBasePrice = aiSuggestedRate.vendorCostEstimate || null;
       const suggestedRatePerUnit = aiSuggestedRate.suggestedRatePerUnit;
 
-      averagePrice = suggestedRatePerUnit * quantity;
+      // Use utility function for consistent calculation
+      averagePrice = parseFloat(calculateProductAmount(quantity, suggestedRatePerUnit));
       recommendedPrice = averagePrice;
       if (aiSuggestedRate.dataSources) {
         historicalData = {
@@ -216,7 +228,7 @@ export const getVendorPricing = async ({
             aiSuggestedRate.dataSources.historicalSamples > 0
               ? `Using historical data (${aiSuggestedRate.dataSources.historicalSamples} samples)`
               : "Using AI-powered pricing estimation based on regional factors.",
-          confidence: aiSuggestedRate.confidence,
+          confidence: (aiSuggestedRate as any).confidence,
         };
       }
     } catch (error) {
@@ -302,12 +314,14 @@ Be professional, friendly, and focused on helping the customer.`;
 
     if (extractedInfo) {
       userPrompt += `Extracted information:\n`;
-      if (extractedInfo.location)
-        userPrompt += `- Location: ${JSON.stringify(extractedInfo.location)}\n`;
-      if (extractedInfo.eventType)
-        userPrompt += `- Event Type: ${extractedInfo.eventType}\n`;
-      if (extractedInfo.quantity)
-        userPrompt += `- Quantity: ${extractedInfo.quantity}\n`;
+      if ((extractedInfo as any).location)
+        userPrompt += `- Location: ${JSON.stringify(
+          (extractedInfo as any).location
+        )}\n`;
+      if ((extractedInfo as any).eventType)
+        userPrompt += `- Event Type: ${(extractedInfo as any).eventType}\n`;
+      if ((extractedInfo as any).quantity)
+        userPrompt += `- Quantity: ${(extractedInfo as any).quantity}\n`;
     }
 
     if (pricing) {
@@ -398,7 +412,7 @@ export const submitVendorQuote = async (quoteData) => {
       quotedDate: getCurrentDateTime(),
     };
 
-    const savedQuote = await vendor(PricingRepository as any).create(pricingHistory);
+    const savedQuote = await vendorPricingRepository.create(pricingHistory);
 
     return {
       id: savedQuote._id,
@@ -579,7 +593,7 @@ export const generateRealTimeResponse = async ({
     }
 
     // Get state for tax calculation
-    const state = extractedInfo?.location?.state || null;
+    const state = (extractedInfo as any)?.location?.state || null;
     const taxRate = getStateTaxRate(state);
 
     // Note: Learning from past conversations happens AFTER conversations are saved
@@ -789,14 +803,18 @@ If pricing cannot be calculated yet (missing info), set pricingBreakdown to null
 
     if (extractedInfo && Object.keys(extractedInfo).length > 0) {
       userPrompt += `Information extracted so far:\n`;
-      if (extractedInfo.location)
-        userPrompt += `- Location: ${JSON.stringify(extractedInfo.location)}\n`;
-      if (extractedInfo.eventType)
-        userPrompt += `- Event Type: ${extractedInfo.eventType}\n`;
-      if (extractedInfo.quantity)
-        userPrompt += `- Quantity: ${extractedInfo.quantity}\n`;
-      if (extractedInfo.dates)
-        userPrompt += `- Dates: ${JSON.stringify(extractedInfo.dates)}\n`;
+      if ((extractedInfo as any).location)
+        userPrompt += `- Location: ${JSON.stringify(
+          (extractedInfo as any).location
+        )}\n`;
+      if ((extractedInfo as any).eventType)
+        userPrompt += `- Event Type: ${(extractedInfo as any).eventType}\n`;
+      if ((extractedInfo as any).quantity)
+        userPrompt += `- Quantity: ${(extractedInfo as any).quantity}\n`;
+      if ((extractedInfo as any).dates)
+        userPrompt += `- Dates: ${JSON.stringify(
+          (extractedInfo as any).dates
+        )}\n`;
       userPrompt += "\n";
     }
 

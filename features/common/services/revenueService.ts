@@ -5,6 +5,7 @@
 
 import * as salesOrdersService from "../../salesOrders/services/salesOrdersService.js";
 import * as jobOrdersService from "../../jobOrders/services/jobOrdersService.js";
+import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
 
 /**
  * Calculate revenue for a given date range
@@ -140,7 +141,9 @@ export const calculateRevenue = async ({
           jobOrder.billingCycles.forEach((cycle) => {
             if (cycle.units && cycle.units.length > 0) {
               cycle.units.forEach((unit) => {
-                jobOrderTotal += (unit.rate || 0) * (unit.quantity || 0);
+                // Use utility function for consistent calculation
+                const unitAmount = parseFloat(calculateProductAmount(unit.quantity || 0, unit.rate || 0));
+                jobOrderTotal += unitAmount;
               });
             }
           });
@@ -152,9 +155,9 @@ export const calculateRevenue = async ({
       let vendorCharges = 0;
       if (vendorTransactionChargesMode === "percentage") {
         vendorCharges =
-          (salesOrderAmount * parseFloat(vendorTransactionCharges || 0)) / 100;
+          (salesOrderAmount * parseFloat(String(vendorTransactionCharges || 0))) / 100;
       } else {
-        vendorCharges = parseFloat(vendorTransactionCharges || 0);
+        vendorCharges = parseFloat(String(vendorTransactionCharges || 0));
       }
 
       // Revenue for this sales order = Sales Order Amount - Job Order Amount + Vendor Transaction Charges
@@ -173,11 +176,11 @@ export const calculateRevenue = async ({
 
     // Add ads spending
     const adsTotal =
-      parseFloat(googleAdsSpending || 0) +
-      parseFloat(facebookAdsSpending || 0) +
-      parseFloat(instagramAdsSpending || 0) +
-      parseFloat(linkedInAdsSpending || 0) +
-      parseFloat(othersExpenses || 0);
+      parseFloat(String(googleAdsSpending || 0)) +
+      parseFloat(String(facebookAdsSpending || 0)) +
+      parseFloat(String(instagramAdsSpending || 0)) +
+      parseFloat(String(linkedInAdsSpending || 0)) +
+      parseFloat(String(othersExpenses || 0));
 
     totalRevenue += adsTotal;
 
