@@ -4,8 +4,7 @@
  * Includes rounding, currency conversion, percentages, margins, and financial operations
  */
 
-import { roundToDecimals } from "./numericCalculations.js";
-import { round } from "./numericCalculations.js";
+import { roundToDecimals, round } from "./numericCalculations.js";
 
 const MAX_PRICE = 1_000_000_000; // $1 billion
 const MAX_CENTS = 1_000_000_000_000; // 1 trillion cents
