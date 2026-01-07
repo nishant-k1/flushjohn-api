@@ -255,82 +255,86 @@ app.use(
 app.use("/s3-cors", s3CorsRouter as any);
 // Public lead submission endpoint (POST /leads - no auth required)
 // ✅ PERFORMANCE: Add rate limiting to prevent abuse
-app.post("/leads", publicLimiter, async (req: Request, res: Response): Promise<void> => {
-  try {
-    console.log("📥 Received public lead submission");
-    const leadData = req.body;
+app.post(
+  "/leads",
+  publicLimiter,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      console.log("📥 Received public lead submission");
+      const leadData = req.body;
 
-    // Basic validation
-    if (!leadData.email || !leadData.fName || !leadData.phone) {
-      res.status(400).json({
-        success: false,
-        message:
-          "Missing required fields: email, fName, and phone are required",
-        error: "VALIDATION_ERROR",
-      });
-      return;
-    }
-
-    // Use the service to create the lead
-    const { createLead } = await import(
-      "./features/leads/services/leadsService.js"
-    );
-    const lead = await createLead(leadData);
-
-    // Emit socket event if namespace is available
-    // OPTIMIZATION: Emit only the new lead instead of fetching all leads
-    if (global.leadsNamespace) {
-      try {
-        const payload = {
-          lead: (lead as any).toObject ? (lead as any).toObject() : lead,
-          action: "add",
-        };
-        global.leadsNamespace.emit("leadCreated", payload);
-        console.log("📢 Emitted leadCreated event to socket clients");
-      } catch (emitError) {
-        console.error("❌ Error emitting leadCreated event:", emitError);
+      // Basic validation
+      if (!leadData.email || !leadData.fName || !leadData.phone) {
+        res.status(400).json({
+          success: false,
+          message:
+            "Missing required fields: email, fName, and phone are required",
+          error: "VALIDATION_ERROR",
+        });
+        return;
       }
-    }
 
-    res.status(201).json({
-      success: true,
-      message: "Lead created successfully",
-      data: lead,
-    });
-  } catch (error: any) {
-    console.error("❌ Error creating lead via public endpoint:", error);
+      // Use the service to create the lead
+      const { createLead } = await import(
+        "./features/leads/services/leadsService.js"
+      );
+      const lead = await createLead(leadData);
 
-    if (error.name === "ValidationError") {
-      res.status(400).json({
-        success: false,
-        message: "Validation failed",
-        error: "VALIDATION_ERROR",
-        details: error.errors
-          ? Object.values(error.errors).map((err: any) => err.message)
-          : [error.message],
+      // Emit socket event if namespace is available
+      // OPTIMIZATION: Emit only the new lead instead of fetching all leads
+      if (global.leadsNamespace) {
+        try {
+          const payload = {
+            lead: (lead as any).toObject ? (lead as any).toObject() : lead,
+            action: "add",
+          };
+          global.leadsNamespace.emit("leadCreated", payload);
+          console.log("📢 Emitted leadCreated event to socket clients");
+        } catch (emitError) {
+          console.error("❌ Error emitting leadCreated event:", emitError);
+        }
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Lead created successfully",
+        data: lead,
       });
-      return;
-    }
+    } catch (error: any) {
+      console.error("❌ Error creating lead via public endpoint:", error);
 
-    if (error.code === 11000) {
-      res.status(409).json({
+      if (error.name === "ValidationError") {
+        res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: "VALIDATION_ERROR",
+          details: error.errors
+            ? Object.values(error.errors).map((err: any) => err.message)
+            : [error.message],
+        });
+        return;
+      }
+
+      if (error.code === 11000) {
+        res.status(409).json({
+          success: false,
+          message: "Lead already exists",
+          error: "DUPLICATE_LEAD",
+        });
+        return;
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Lead already exists",
-        error: "DUPLICATE_LEAD",
+        message: "Failed to create lead",
+        error: "INTERNAL_SERVER_ERROR",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       });
-      return;
     }
-
-    res.status(500).json({
-      success: false,
-      message: "Failed to create lead",
-      error: "INTERNAL_SERVER_ERROR",
-      ...(process.env.NODE_ENV === "development" && {
-        details: error.message,
-      }),
-    });
   }
-});
+);
 app.use(
   "/users",
   authenticateToken,

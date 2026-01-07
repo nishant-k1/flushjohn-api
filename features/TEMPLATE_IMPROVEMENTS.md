@@ -77,7 +77,7 @@ All templates now support tax calculation:
 - Add `taxRate` field (as percentage, e.g., 8.5 for 8.5%)
 - Tax will be calculated and displayed automatically
 - Shows: Subtotal → Tax (X%) → Total
-- **Single Source of Truth**: All calculations use `utils/taxCalculations.ts`
+- **Single Source of Truth**: All calculations use utility functions from `utils/` folder
 
 ### Payment Terms
 
@@ -153,11 +153,9 @@ All calculations now use utilities from the `utils` folder:
    - `calculateProductAmount(quantity, rate)` - Individual product totals
    - `calculateOrderTotal(products)` - Order subtotal
 
-2. **Tax Calculations** (`utils/taxCalculations.ts`) - **NEW**
-   - `calculateTaxAmountCents(subtotalCents, taxRate)` - Tax in cents
-   - `calculateTaxAmount(subtotalCents, taxRate)` - Tax as formatted string
-   - `calculateOrderTotalsWithTax(products, taxRate)` - Complete totals with tax
-   - Returns: `{ subtotal, taxAmount, total, taxRate }`
+2. **Tax Calculations**
+   - Tax calculations are performed on the client side and stored in the product list
+   - Server-side templates display the stored tax values without recalculation
 
 ### Removed Duplicate Code
 

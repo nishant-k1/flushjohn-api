@@ -3,6 +3,11 @@ import * as customersRepository from "../../customers/repositories/customersRepo
 import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
 import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 import { updateSalesOrderPaymentTotals } from "../../payments/services/paymentsService.js";
+import { abs, subtract } from "../../../utils/priceCalculations.js";
+import {
+  calculateTotalPages,
+  calculateSkip,
+} from "../../../utils/numericCalculations.js";
 
 export const generateSalesOrderNumber = async () => {
   const maxRetries = 5;
@@ -189,7 +194,7 @@ const getAllSalesOrdersWithAggregation = async ({
   endDate,
   columnFilters,
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
   const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // Import SalesOrders model
@@ -534,7 +539,7 @@ const getAllSalesOrdersWithAggregation = async ({
       page,
       limit,
       totalItems: total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     },
   };
 };
@@ -549,7 +554,7 @@ export const getAllSalesOrders = async ({
   endDate = null,
   ...columnFilters
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
 
   // Lead fields that require $lookup aggregation
   const leadFields = ["fName", "lName", "cName", "email", "phone", "usageType"];
@@ -777,7 +782,7 @@ export const getAllSalesOrders = async ({
     return formatSalesOrderResponse(salesOrderObj, salesOrderObj.lead);
   });
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = calculateTotalPages(total, limit);
 
   return {
     data: formattedSalesOrders,
@@ -815,8 +820,8 @@ export const getSalesOrderById = async (id) => {
 
   // Check if recalculation is needed: orderTotal doesn't match calculated total, or balanceDue is 0 when it shouldn't be
   // Use tolerance check for floating point comparison (0.01 cents = $0.0001)
-  const orderTotalDiff = Math.abs(
-    salesOrderObj.orderTotal - calculatedOrderTotal
+  const orderTotalDiff = abs(
+    subtract(salesOrderObj.orderTotal, calculatedOrderTotal)
   );
   const needsRecalculation =
     orderTotalDiff > 0.01 ||

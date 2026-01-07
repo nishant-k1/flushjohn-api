@@ -6,6 +6,10 @@
  */
 
 import * as contactsRepository from "../repositories/contactsRepository.js";
+import {
+  calculateTotalPages,
+  calculateSkip,
+} from "../../../utils/numericCalculations.js";
 
 /**
  * Create a new contact
@@ -219,7 +223,7 @@ export const getAllContacts = async ({
   const sort = {};
   sort[sortBy] = sortOrder === "asc" ? 1 : -1;
 
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
 
   const [contacts, total] = await Promise.all([
     contactsRepository.findAll({ query: query as any, sort, skip, limit }),
@@ -232,7 +236,7 @@ export const getAllContacts = async ({
       currentPage: page,
       pageSize: limit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     },
   };
 };

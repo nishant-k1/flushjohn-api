@@ -5,6 +5,7 @@ import {
   calculateInvoiceExpirationDate,
   formatInvoiceExpirationDate,
 } from "../../../utils/invoiceExpirationCalculations.js";
+import { calculateBalanceDue } from "../../../utils/priceCalculations.js";
 
 const template = (invoiceData) => {
   const email_signature = getFlushJohnEmailSignature();
@@ -14,11 +15,11 @@ const template = (invoiceData) => {
   const orderTotal =
     invoiceData.orderTotal || calculateOrderTotal(invoiceData.products);
 
-  // Calculate balance due
+  // Calculate balance due using utility function
   const paidAmount = invoiceData.paidAmount || 0;
   const orderTotalNum =
     typeof orderTotal === "string" ? parseFloat(orderTotal) : orderTotal;
-  const balanceDue = orderTotalNum - paidAmount;
+  const balanceDue = calculateBalanceDue(orderTotalNum, paidAmount);
 
   let paymentLinkSection = "";
   if (invoiceData.paymentLinkUrl) {

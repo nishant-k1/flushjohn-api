@@ -1,4 +1,8 @@
 import * as quotesRepository from "../repositories/quotesRepository.js";
+import {
+  calculateTotalPages,
+  calculateSkip,
+} from "../../../utils/numericCalculations.js";
 import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 
 export const generateQuoteNumber = async () => {
@@ -113,7 +117,7 @@ const getAllQuotesWithAggregation = async ({
   search,
   columnFilters,
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
   const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // Import Quotes model
@@ -433,7 +437,7 @@ const getAllQuotesWithAggregation = async ({
       page,
       limit,
       totalItems: total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: calculateTotalPages(total, limit),
     },
   };
 };
@@ -446,7 +450,7 @@ export const getAllQuotes = async ({
   search = "",
   ...columnFilters
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
 
   // Lead fields that require $lookup aggregation
   const leadFields = ["fName", "lName", "cName", "email", "phone", "usageType"];
@@ -712,7 +716,7 @@ export const getAllQuotes = async ({
     return quoteObj;
   });
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = calculateTotalPages(total, limit);
 
   return {
     data: flattenedQuotes,

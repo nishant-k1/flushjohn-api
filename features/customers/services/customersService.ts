@@ -3,6 +3,10 @@
  */
 
 import * as customersRepository from "../repositories/customersRepository.js";
+import {
+  calculateTotalPages,
+  calculateSkip,
+} from "../../../utils/numericCalculations.js";
 import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 
 export const generateCustomerNumber = async () => {
@@ -32,7 +36,7 @@ export const getAllCustomers = async ({
   search = "",
   ...columnFilters
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
 
   let query = {};
 
@@ -72,7 +76,7 @@ export const getAllCustomers = async ({
           try {
             // Only use exact date matching if the input includes a year (4 digits)
             const hasYear = /\d{4}/.test(filterValue);
-            
+
             let parsedDate = null;
             if (hasYear) {
               const dateFormats = [
@@ -123,7 +127,6 @@ export const getAllCustomers = async ({
                       $dateToString: {
                         format: "%B %d, %Y, %H:%M",
                         date: `$${key}`,
-                        
                       },
                     },
                     regex: escapedValue,
@@ -153,7 +156,6 @@ export const getAllCustomers = async ({
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
                       date: `$${key}`,
-                      
                     },
                   },
                   regex: escapedValue,
@@ -244,7 +246,6 @@ export const getAllCustomers = async ({
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
                 date: "$createdAt",
-                
               },
             },
             regex: escapedSearch,
@@ -264,7 +265,7 @@ export const getAllCustomers = async ({
     customersRepository.count(query),
   ]);
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = calculateTotalPages(total, limit);
 
   return {
     data: customers,

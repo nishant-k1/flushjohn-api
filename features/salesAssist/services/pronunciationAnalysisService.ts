@@ -3,6 +3,18 @@
  * Analyzes operator speech for pronunciation accuracy and provides scoring/recommendations
  */
 
+import {
+  clamp,
+  roundToDecimals,
+  calculateAverage,
+} from "../../../utils/numericCalculations.js";
+import {
+  multiply,
+  add,
+  subtract,
+  divide,
+} from "../../../utils/priceCalculations.js";
+
 /**
  * Analyze pronunciation for a single segment
  * @param {Object} params
@@ -20,7 +32,7 @@ export const analyzePronunciation = async ({
 }) => {
   try {
     // Base score from Google Speech API confidence
-    let baseScore = confidence * 5; // Convert 0-1 to 0-5 scale
+    let baseScore = multiply(confidence, 5); // Convert 0-1 to 0-5 scale
 
     // Analyze word-level pronunciation
     const wordAnalysis = await analyzeWordLevelPronunciation(
@@ -42,13 +54,10 @@ export const analyzePronunciation = async ({
     );
 
     // Final score calculation
-    const finalScore = Math.min(
-      5,
-      Math.max(1, baseScore + adjustments.totalAdjustment)
-    );
+    const finalScore = clamp(add(baseScore, adjustments.totalAdjustment), 1, 5);
 
     return {
-      score: Math.round(finalScore * 10) / 10, // Round to 1 decimal
+      score: roundToDecimals(finalScore, 1),
       confidence: confidence,
       segment: transcript,
       timestamp: Date.now(),
@@ -93,10 +102,8 @@ export const calculateOverallScore = (segments) => {
   const confidences = segments.map((s) => s.confidence || 0.5);
 
   // Calculate averages
-  const overallScore =
-    scores.reduce((sum, score) => sum + score, 0) / scores.length;
-  const avgConfidence =
-    confidences.reduce((sum, conf) => sum + conf, 0) / confidences.length;
+  const overallScore = calculateAverage(scores);
+  const avgConfidence = calculateAverage(confidences);
 
   // Calculate breakdown metrics
   const syllableScores = segments
@@ -107,27 +114,23 @@ export const calculateOverallScore = (segments) => {
     .filter((s) => s > 0);
 
   const syllableAccuracy =
-    syllableScores.length > 0
-      ? syllableScores.reduce((sum, s) => sum + s, 0) / syllableScores.length
-      : 3.0;
+    syllableScores.length > 0 ? calculateAverage(syllableScores) : 3.0;
   const phoneticAccuracy =
-    phoneticScores.length > 0
-      ? phoneticScores.reduce((sum, s) => sum + s, 0) / phoneticScores.length
-      : 3.0;
+    phoneticScores.length > 0 ? calculateAverage(phoneticScores) : 3.0;
 
   // Estimate fluency and naturalness from score patterns
-  const fluency = Math.min(5, overallScore + 0.2); // Slightly optimistic
-  const naturalness = Math.min(5, overallScore + 0.1);
+  const fluency = clamp(add(overallScore, 0.2), 0, 5); // Slightly optimistic
+  const naturalness = clamp(add(overallScore, 0.1), 0, 5);
 
   return {
-    overallScore: Math.round(overallScore * 10) / 10,
+    overallScore: roundToDecimals(overallScore, 1),
     segmentCount: segments.length,
     breakdown: {
-      confidence: Math.round(avgConfidence * 5 * 10) / 10, // Convert to 1-5 scale
-      fluency: Math.round(fluency * 10) / 10,
-      naturalness: Math.round(naturalness * 10) / 10,
-      syllableAccuracy: Math.round(syllableAccuracy * 10) / 10,
-      phoneticAccuracy: Math.round(phoneticAccuracy * 10) / 10,
+      confidence: roundToDecimals(multiply(avgConfidence, 5), 1), // Convert to 1-5 scale
+      fluency: roundToDecimals(fluency, 1),
+      naturalness: roundToDecimals(naturalness, 1),
+      syllableAccuracy: roundToDecimals(syllableAccuracy, 1),
+      phoneticAccuracy: roundToDecimals(phoneticAccuracy, 1),
     },
   };
 };
@@ -152,12 +155,11 @@ const analyzeWordLevelPronunciation = async (
     };
   });
 
-  const avgScore =
-    wordScores.reduce((sum, w) => sum + w.score, 0) / wordScores.length;
+  const avgScore = calculateAverage(wordScores.map((w) => w.score));
 
   return {
     words: wordScores,
-    averageScore: Math.round(avgScore * 10) / 10,
+    averageScore: roundToDecimals(avgScore, 1),
     lowConfidenceWords: wordScores.filter((w) => w.confidence < 0.6),
   };
 };
@@ -185,13 +187,20 @@ const analyzeSyllables = async (transcript) => {
   const multiSyllableWords = syllableData.filter((w) => w.syllableCount > 1);
   const accuracy =
     multiSyllableWords.length > 0
-      ? Math.min(5, 3 + (multiSyllableWords.length / words.length) * 2)
+      ? clamp(
+          add(3, multiply(divide(multiSyllableWords.length, words.length), 2)),
+          0,
+          5
+        )
       : 3.0;
 
   return {
     words: syllableData,
-    accuracy: Math.round(accuracy * 10) / 10,
-    totalSyllables: syllableData.reduce((sum, w) => sum + w.syllableCount, 0),
+    accuracy: roundToDecimals(accuracy, 1),
+    totalSyllables: syllableData.reduce(
+      (sum, w) => add(sum, w.syllableCount),
+      0
+    ),
   };
 };
 
@@ -220,7 +229,7 @@ const estimateSyllableCount = (word) => {
     count--;
   }
 
-  return Math.max(1, count);
+  return clamp(count, 1, Infinity);
 };
 
 /**
@@ -249,12 +258,14 @@ const analyzePhonetics = async (transcript) => {
 
   // Calculate accuracy (simplified)
   const accuracy =
-    issues.length > 0 ? Math.max(2.5, 5 - issues.length * 0.3) : 4.0;
+    issues.length > 0
+      ? clamp(subtract(5, multiply(issues.length, 0.3)), 2.5, 5)
+      : 4.0;
 
   return {
     words: words,
     issues: issues,
-    accuracy: Math.round(accuracy * 10) / 10,
+    accuracy: roundToDecimals(accuracy, 1),
   };
 };
 
@@ -275,34 +286,34 @@ const calculateAdjustments = (
 
   // Word-level adjustments
   if (wordAnalysis.averageScore > 4.0) {
-    totalAdjustment += 0.2;
+    totalAdjustment = add(totalAdjustment, 0.2);
     adjustments.push({ type: "word_confidence", value: +0.2 });
   } else if (wordAnalysis.averageScore < 3.0) {
-    totalAdjustment -= 0.3;
+    totalAdjustment = subtract(totalAdjustment, 0.3);
     adjustments.push({ type: "word_confidence", value: -0.3 });
   }
 
   // Syllable adjustments
   if (syllableAnalysis.accuracy > 4.0) {
-    totalAdjustment += 0.15;
+    totalAdjustment = add(totalAdjustment, 0.15);
     adjustments.push({ type: "syllable_accuracy", value: +0.15 });
   } else if (syllableAnalysis.accuracy < 3.0) {
-    totalAdjustment -= 0.2;
+    totalAdjustment = subtract(totalAdjustment, 0.2);
     adjustments.push({ type: "syllable_accuracy", value: -0.2 });
   }
 
   // Phonetic adjustments
   if (phoneticAnalysis.accuracy > 4.0) {
-    totalAdjustment += 0.15;
+    totalAdjustment = add(totalAdjustment, 0.15);
     adjustments.push({ type: "phonetic_accuracy", value: +0.15 });
   } else if (phoneticAnalysis.accuracy < 3.0) {
-    totalAdjustment -= 0.2;
+    totalAdjustment = subtract(totalAdjustment, 0.2);
     adjustments.push({ type: "phonetic_accuracy", value: -0.2 });
   }
 
   // Penalize for many low-confidence words
   if (wordAnalysis.lowConfidenceWords.length > 3) {
-    totalAdjustment -= 0.3;
+    totalAdjustment = subtract(totalAdjustment, 0.3);
     adjustments.push({ type: "low_confidence_words", value: -0.3 });
   }
 

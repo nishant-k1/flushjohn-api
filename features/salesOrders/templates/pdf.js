@@ -6,8 +6,10 @@ import {
   safeCurrency,
   safePhone,
 } from "../../../utils/safeValue.js";
-import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
-import { calculateOrderTotalsWithTax } from "../../../utils/taxCalculations.js";
+import {
+  calculateProductAmount,
+  calculateOrderTotal,
+} from "../../../utils/productAmountCalculations.js";
 import {
   calculateInvoiceExpirationDate,
   formatInvoiceExpirationDate,
@@ -78,11 +80,10 @@ const htmlTemplate = (salesOrderData) => {
       })
     : "";
 
-  // Calculate totals using single source of truth
-  const totals = calculateOrderTotalsWithTax(
-    salesOrderData.products || [],
-    salesOrderData.taxRate
-  );
+  // Calculate total from all products (tax is already included as a product)
+  // Tax is calculated on client side and stored as a product in the array
+  const products = salesOrderData.products || [];
+  const total = parseFloat(calculateOrderTotal(products));
 
   // Payment terms - can be customized via environment or default
   // If payment link exists, default to 24-hour payment terms, otherwise use Net 30
@@ -221,29 +222,8 @@ const htmlTemplate = (salesOrderData) => {
           </ul>
           ${itemRows(salesOrderData.products || [])}
           
-          <div class='totals-section'>
-            <div class='total-row'>
-              <span class='total-row-label'>Subtotal:</span>
-              <span class='total-row-value'>${safeCurrency(
-                totals.subtotal
-              )}</span>
-            </div>
-            ${
-              totals.taxRate > 0
-                ? `
-            <div class='total-row'>
-              <span class='total-row-label'>Tax (${totals.taxRate}%):</span>
-              <span class='total-row-value'>${safeCurrency(
-                totals.taxAmount
-              )}</span>
-            </div>
-            `
-                : ""
-            }
-          </div>
-          
           <div class='total-amount-container'>
-            <h4>Total Amount: ${safeCurrency(totals.total)}</h4>
+            <h4>Total Amount: ${safeCurrency(total.toFixed(2))}</h4>
           </div>
         </div>
         

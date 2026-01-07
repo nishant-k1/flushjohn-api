@@ -1,4 +1,8 @@
 import * as jobOrdersRepository from "../repositories/jobOrdersRepository.js";
+import {
+  calculateTotalPages,
+  calculateSkip,
+} from "../../../utils/numericCalculations.js";
 import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
 
@@ -203,7 +207,7 @@ const getAllJobOrdersWithAggregation = async ({
   startDate,
   endDate,
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
   const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // Import JobOrders model
@@ -364,7 +368,7 @@ const getAllJobOrdersWithAggregation = async ({
   ]);
 
   const total = countResult[0]?.total || 0;
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = calculateTotalPages(total, limit);
 
   return {
     data: results,
@@ -389,7 +393,7 @@ export const getAllJobOrders = async ({
   endDate = null,
   ...columnFilters
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
 
   // Lead fields that require $lookup aggregation
   const leadFields = ["fName", "lName", "cName", "email", "phone", "usageType"];
@@ -438,7 +442,7 @@ export const getAllJobOrders = async ({
     return formatJobOrderResponse(jobOrderObj, jobOrderObj.lead);
   });
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = calculateTotalPages(total, limit);
 
   return {
     data: formattedJobOrders,

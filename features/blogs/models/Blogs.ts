@@ -1,4 +1,5 @@
 import mongoose, { model } from "mongoose";
+import { calculateReadingTime } from "../../../utils/numericCalculations.js";
 
 const { Schema } = mongoose;
 
@@ -237,7 +238,7 @@ BlogsSchema.index({ tags: 1 });
 
 BlogsSchema.virtual("estimatedReadingTime").get(function () {
   if (this.wordCount > 0) {
-    return Math.ceil(this.wordCount / 200); // Average 200 words per minute
+    return calculateReadingTime(this.wordCount);
   }
   return 0;
 });
@@ -257,7 +258,7 @@ BlogsSchema.pre("save", function (next) {
         .split(/\s+/)
         .filter((word) => word.length > 0);
       this.wordCount = words.length;
-      this.readingTime = Math.ceil(this.wordCount / 200);
+      this.readingTime = calculateReadingTime(this.wordCount);
     }
   } else {
     this.wordCount = 0;

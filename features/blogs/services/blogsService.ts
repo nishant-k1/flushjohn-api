@@ -1,4 +1,8 @@
 import * as blogsRepository from "../repositories/blogsRepository.js";
+import {
+  calculateTotalPages,
+  calculateSkip,
+} from "../../../utils/numericCalculations.js";
 import { getCurrentDateTime } from "../../../lib/dayjs.js";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import OpenAI from "openai";
@@ -457,7 +461,7 @@ export const getAllBlogs = async ({
   status = null,
   ...columnFilters
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
 
   let query = {};
   const exprConditions = [];
@@ -668,7 +672,7 @@ export const getAllBlogs = async ({
     blogsRepository.count(query as any),
   ]);
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = calculateTotalPages(total, limit);
 
   return {
     data: blogs,

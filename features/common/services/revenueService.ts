@@ -6,6 +6,11 @@
 import * as salesOrdersService from "../../salesOrders/services/salesOrdersService.js";
 import * as jobOrdersService from "../../jobOrders/services/jobOrdersService.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
+import {
+  add,
+  calculatePercentage,
+  calculateOrderRevenue,
+} from "../../../utils/priceCalculations.js";
 
 /**
  * Calculate revenue for a given date range
@@ -142,28 +147,36 @@ export const calculateRevenue = async ({
             if (cycle.units && cycle.units.length > 0) {
               cycle.units.forEach((unit) => {
                 // Use utility function for consistent calculation
-                const unitAmount = parseFloat(calculateProductAmount(unit.quantity || 0, unit.rate || 0));
-                jobOrderTotal += unitAmount;
+                const unitAmount = parseFloat(
+                  calculateProductAmount(unit.quantity || 0, unit.rate || 0)
+                );
+                jobOrderTotal = add(jobOrderTotal, unitAmount);
               });
             }
           });
         }
-        totalJobOrderAmount += jobOrderTotal;
+        totalJobOrderAmount = add(totalJobOrderAmount, jobOrderTotal);
       });
 
       // Calculate vendor transaction charges
       let vendorCharges = 0;
       if (vendorTransactionChargesMode === "percentage") {
-        vendorCharges =
-          (salesOrderAmount * parseFloat(String(vendorTransactionCharges || 0))) / 100;
+        vendorCharges = calculatePercentage(
+          salesOrderAmount,
+          vendorTransactionCharges || 0
+        );
       } else {
         vendorCharges = parseFloat(String(vendorTransactionCharges || 0));
       }
 
       // Revenue for this sales order = Sales Order Amount - Job Order Amount + Vendor Transaction Charges
-      const orderRevenue = salesOrderAmount - totalJobOrderAmount + vendorCharges;
+      const orderRevenue = calculateOrderRevenue(
+        salesOrderAmount,
+        totalJobOrderAmount,
+        vendorCharges
+      );
 
-      totalRevenue += orderRevenue;
+      totalRevenue = add(totalRevenue, orderRevenue);
 
       salesOrderRevenues.push({
         salesOrderNo: salesOrder.salesOrderNo,
@@ -175,14 +188,21 @@ export const calculateRevenue = async ({
     });
 
     // Add ads spending
-    const adsTotal =
-      parseFloat(String(googleAdsSpending || 0)) +
-      parseFloat(String(facebookAdsSpending || 0)) +
-      parseFloat(String(instagramAdsSpending || 0)) +
-      parseFloat(String(linkedInAdsSpending || 0)) +
-      parseFloat(String(othersExpenses || 0));
+    const adsTotal = add(
+      add(
+        add(
+          add(
+            parseFloat(String(googleAdsSpending || 0)),
+            parseFloat(String(facebookAdsSpending || 0))
+          ),
+          parseFloat(String(instagramAdsSpending || 0))
+        ),
+        parseFloat(String(linkedInAdsSpending || 0))
+      ),
+      parseFloat(String(othersExpenses || 0))
+    );
 
-    totalRevenue += adsTotal;
+    totalRevenue = add(totalRevenue, adsTotal);
 
     return {
       totalRevenue,
@@ -199,4 +219,3 @@ export const calculateRevenue = async ({
     throw new Error(`Failed to calculate revenue: ${error.message}`);
   }
 };
-

@@ -4,6 +4,13 @@
 
 import VendorPricingHistory from "../models/VendorPricingHistory.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
+import {
+  roundPrice,
+  floor,
+  ceil,
+  multiply,
+} from "../../../utils/priceCalculations.js";
+import { calculateAverage } from "../../../utils/numericCalculations.js";
 
 export const create = async (pricingData) => {
   return await (VendorPricingHistory as any).create(pricingData);
@@ -37,8 +44,8 @@ export const findRecentPricing = async ({
   // Find pricing within similar quantity range (±50% to account for variations)
   if (quantity) {
     (query as any).quantity = {
-      $gte: Math.floor(quantity * 0.5),
-      $lte: Math.ceil(quantity * 1.5),
+      $gte: floor(multiply(quantity, 0.5)),
+      $lte: ceil(multiply(quantity, 1.5)),
     };
   }
 
@@ -80,8 +87,8 @@ export const calculateAveragePricing = async ({
   // Find pricing within similar quantity range
   if (quantity) {
     query.quantity = {
-      $gte: Math.floor(quantity * 0.5),
-      $lte: Math.ceil(quantity * 1.5),
+      $gte: floor(multiply(quantity, 0.5)),
+      $lte: ceil(multiply(quantity, 1.5)),
     };
   }
 
@@ -99,18 +106,19 @@ export const calculateAveragePricing = async ({
     return null;
   }
 
-  // Calculate average price per unit
-  const totalPricePerUnit = pricingHistory.reduce(
-    (sum, record) => sum + record.pricePerUnit,
-    0
+  // Calculate average price per unit using utility function
+  const pricePerUnitValues = pricingHistory.map(
+    (record) => record.pricePerUnit
   );
-  const averagePricePerUnit = totalPricePerUnit / pricingHistory.length;
+  const averagePricePerUnit = calculateAverage(pricePerUnitValues);
 
   // Calculate average total price for the requested quantity using utility function
-  const averageTotalPrice = parseFloat(calculateProductAmount(quantity, averagePricePerUnit));
+  const averageTotalPrice = parseFloat(
+    calculateProductAmount(quantity, averagePricePerUnit)
+  );
 
   return {
-    averagePricePerUnit: Math.round(averagePricePerUnit * 100) / 100,
+    averagePricePerUnit: roundPrice(averagePricePerUnit),
     averageTotalPrice: averageTotalPrice,
     sampleSize: pricingHistory.length,
     pricingHistory: pricingHistory.slice(0, 5), // Return top 5 for reference

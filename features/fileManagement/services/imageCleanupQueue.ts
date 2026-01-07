@@ -1,4 +1,5 @@
 import { deleteImageFromS3 } from "./imageCleanupService.js";
+import { calculateExponentialBackoff } from "../../../utils/numericCalculations.js";
 
 const cleanupQueue = [];
 const processingQueue = new Set();
@@ -47,7 +48,7 @@ const processCleanupQueue = async () => {
           cleanupQueue.push(task);
 
           await new Promise((resolve) =>
-            setTimeout(resolve, Math.pow(2, task.attempts) * 1000)
+            setTimeout(resolve, calculateExponentialBackoff(task.attempts))
           );
         } else {
         }

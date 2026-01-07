@@ -6,6 +6,10 @@
  */
 
 import * as leadsRepository from "../repositories/leadsRepository.js";
+import {
+  calculateTotalPages,
+  calculateSkip,
+} from "../../../utils/numericCalculations.js";
 import alertService from "../../common/services/alertService.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
 import { createLeadNotification } from "../../notifications/services/notificationHelpers.js";
@@ -25,7 +29,9 @@ export const transformProductsData = (leadSource, products) => {
     const quantity = Number(product.quantity) || 0;
     const rate = Number(product.rate) || 0;
     // Use utility function for consistent calculation
-    const amount = Number(product.amount) || parseFloat(calculateProductAmount(quantity, rate));
+    const amount =
+      Number(product.amount) ||
+      parseFloat(calculateProductAmount(quantity, rate));
 
     return {
       id: product.id || `product-${Date.now()}-${index}`,
@@ -449,14 +455,14 @@ export const getAllLeads = async ({
   const sortDirection = sortOrder === "asc" ? 1 : -1;
   const sort = { [sortField]: sortDirection };
 
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
 
   const [leadsList, totalCount] = await Promise.all([
     leadsRepository.findAll({ query, sort, skip, limit }),
     leadsRepository.count(query),
   ]);
 
-  const totalPages = Math.ceil(totalCount / limit);
+  const totalPages = calculateTotalPages(totalCount, limit);
   const hasNextPage = page < totalPages;
   const hasPrevPage = page > 1;
 

@@ -4,6 +4,8 @@
 
 import OpenAI from "openai";
 import * as vendorPricingRepository from "../../salesAssist/repositories/vendorPricingRepository.js";
+import { roundPrice, addMargin } from "../../../utils/priceCalculations.js";
+import { calculateAverage } from "../../../utils/numericCalculations.js";
 
 // Lazy initialization of OpenAI client
 let openai = null;
@@ -98,7 +100,8 @@ export const getAISuggestedRate = async ({
         locationQuery["lead.state"] = { $regex: state, $options: "i" };
       }
 
-      const jobOrders = await (JobOrders as any).find(locationQuery)
+      const jobOrders = await (JobOrders as any)
+        .find(locationQuery)
         .populate("lead")
         .sort({ createdAt: -1 })
         .limit(20)
@@ -144,7 +147,8 @@ export const getAISuggestedRate = async ({
         locationQuery["lead.state"] = { $regex: state, $options: "i" };
       }
 
-      const salesOrders = await (SalesOrders as any).find(locationQuery)
+      const salesOrders = await (SalesOrders as any)
+        .find(locationQuery)
         .populate("lead")
         .sort({ createdAt: -1 })
         .limit(20)
@@ -188,7 +192,8 @@ export const getAISuggestedRate = async ({
         locationQuery["lead.state"] = { $regex: state, $options: "i" };
       }
 
-      const quotes = await (Quotes as any).find(locationQuery)
+      const quotes = await (Quotes as any)
+        .find(locationQuery)
         .populate("lead")
         .sort({ createdAt: -1 })
         .limit(20)
@@ -262,8 +267,7 @@ export const getAISuggestedRate = async ({
     ].filter((price) => price && price > 0);
 
     if (allVendorCosts.length > 0) {
-      const sum = allVendorCosts.reduce((acc, price) => acc + price, 0);
-      averageVendorCost = sum / allVendorCosts.length;
+      averageVendorCost = calculateAverage(allVendorCosts);
     }
 
     const systemPrompt = `You are an AI rate analyst for a porta potty rental business. Your task is to suggest a quote rate (per unit) for a rental item based on:
@@ -346,8 +350,8 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
       // Fallback calculation
       const fallbackVendorCost = averageVendorCost || 150;
       aiResponse = {
-        suggestedRatePerUnit: Math.round((fallbackVendorCost + 50) * 100) / 100,
-        vendorCostEstimate: Math.round(fallbackVendorCost * 100) / 100,
+        suggestedRatePerUnit: addMargin(fallbackVendorCost, 50),
+        vendorCostEstimate: roundPrice(fallbackVendorCost),
         margin: 50,
         confidence: confidence,
         reasoning: "Using fallback calculation due to AI parsing error",
@@ -361,10 +365,9 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
 
     // Ensure minimum $50 margin
     if (aiResponse.vendorCostEstimate) {
-      const minSuggestedRate = aiResponse.vendorCostEstimate + 50;
+      const minSuggestedRate = addMargin(aiResponse.vendorCostEstimate, 50);
       if (aiResponse.suggestedRatePerUnit < minSuggestedRate) {
-        aiResponse.suggestedRatePerUnit =
-          Math.round(minSuggestedRate * 100) / 100;
+        aiResponse.suggestedRatePerUnit = roundPrice(minSuggestedRate);
         aiResponse.reasoning +=
           " (adjusted to meet minimum $50 margin requirement)";
       }
@@ -375,10 +378,9 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
     }
 
     return {
-      suggestedRatePerUnit:
-        Math.round(aiResponse.suggestedRatePerUnit * 100) / 100,
+      suggestedRatePerUnit: roundPrice(aiResponse.suggestedRatePerUnit),
       vendorCostEstimate: aiResponse.vendorCostEstimate
-        ? Math.round(aiResponse.vendorCostEstimate * 100) / 100
+        ? roundPrice(aiResponse.vendorCostEstimate)
         : null,
       margin: 50,
       confidence: aiResponse.confidence || confidence,

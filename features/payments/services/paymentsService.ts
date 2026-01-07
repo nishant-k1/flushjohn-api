@@ -15,6 +15,13 @@ import {
   calculateOrderTotal,
   calculateOrderTotalCents,
 } from "../../../utils/productAmountCalculations.js";
+import {
+  centsToDollars,
+  min,
+  abs,
+  add,
+  subtract,
+} from "../../../utils/priceCalculations.js";
 
 /**
  * Payments Service
@@ -57,15 +64,18 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
       payment.status === "partially_refunded"
     ) {
       // Add the original payment amount
-      totalPaid += payment.amount;
+      totalPaid = add(totalPaid, payment.amount);
       // Add any refunded amount (0 for succeeded, amount for refunded, partial for partially_refunded)
-      totalRefunded += payment.refundedAmount || 0;
+      totalRefunded = add(totalRefunded, payment.refundedAmount || 0);
     }
   });
 
-  // Net paid amount cannot be negative (enforced by schema min: 0)
-  const netPaidAmount = Math.max(0, totalPaid - totalRefunded);
-  const balanceDue = Math.max(0, orderTotal - netPaidAmount);
+  // Use utility functions for payment calculations
+  const { calculateNetPaidAmount, calculateBalanceDue } = await import(
+    "../../../utils/priceCalculations.js"
+  );
+  const netPaidAmount = calculateNetPaidAmount(totalPaid, totalRefunded);
+  const balanceDue = calculateBalanceDue(orderTotal, netPaidAmount);
 
   // Determine payment status
   let paymentStatus = "Unpaid";
@@ -465,8 +475,14 @@ export const refundPayment = async (
     );
   }
 
-  // Check available amount to refund
-  const availableToRefund = payment.amount - (payment.refundedAmount || 0);
+  // Use utility function for available refund calculation
+  const { calculateAvailableRefund } = await import(
+    "../../../utils/priceCalculations.js"
+  );
+  const availableToRefund = calculateAvailableRefund(
+    payment.amount,
+    payment.refundedAmount || 0
+  );
   if (availableToRefund <= 0) {
     throw new Error("No amount available to refund");
   }
@@ -531,7 +547,7 @@ export const refundPayment = async (
 
   return {
     refundId: refund.id,
-    amount: refund.amount / 100, // Convert from cents
+    amount: centsToDollars(refund.amount), // Convert from cents
     status: refund.status,
     paymentStatus: newStatus,
   };
@@ -977,7 +993,7 @@ export const handleStripeWebhook = async (event) => {
       if (session.metadata?.salesOrderId) {
         const salesOrderId = session.metadata.salesOrderId;
         const amountInCents = session.amount_total || 0;
-        const amountInDollars = amountInCents / 100;
+        const amountInDollars = centsToDollars(amountInCents);
 
         // Find pending payment link payments for this sales order
         // Match by amount (with small tolerance for floating point issues)
@@ -993,7 +1009,7 @@ export const handleStripeWebhook = async (event) => {
 
         // Find the payment that matches the amount (within 0.01 tolerance)
         payment = payments.find(
-          (p) => Math.abs(p.amount - amountInDollars) < 0.01
+          (p) => abs(subtract(p.amount, amountInDollars)) < 0.01
         );
 
         if (!payment && payments.length > 0) {
@@ -1379,11 +1395,13 @@ export const handleStripeWebhook = async (event) => {
             }
 
             // Process refund for this payment
-            const amountRefundedInDollars = (charge.amount_refunded || 0) / 100;
+            const amountRefundedInDollars = centsToDollars(
+              charge.amount_refunded || 0
+            );
             const paymentAmount = paymentByIntent.amount;
 
             // Update payment record
-            const newRefundedAmount = Math.min(
+            const newRefundedAmount = min(
               amountRefundedInDollars,
               paymentAmount
             );
@@ -1429,21 +1447,22 @@ export const handleStripeWebhook = async (event) => {
       }
 
       // Payment found by charge ID - process refund update
-      const amountRefundedInDollars = (charge.amount_refunded || 0) / 100;
+      const amountRefundedInDollars = centsToDollars(
+        charge.amount_refunded || 0
+      );
       const paymentAmount = payment.amount;
 
       // Only update if the refunded amount has changed (prevent duplicate processing)
       const currentRefundedAmount = payment.refundedAmount || 0;
-      if (Math.abs(amountRefundedInDollars - currentRefundedAmount) < 0.01) {
+      if (
+        abs(subtract(amountRefundedInDollars, currentRefundedAmount)) < 0.01
+      ) {
         // Refund amount hasn't changed, likely already processed
         break;
       }
 
       // Update payment record
-      const newRefundedAmount = Math.min(
-        amountRefundedInDollars,
-        paymentAmount
-      );
+      const newRefundedAmount = min(amountRefundedInDollars, paymentAmount);
       const newStatus =
         newRefundedAmount >= paymentAmount ? "refunded" : "partially_refunded";
 

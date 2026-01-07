@@ -3,6 +3,10 @@
  */
 
 import * as vendorsRepository from "../repositories/vendorsRepository.js";
+import {
+  calculateTotalPages,
+  calculateSkip,
+} from "../../../utils/numericCalculations.js";
 import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 
 const escapeRegExp = (value = "") =>
@@ -75,7 +79,7 @@ export const getAllVendors = async ({
   search = "",
   ...columnFilters
 }) => {
-  const skip = (page - 1) * limit;
+  const skip = calculateSkip(page, limit);
 
   let query = {};
 
@@ -110,7 +114,7 @@ export const getAllVendors = async ({
           try {
             // Only use exact date matching if the input includes a year (4 digits)
             const hasYear = /\d{4}/.test(filterValue);
-            
+
             let parsedDate = null;
             if (hasYear) {
               const dateFormats = [
@@ -159,7 +163,6 @@ export const getAllVendors = async ({
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
                       date: `$${key}`,
-                      
                     },
                   },
                   regex: escapedValue,
@@ -179,7 +182,6 @@ export const getAllVendors = async ({
                   $dateToString: {
                     format: "%B %d, %Y, %H:%M",
                     date: `$${key}`,
-                    
                   },
                 },
                 regex: escapedValue,
@@ -266,7 +268,6 @@ export const getAllVendors = async ({
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
                 date: "$createdAt",
-                
               },
             },
             regex: safeSearch,
@@ -288,7 +289,7 @@ export const getAllVendors = async ({
     vendorsRepository.count(query),
   ]);
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = calculateTotalPages(total, limit);
 
   return {
     data: vendors,

@@ -63,19 +63,28 @@ router.post("/", async function (req, res) {
       await paymentsService.handleStripeWebhook(event);
       console.log(`✅ [${requestId}] Webhook event processed successfully`);
     } catch (processingError: any) {
-      console.error(`❌ [${requestId}] Webhook processing error:`, processingError);
-      
+      console.error(
+        `❌ [${requestId}] Webhook processing error:`,
+        processingError
+      );
+
       // Try to extract sales order ID from event to emit error
       try {
         const { emitPaymentError } = await import(
           "../../salesOrders/sockets/salesOrders.js"
         );
-        
+
         // Try to find sales order ID from event data
         let salesOrderId = null;
-        if (event.type === "checkout.session.completed" && event.data?.object?.metadata?.salesOrderId) {
+        if (
+          event.type === "checkout.session.completed" &&
+          event.data?.object?.metadata?.salesOrderId
+        ) {
           salesOrderId = event.data.object.metadata.salesOrderId;
-        } else if (event.type === "payment_intent.succeeded" || event.type === "payment_intent.payment_failed") {
+        } else if (
+          event.type === "payment_intent.succeeded" ||
+          event.type === "payment_intent.payment_failed"
+        ) {
           // Try to find payment by payment intent ID
           const { findByStripePaymentIntentId } = await import(
             "../repositories/paymentsRepository.js"
@@ -90,19 +99,25 @@ router.post("/", async function (req, res) {
                 : payment.salesOrder;
           }
         }
-        
+
         if (salesOrderId) {
           emitPaymentError(
             salesOrderId,
             "webhook_processing_failed",
-            `Webhook processing failed: ${processingError.message || "Unknown error"}. Please check the payment status manually.`,
-            { eventType: event.type, eventId: event.id, error: processingError.message }
+            `Webhook processing failed: ${
+              processingError.message || "Unknown error"
+            }. Please check the payment status manually.`,
+            {
+              eventType: event.type,
+              eventId: event.id,
+              error: processingError.message,
+            }
           );
         }
       } catch (emitError) {
         console.error("Failed to emit webhook error event:", emitError);
       }
-      
+
       // Re-throw to return error response
       throw processingError;
     }

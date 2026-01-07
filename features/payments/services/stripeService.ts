@@ -1,4 +1,8 @@
 import Stripe from "stripe";
+import {
+  dollarsToCents,
+  centsToDollars,
+} from "../../../utils/priceCalculations.js";
 
 /**
  * Stripe Service
@@ -40,9 +44,8 @@ const amountToCents = (amount: number | string): number => {
     throw new Error(`Amount cannot be negative: ${amount}`);
   }
 
-  // Use integer arithmetic: convert to cents and round
-  // This is safe because we're rounding a finite number
-  const cents = Math.round(amountNum * 100);
+  // Use utility function for currency conversion
+  const cents = dollarsToCents(amountNum);
 
   // Validate result
   if (!Number.isFinite(cents) || cents < 0) {
@@ -56,7 +59,7 @@ const amountToCents = (amount: number | string): number => {
  * Convert cents to amount
  */
 const centsToAmount = (cents) => {
-  return cents / 100;
+  return centsToDollars(cents);
 };
 
 /**

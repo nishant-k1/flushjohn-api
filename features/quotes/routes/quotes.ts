@@ -341,7 +341,6 @@ router.post(
   async function (req, res) {
     const { id } = req.params;
     try {
-
       if (!quotesService.isValidObjectId(id)) {
         return res.status(400).json({
           success: false,

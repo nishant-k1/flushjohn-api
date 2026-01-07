@@ -6,6 +6,8 @@ import {
   authorizeRoles,
 } from "../../auth/middleware/auth.js";
 import { getCurrentDateTime } from "../../../lib/dayjs.js";
+import { bytesToMB } from "../../../utils/numericCalculations.js";
+import { add } from "../../../utils/priceCalculations.js";
 
 const router: any = Router();
 
@@ -100,7 +102,7 @@ router.get(
           (now - stats.mtimeMs) / (24 * 60 * 60 * 1000)
         );
 
-        totalSize += stats.size;
+        totalSize = add(totalSize, stats.size);
         fileStats.push({
           name: file,
           ageInDays,
@@ -115,7 +117,7 @@ router.get(
         data: {
           totalFiles: fileStats.length,
           totalSize,
-          totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+          totalSizeMB: bytesToMB(totalSize),
           files: fileStats.sort((a, b) => b.ageInDays - a.ageInDays), // Oldest first
         },
       });

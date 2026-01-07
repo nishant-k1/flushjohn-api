@@ -12,6 +12,14 @@ import { getCurrentDateTime } from "../../../lib/dayjs.js";
 import * as quoteAIRateService from "../../quotes/services/quoteAIRateService.js";
 import { getStateTaxRate } from "../../../constants/tax/stateTaxRates.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
+import {
+  roundPrice,
+  applyMultiplier,
+  addMargin,
+  calculatePriceDifferencePercentage,
+  calculateAccuracyRating,
+  abs,
+} from "../../../utils/priceCalculations.js";
 
 // Lazy initialization of OpenAI client
 let openai = null;
@@ -243,12 +251,12 @@ export const getVendorPricing = async ({
           ? 1.2
           : 1.0;
 
-      vendorBasePrice = basePricePerUnit * eventTypeMultiplier;
+      vendorBasePrice = applyMultiplier(basePricePerUnit, eventTypeMultiplier);
       // Use utility function for consistent calculation
       averagePrice = parseFloat(
         calculateProductAmount(quantity, vendorBasePrice)
       );
-      recommendedPrice = averagePrice + DEFAULT_MARGIN_AMOUNT;
+      recommendedPrice = addMargin(averagePrice, DEFAULT_MARGIN_AMOUNT);
 
       historicalData.message =
         "Using fallback pricing (AI service unavailable)";
@@ -266,13 +274,11 @@ export const getVendorPricing = async ({
         phone: v.phone,
         email: v.email,
       })),
-      averagePrice: Math.round(averagePrice * 100) / 100,
-      vendorBasePrice: vendorBasePrice
-        ? Math.round(vendorBasePrice * 100) / 100
-        : null,
+      averagePrice: roundPrice(averagePrice),
+      vendorBasePrice: vendorBasePrice ? roundPrice(vendorBasePrice) : null,
       margin: DEFAULT_MARGIN_AMOUNT,
       marginAmount: DEFAULT_MARGIN_AMOUNT,
-      recommendedPrice: Math.round(recommendedPrice * 100) / 100,
+      recommendedPrice: roundPrice(recommendedPrice),
       quantity,
       message: `Found ${vendorsArray.length} vendor(s) serving this location`,
       historicalData,
@@ -391,10 +397,10 @@ export const submitVendorQuote = async (quoteData) => {
 
     if (aiSuggestedPrice) {
       priceDifference = totalPrice - aiSuggestedPrice;
-      const differencePercentage = Math.abs(
-        (priceDifference / aiSuggestedPrice) * 100
+      const differencePercentage = abs(
+        calculatePriceDifferencePercentage(aiSuggestedPrice, totalPrice)
       );
-      accuracyRating = Math.max(0, 100 - differencePercentage);
+      accuracyRating = calculateAccuracyRating(aiSuggestedPrice, totalPrice);
     }
 
     const pricingHistory = {
@@ -427,7 +433,7 @@ export const submitVendorQuote = async (quoteData) => {
             suggestedPrice: aiSuggestedPrice,
             actualPrice: totalPrice,
             difference: priceDifference,
-            accuracy: Math.round(accuracyRating * 100) / 100,
+            accuracy: roundPrice(accuracyRating),
             message:
               accuracyRating > 90
                 ? "AI suggestion was very accurate!"

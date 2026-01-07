@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from "express";
 import { getCurrentDateTime } from "../lib/dayjs.js";
 import { calculateProductAmount } from "../utils/productAmountCalculations.js";
+import { roundPrice } from "../utils/priceCalculations.js";
 
 interface Product {
   item?: string;
@@ -49,9 +50,9 @@ const validateAndRecalculateProducts = (
       // Calculate correct amount (server-side source of truth)
       const serverAmount = parseFloat(calculateProductAmount(quantity, rate));
 
-      // Round to 2 decimal places for comparison
-      const serverAmountRounded = Math.round(serverAmount * 100) / 100;
-      const frontendAmountRounded = Math.round(frontendAmount * 100) / 100;
+      // Round to 2 decimal places for comparison using utility function
+      const serverAmountRounded = roundPrice(serverAmount);
+      const frontendAmountRounded = roundPrice(frontendAmount);
 
       // Check for discrepancy (allow 0.01 tolerance for floating point errors)
       const difference = Math.abs(serverAmountRounded - frontendAmountRounded);
