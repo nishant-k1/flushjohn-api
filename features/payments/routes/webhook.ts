@@ -77,10 +77,10 @@ router.post("/", async function (req, res) {
           salesOrderId = event.data.object.metadata.salesOrderId;
         } else if (event.type === "payment_intent.succeeded" || event.type === "payment_intent.payment_failed") {
           // Try to find payment by payment intent ID
-          const { default: paymentsRepository } = await import(
+          const { findByStripePaymentIntentId } = await import(
             "../repositories/paymentsRepository.js"
           );
-          const payment = await paymentsRepository.findByStripePaymentIntentId(
+          const payment = await findByStripePaymentIntentId(
             event.data?.object?.id
           );
           if (payment) {

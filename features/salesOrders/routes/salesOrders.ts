@@ -252,8 +252,8 @@ router.post(
   "/:id/pdf",
   validateAndRecalculateProducts,
   async function (req, res) {
+    const { id } = req.params;
     try {
-      const { id } = req.params;
 
       if (!salesOrdersService.isValidObjectId(id)) {
         return res.status(400).json({
@@ -296,8 +296,8 @@ router.post(
 
       console.error("❌ Sales order PDF generation error:", {
         salesOrderId: id,
-        error: error.message,
-        stack: error.stack,
+        error: (error as any).message,
+        stack: (error as any).stack,
       });
 
       res.status(500).json({
@@ -317,8 +317,8 @@ router.post(
   "/:id/email",
   validateAndRecalculateProducts,
   async function (req, res) {
+    const { id } = req.params;
     try {
-      const { id } = req.params;
 
       if (!salesOrdersService.isValidObjectId(id)) {
         return res.status(400).json({
@@ -448,8 +448,8 @@ router.post(
 
       console.error("❌ Sales order email error:", {
         salesOrderId: id,
-        error: error.message,
-        stack: error.stack,
+        error: (error as any).message,
+        stack: (error as any).stack,
         isPdfError,
       });
 

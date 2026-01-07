@@ -255,7 +255,7 @@ app.use(
 app.use("/s3-cors", s3CorsRouter as any);
 // Public lead submission endpoint (POST /leads - no auth required)
 // ✅ PERFORMANCE: Add rate limiting to prevent abuse
-app.post("/leads", publicLimiter, async (req: Request, res: Response) => {
+app.post("/leads", publicLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     console.log("📥 Received public lead submission");
     const leadData = req.body;

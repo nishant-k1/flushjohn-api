@@ -111,7 +111,7 @@ export const calculateAveragePricing = async ({
 
   return {
     averagePricePerUnit: Math.round(averagePricePerUnit * 100) / 100,
-    averageTotalPrice: parseFloat(averageTotalPrice),
+    averageTotalPrice: averageTotalPrice,
     sampleSize: pricingHistory.length,
     pricingHistory: pricingHistory.slice(0, 5), // Return top 5 for reference
   };

@@ -339,8 +339,8 @@ router.post(
   "/:id/email",
   validateAndRecalculateProducts,
   async function (req, res) {
+    const { id } = req.params;
     try {
-      const { id } = req.params;
 
       if (!quotesService.isValidObjectId(id)) {
         return res.status(400).json({
@@ -412,14 +412,14 @@ router.post(
           message: "Validation failed",
           error: "VALIDATION_ERROR",
           details: error.errors
-            ? Object.values(error.errors).map((err) => err.message)
-            : [error.message],
+            ? Object.values(error.errors).map((err: any) => err.message)
+            : [(error as any).message],
         });
       }
 
       console.error("❌ Quote email sending error:", {
         quoteId: id,
-        error: error.message,
+        error: (error as any).message,
         stack: error.stack,
         name: error.name,
       });
