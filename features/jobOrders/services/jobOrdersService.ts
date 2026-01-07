@@ -5,6 +5,7 @@ import {
 } from "../../../utils/numericCalculations.js";
 import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
+import { normalizeContactData } from "../../../utils/dataNormalization.js";
 
 export const generateJobOrderNumber = async () => {
   const maxRetries = 5;
@@ -172,7 +173,10 @@ export const createJobOrder = async (jobOrderData) => {
     salesOrder: jobOrderData.salesOrder || null,
   };
 
-  const createdJobOrder = await jobOrdersRepository.create(newJobOrderData);
+  // Normalize all contact data (phone, email, zip, etc.) to standard formats
+  const normalizedJobOrderData = normalizeContactData(newJobOrderData);
+
+  const createdJobOrder = await jobOrdersRepository.create(normalizedJobOrderData);
 
   // Update ConversationLog for AI learning - mark as conversion success!
   // This is the gold standard - when a JobOrder is created, the sale is confirmed
@@ -527,14 +531,14 @@ export const updateJobOrder = async (id, updateData) => {
     vendorHistory: updateData.vendorHistory,
   };
 
-  // Remove undefined fields from jobOrderFields
-  Object.keys(jobOrderFields).forEach(
-    (key) => jobOrderFields[key] === undefined && delete jobOrderFields[key]
+  // Remove undefined fields from normalizedJobOrderFields
+  Object.keys(normalizedJobOrderFields).forEach(
+    (key) => normalizedJobOrderFields[key] === undefined && delete normalizedJobOrderFields[key]
   );
 
   // ✅ Update the JobOrder with only job-order-specific fields
   const jobOrder = await jobOrdersRepository.updateById(id, {
-    ...jobOrderFields,
+    ...normalizedJobOrderFields,
     ...(leadId && { lead: leadId }),
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),
@@ -616,8 +620,11 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
       ? latestCustomer.customerNo + 1
       : 1000;
 
+    // Normalize customer data before creating
+    const normalizedCustomerData = normalizeContactData(customerData);
+    
     customer = await (Customers as any).create({
-      ...customerData,
+      ...normalizedCustomerData,
       customerNo,
       salesOrders: [salesOrder._id],
       jobOrders: [jobOrder._id],

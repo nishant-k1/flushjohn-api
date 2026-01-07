@@ -15,6 +15,7 @@ import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
 import { createLeadNotification } from "../../notifications/services/notificationHelpers.js";
 import { deleteNotificationsByLeadId } from "../../notifications/services/notificationsService.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
+import { normalizeContactData } from "../../../utils/dataNormalization.js";
 
 /**
  * Transform products based on lead source
@@ -71,13 +72,17 @@ export const prepareLeadData = (leadData) => {
       usageType.charAt(0).toUpperCase() + usageType.slice(1).toLowerCase();
   }
 
-  return {
+  // Prepare initial data
+  const preparedData = {
     ...restArgs,
     leadSource: actualLeadSource,
     usageType: processedUsageType,
     products: transformProductsData(actualLeadSource, products),
     streetAddress: street || streetAddress || "", // Map 'street' to 'streetAddress'
   };
+
+  // Normalize all contact data (phone, email, zip, etc.) to standard formats
+  return normalizeContactData(preparedData);
 };
 
 /**
@@ -519,8 +524,11 @@ export const updateLead = async (id, updateData) => {
     throw error;
   }
 
+  // Normalize all contact data before updating
+  const normalizedUpdateData = normalizeContactData(updateData);
+
   const lead = await leadsRepository.updateById(id, {
-    ...updateData,
+    ...normalizedUpdateData,
     updatedAt: getCurrentDateTime(),
   });
 

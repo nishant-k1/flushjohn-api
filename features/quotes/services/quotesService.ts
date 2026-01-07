@@ -4,6 +4,7 @@ import {
   calculateSkip,
 } from "../../../utils/numericCalculations.js";
 import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
+import { normalizeContactData } from "../../../utils/dataNormalization.js";
 
 export const generateQuoteNumber = async () => {
   const maxRetries = 5;
@@ -98,7 +99,10 @@ export const createQuote = async (quoteData) => {
     newQuoteData.lead = leadId;
   }
 
-  const quote = await quotesRepository.create(newQuoteData);
+  // Normalize all contact data (phone, email, zip, etc.) to standard formats
+  const normalizedQuoteData = normalizeContactData(newQuoteData);
+
+  const quote = await quotesRepository.create(normalizedQuoteData);
 
   const populatedQuote = await quotesRepository.findById(quote._id);
 
@@ -823,9 +827,11 @@ export const updateQuote = async (id, updateData) => {
   // ✅ Update the associated Lead if it exists and there are lead fields to update
   if (leadId && Object.keys(leadFields).length > 0) {
     const Leads = (await import("../../leads/models/Leads.js")).default;
+    // Normalize lead fields before updating
+    const normalizedLeadFields = normalizeContactData(leadFields);
     await (Leads as any).findByIdAndUpdate(
       leadId,
-      { $set: leadFields },
+      { $set: normalizedLeadFields },
       { new: true, runValidators: true }
     );
   }
@@ -842,14 +848,17 @@ export const updateQuote = async (id, updateData) => {
     emailStatus: updateData.emailStatus,
   };
 
-  // Remove undefined fields from quoteFields
-  Object.keys(quoteFields).forEach(
-    (key) => quoteFields[key] === undefined && delete quoteFields[key]
+  // Normalize quote-specific fields that contain contact data
+  const normalizedQuoteFields = normalizeContactData(quoteFields);
+
+  // Remove undefined fields from normalizedQuoteFields
+  Object.keys(normalizedQuoteFields).forEach(
+    (key) => normalizedQuoteFields[key] === undefined && delete normalizedQuoteFields[key]
   );
 
   // ✅ Update the Quote with only quote-specific fields
   const quote = await quotesRepository.updateById(id, {
-    ...quoteFields,
+    ...normalizedQuoteFields,
     ...(leadId && { lead: leadId }),
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),
