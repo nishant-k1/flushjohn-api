@@ -8,7 +8,7 @@ import {
   calculateSkip,
 } from "../../../utils/numericCalculations.js";
 import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
-import { normalizeContactData } from "../../../utils/dataNormalization.js";
+import { serializeContactData } from "../../../utils/serializers.js";
 
 export const generateCustomerNumber = async () => {
   const latestCustomer = await customersRepository.findOne({}, "customerNo");
@@ -27,7 +27,7 @@ export const createCustomer = async (customerData) => {
   };
 
   // Normalize all contact data (phone, email, zip, etc.) to standard formats
-  const normalizedCustomerData = normalizeContactData(newCustomerData);
+  const normalizedCustomerData = serializeContactData(newCustomerData);
 
   return await customersRepository.create(normalizedCustomerData);
 };
@@ -298,7 +298,7 @@ export const getCustomerById = async (id) => {
 
 export const updateCustomer = async (id, updateData) => {
   // Normalize all contact data before updating
-  const normalizedUpdateData = normalizeContactData(updateData);
+  const normalizedUpdateData = serializeContactData(updateData);
 
   const customer = await customersRepository.updateById(id, {
     ...normalizedUpdateData,

@@ -8,7 +8,7 @@ import {
   calculateTotalPages,
   calculateSkip,
 } from "../../../utils/numericCalculations.js";
-import { normalizeContactData } from "../../../utils/dataNormalization.js";
+import { serializeContactData } from "../../../utils/serializers.js";
 
 export const generateSalesOrderNumber = async () => {
   const maxRetries = 5;
@@ -132,7 +132,7 @@ export const createSalesOrder = async (salesOrderData) => {
   };
 
   // Normalize all contact data (phone, email, zip, etc.) to standard formats
-  const normalizedSalesOrderData = normalizeContactData(newSalesOrderData);
+  const normalizedSalesOrderData = serializeContactData(newSalesOrderData);
 
   const createdSalesOrder = await salesOrdersRepository.create(
     normalizedSalesOrderData
@@ -887,7 +887,7 @@ export const updateSalesOrder = async (id, updateData) => {
   if (leadId && Object.keys(leadFields).length > 0) {
     const Leads = (await import("../../leads/models/Leads.js")).default;
     // Normalize lead fields before updating
-    const normalizedLeadFields = normalizeContactData(leadFields);
+    const normalizedLeadFields = serializeContactData(leadFields);
     await (Leads as any).findByIdAndUpdate(
       leadId,
       { $set: normalizedLeadFields },
@@ -909,7 +909,7 @@ export const updateSalesOrder = async (id, updateData) => {
   };
 
   // Normalize sales order-specific fields that contain contact data
-  const normalizedSalesOrderFields = normalizeContactData(salesOrderFields);
+  const normalizedSalesOrderFields = serializeContactData(salesOrderFields);
 
   // Remove undefined fields from normalizedSalesOrderFields
   Object.keys(normalizedSalesOrderFields).forEach(

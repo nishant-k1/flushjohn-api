@@ -5,7 +5,7 @@ import {
 } from "../../../utils/numericCalculations.js";
 import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
 import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
-import { normalizeContactData } from "../../../utils/dataNormalization.js";
+import { serializeContactData } from "../../../utils/serializers.js";
 
 export const generateJobOrderNumber = async () => {
   const maxRetries = 5;
@@ -174,7 +174,7 @@ export const createJobOrder = async (jobOrderData) => {
   };
 
   // Normalize all contact data (phone, email, zip, etc.) to standard formats
-  const normalizedJobOrderData = normalizeContactData(newJobOrderData);
+  const normalizedJobOrderData = serializeContactData(newJobOrderData);
 
   const createdJobOrder = await jobOrdersRepository.create(normalizedJobOrderData);
 
@@ -621,7 +621,7 @@ export const createOrLinkCustomerFromJobOrder = async (jobOrder) => {
       : 1000;
 
     // Normalize customer data before creating
-    const normalizedCustomerData = normalizeContactData(customerData);
+    const normalizedCustomerData = serializeContactData(customerData);
     
     customer = await (Customers as any).create({
       ...normalizedCustomerData,

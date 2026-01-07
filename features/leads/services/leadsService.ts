@@ -15,7 +15,7 @@ import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
 import { createLeadNotification } from "../../notifications/services/notificationHelpers.js";
 import { deleteNotificationsByLeadId } from "../../notifications/services/notificationsService.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
-import { normalizeContactData } from "../../../utils/dataNormalization.js";
+import { serializeContactData } from "../../../utils/serializers.js";
 
 /**
  * Transform products based on lead source
@@ -82,7 +82,7 @@ export const prepareLeadData = (leadData) => {
   };
 
   // Normalize all contact data (phone, email, zip, etc.) to standard formats
-  return normalizeContactData(preparedData);
+  return serializeContactData(preparedData);
 };
 
 /**
@@ -525,7 +525,7 @@ export const updateLead = async (id, updateData) => {
   }
 
   // Normalize all contact data before updating
-  const normalizedUpdateData = normalizeContactData(updateData);
+  const normalizedUpdateData = serializeContactData(updateData);
 
   const lead = await leadsRepository.updateById(id, {
     ...normalizedUpdateData,
