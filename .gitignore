@@ -62,3 +62,4 @@ public/temp/*
 
 # Environment backup files
 .env.backup*
+.env.bak
