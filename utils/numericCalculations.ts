@@ -12,10 +12,14 @@
  */
 export const calculateTotalPages = (total: number, limit: number): number => {
   if (!Number.isFinite(total) || total < 0) {
-    throw new Error(`Invalid total: ${total}. Total must be a valid non-negative number.`);
+    throw new Error(
+      `Invalid total: ${total}. Total must be a valid non-negative number.`
+    );
   }
   if (!Number.isFinite(limit) || limit <= 0) {
-    throw new Error(`Invalid limit: ${limit}. Limit must be a valid positive number.`);
+    throw new Error(
+      `Invalid limit: ${limit}. Limit must be a valid positive number.`
+    );
   }
   return Math.ceil(total / limit);
 };
@@ -31,7 +35,9 @@ export const calculateSkip = (page: number, limit: number): number => {
     throw new Error(`Invalid page: ${page}. Page must be >= 1.`);
   }
   if (!Number.isFinite(limit) || limit <= 0) {
-    throw new Error(`Invalid limit: ${limit}. Limit must be a valid positive number.`);
+    throw new Error(
+      `Invalid limit: ${limit}. Limit must be a valid positive number.`
+    );
   }
   return (page - 1) * limit;
 };
@@ -42,12 +48,19 @@ export const calculateSkip = (page: number, limit: number): number => {
  * @param decimals - Number of decimal places (default: 2)
  * @returns Rounded number
  */
-export const roundToDecimals = (value: number, decimals: number = 2): number => {
+export const roundToDecimals = (
+  value: number,
+  decimals: number = 2
+): number => {
   if (!Number.isFinite(value)) {
-    throw new Error(`Invalid value: ${value}. Value must be a valid finite number.`);
+    throw new Error(
+      `Invalid value: ${value}. Value must be a valid finite number.`
+    );
   }
   if (!Number.isFinite(decimals) || decimals < 0) {
-    throw new Error(`Invalid decimals: ${decimals}. Decimals must be a valid non-negative number.`);
+    throw new Error(
+      `Invalid decimals: ${decimals}. Decimals must be a valid non-negative number.`
+    );
   }
   const factor = Math.pow(10, decimals);
   return Math.round(value * factor) / factor;
@@ -73,7 +86,9 @@ export const round = (value: number): number => {
  */
 export const bytesToMB = (bytes: number, decimals: number = 2): string => {
   if (!Number.isFinite(bytes) || bytes < 0) {
-    throw new Error(`Invalid bytes: ${bytes}. Bytes must be a valid non-negative number.`);
+    throw new Error(
+      `Invalid bytes: ${bytes}. Bytes must be a valid non-negative number.`
+    );
   }
   const mb = bytes / (1024 * 1024);
   return roundToDecimals(mb, decimals).toFixed(decimals);
@@ -85,12 +100,19 @@ export const bytesToMB = (bytes: number, decimals: number = 2): string => {
  * @param wordsPerMinute - Average reading speed (default: 200)
  * @returns Estimated reading time in minutes
  */
-export const calculateReadingTime = (wordCount: number, wordsPerMinute: number = 200): number => {
+export const calculateReadingTime = (
+  wordCount: number,
+  wordsPerMinute: number = 200
+): number => {
   if (!Number.isFinite(wordCount) || wordCount < 0) {
-    throw new Error(`Invalid wordCount: ${wordCount}. Word count must be a valid non-negative number.`);
+    throw new Error(
+      `Invalid wordCount: ${wordCount}. Word count must be a valid non-negative number.`
+    );
   }
   if (!Number.isFinite(wordsPerMinute) || wordsPerMinute <= 0) {
-    throw new Error(`Invalid wordsPerMinute: ${wordsPerMinute}. Words per minute must be a valid positive number.`);
+    throw new Error(
+      `Invalid wordsPerMinute: ${wordsPerMinute}. Words per minute must be a valid positive number.`
+    );
   }
   if (wordCount === 0) {
     return 0;
@@ -104,12 +126,19 @@ export const calculateReadingTime = (wordCount: number, wordsPerMinute: number =
  * @param baseDelayMs - Base delay in milliseconds (default: 1000)
  * @returns Delay in milliseconds
  */
-export const calculateExponentialBackoff = (attempts: number, baseDelayMs: number = 1000): number => {
+export const calculateExponentialBackoff = (
+  attempts: number,
+  baseDelayMs: number = 1000
+): number => {
   if (!Number.isFinite(attempts) || attempts < 0) {
-    throw new Error(`Invalid attempts: ${attempts}. Attempts must be a valid non-negative number.`);
+    throw new Error(
+      `Invalid attempts: ${attempts}. Attempts must be a valid non-negative number.`
+    );
   }
   if (!Number.isFinite(baseDelayMs) || baseDelayMs <= 0) {
-    throw new Error(`Invalid baseDelayMs: ${baseDelayMs}. Base delay must be a valid positive number.`);
+    throw new Error(
+      `Invalid baseDelayMs: ${baseDelayMs}. Base delay must be a valid positive number.`
+    );
   }
   return Math.pow(2, attempts) * baseDelayMs;
 };
@@ -123,7 +152,9 @@ export const calculateExponentialBackoff = (attempts: number, baseDelayMs: numbe
  */
 export const clamp = (value: number, min: number, max: number): number => {
   if (!Number.isFinite(value)) {
-    throw new Error(`Invalid value: ${value}. Value must be a valid finite number.`);
+    throw new Error(
+      `Invalid value: ${value}. Value must be a valid finite number.`
+    );
   }
   if (!Number.isFinite(min)) {
     throw new Error(`Invalid min: ${min}. Min must be a valid finite number.`);
@@ -162,10 +193,11 @@ export const calculateAverage = (values: Array<number | string>): number => {
 
   if (!Number.isFinite(average)) {
     throw new Error(
-      `Average calculation resulted in invalid value. Values: ${JSON.stringify(values)}`
+      `Average calculation resulted in invalid value. Values: ${JSON.stringify(
+        values
+      )}`
     );
   }
 
   return average;
 };
-

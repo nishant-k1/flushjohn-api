@@ -4,6 +4,9 @@
  * Includes rounding, currency conversion, percentages, margins, and financial operations
  */
 
+import { roundToDecimals } from "./numericCalculations.js";
+import { round } from "./numericCalculations.js";
+
 const MAX_PRICE = 1_000_000_000; // $1 billion
 const MAX_CENTS = 1_000_000_000_000; // 1 trillion cents
 
@@ -30,7 +33,7 @@ export const roundPrice = (value: number | string): number => {
     throw new Error(`Price ${value} exceeds maximum allowed (${MAX_PRICE})`);
   }
 
-  return Math.round(numValue * 100) / 100;
+  return roundToDecimals(numValue, 2);
 };
 
 /**
@@ -52,7 +55,7 @@ export const dollarsToCents = (amount: number | string): number => {
     throw new Error(`Invalid amount: ${amount}. Amount cannot be negative.`);
   }
 
-  const cents = Math.round(amountNum * 100);
+  const cents = round(amountNum * 100);
 
   if (!Number.isFinite(cents) || cents < 0) {
     throw new Error(`Conversion resulted in invalid value. amount: ${amount}`);

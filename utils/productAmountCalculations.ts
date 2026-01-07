@@ -1,4 +1,4 @@
-import { dollarsToCents } from "./priceCalculations";
+import { dollarsToCents, centsToDollars, add } from "./priceCalculations";
 import { round } from "./numericCalculations";
 
 const MAX_QUANTITY = 1_000_000;
@@ -74,7 +74,7 @@ export const calculateProductAmount = (
   rate: number | string
 ): string => {
   const cents = calculateProductAmountCents(quantity, rate);
-  return (cents / 100).toFixed(2);
+  return centsToDollars(cents);
 };
 
 /**
@@ -113,7 +113,7 @@ export const calculateOrderTotalCents = (
       );
     }
 
-    return sum + calculateProductAmountCents(quantity, rate);
+    return add(sum, calculateProductAmountCents(quantity, rate));
   }, 0);
 
   if (!Number.isFinite(totalCents) || totalCents < 0) {
@@ -146,5 +146,5 @@ export const calculateOrderTotal = (
   }>
 ): string => {
   const cents = calculateOrderTotalCents(products);
-  return (cents / 100).toFixed(2);
+  return centsToDollars(cents);
 };
