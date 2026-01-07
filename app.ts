@@ -44,6 +44,7 @@ import salesAssistRouter from "./features/salesAssist/routes/salesAssist.js";
 import speechRecognitionRouter from "./features/salesAssist/routes/speechRecognition.js";
 import notificationsRouter from "./features/notifications/routes/notifications.js";
 import paymentsRouter from "./features/payments/routes/payments.js";
+import dashboardRouter from "./features/common/routes/dashboard.js";
 import {
   authenticateToken,
   authorizeRoles,
@@ -244,7 +245,12 @@ app.use("/", indexRouter as any);
 app.use("/auth", authRouter as any);
 // ✅ PERFORMANCE: Add rate limiting to public and expensive endpoints
 app.use("/contact", publicLimiter, contactRouter as any);
-app.use("/file-upload", authenticateToken, uploadLimiter, fileUploadRouter as any);
+app.use(
+  "/file-upload",
+  authenticateToken,
+  uploadLimiter,
+  fileUploadRouter as any
+);
 app.use("/s3-cors", s3CorsRouter as any);
 // Public lead submission endpoint (POST /leads - no auth required)
 // ✅ PERFORMANCE: Add rate limiting to prevent abuse
@@ -324,7 +330,12 @@ app.post("/leads", publicLimiter, async (req: Request, res: Response) => {
     });
   }
 });
-app.use("/users", authenticateToken, authorizeRoles("admin"), usersRouter as any); // Only admins can manage users
+app.use(
+  "/users",
+  authenticateToken,
+  authorizeRoles("admin"),
+  usersRouter as any
+); // Only admins can manage users
 // Other lead routes (GET, PUT, DELETE) require authentication
 app.use("/leads", authenticateToken, leadsRouter as any);
 app.use("/blogs", blogsRouter as any); // Keep public for marketing
@@ -342,7 +353,7 @@ app.use(
   blogAutomationRouter as any
 ); // Only admins can automate blogs
 // ✅ PERFORMANCE: Add strict rate limiting to dashboard (expensive queries)
-// app.use("/dashboard", authenticateToken, strictLimiter, dashboardRouter); // TODO: dashboardRouter not found
+app.use("/dashboard", authenticateToken, strictLimiter, dashboardRouter as any);
 app.use("/notes", authenticateToken, notesRouter as any);
 app.use("/notifications", authenticateToken, notificationsRouter as any);
 app.use("/contacts", authenticateToken, contactsRouter as any);
