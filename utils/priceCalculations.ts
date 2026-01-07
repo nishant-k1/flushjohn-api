@@ -1,7 +1,12 @@
 /**
  * Price Calculation Utilities
- * Single source of truth for all price-related calculations
- * Includes rounding, currency conversion, percentages, margins, and financial operations
+ * MONEY/CURRENCY OPERATIONS ONLY
+ * 
+ * This file contains utilities specifically for financial/price calculations.
+ * All functions here handle money with proper rounding and validation.
+ * 
+ * For general numeric operations (counts, percentages, scores, etc.),
+ * use numericCalculations.ts instead.
  */
 
 import { roundToDecimals, round } from "./numericCalculations.js";
@@ -11,6 +16,7 @@ const MAX_CENTS = 1_000_000_000_000; // 1 trillion cents
 
 /**
  * Round a price value to 2 decimal places
+ * FOR MONEY ONLY - Validates positive values and max limits
  * @param value - Price value (number or string)
  * @returns Rounded price as number
  * @throws Error if value is invalid
@@ -28,7 +34,7 @@ export const roundPrice = (value: number | string): number => {
     throw new Error(`Invalid price value: ${value}. Price must be >= 0.`);
   }
 
-  if (numValue > MAX_PRICE) {
+  if (Math.abs(numValue) > MAX_PRICE) {
     throw new Error(`Price ${value} exceeds maximum allowed (${MAX_PRICE})`);
   }
 
@@ -485,11 +491,12 @@ export const calculateAccuracyRating = (
 };
 
 /**
- * Add two numbers (for price calculations)
- * @param a - First number
- * @param b - Second number
- * @returns Sum as number
- * @throws Error if inputs are invalid
+ * Add two monetary values (FOR MONEY ONLY)
+ * Automatically rounds to 2 decimal places with proper precision
+ * @param a - First monetary value
+ * @param b - Second monetary value
+ * @returns Sum as number (rounded to 2 decimals)
+ * @throws Error if inputs are invalid or result is negative
  */
 export const add = (a: number | string, b: number | string): number => {
   const aNum = parseFloat(String(a));
@@ -507,14 +514,26 @@ export const add = (a: number | string, b: number | string): number => {
     );
   }
 
-  return roundPrice(aNum + bNum);
+  const result = aNum + bNum;
+  
+  // For addition, use roundToDecimals to avoid negative validation issues
+  // roundPrice would fail if intermediate calculations produce tiny negatives
+  if (result < 0) {
+    throw new Error(
+      `Price addition resulted in negative value: ${a} + ${b} = ${result}`
+    );
+  }
+  
+  return roundToDecimals(result, 2);
 };
 
 /**
- * Subtract two numbers (for price calculations)
- * @param a - First number (minuend)
- * @param b - Second number (subtrahend)
- * @returns Difference as number
+ * Subtract two monetary values (FOR MONEY ONLY)
+ * Can produce negative results (e.g., overpayment, refunds)
+ * Rounds to 2 decimal places without strict positive validation
+ * @param a - First monetary value (minuend)
+ * @param b - Second monetary value (subtrahend)
+ * @returns Difference as number (can be negative, rounded to 2 decimals)
  * @throws Error if inputs are invalid
  */
 export const subtract = (a: number | string, b: number | string): number => {
@@ -533,15 +552,19 @@ export const subtract = (a: number | string, b: number | string): number => {
     );
   }
 
-  return roundPrice(aNum - bNum);
+  const result = aNum - bNum;
+  
+  // Use roundToDecimals instead of roundPrice to allow negative values
+  // (e.g., when calculating overpayment: paid - total can be negative)
+  return roundToDecimals(result, 2);
 };
 
 /**
- * Multiply two numbers (for price calculations)
- * @param a - First number
- * @param b - Second number
- * @returns Product as number
- * @throws Error if inputs are invalid
+ * Multiply two values for monetary calculations (FOR MONEY ONLY)
+ * @param a - First value (e.g., quantity, rate, multiplier)
+ * @param b - Second value (e.g., price, rate)
+ * @returns Product as number (rounded to 2 decimals)
+ * @throws Error if inputs are invalid or result is negative
  */
 export const multiply = (a: number | string, b: number | string): number => {
   const aNum = parseFloat(String(a));
@@ -559,15 +582,23 @@ export const multiply = (a: number | string, b: number | string): number => {
     );
   }
 
-  return roundPrice(aNum * bNum);
+  const result = aNum * bNum;
+  
+  if (result < 0) {
+    throw new Error(
+      `Price multiplication resulted in negative value: ${a} * ${b} = ${result}`
+    );
+  }
+  
+  return roundToDecimals(result, 2);
 };
 
 /**
- * Divide two numbers (for price calculations)
- * @param a - Numerator
- * @param b - Denominator
- * @returns Quotient as number
- * @throws Error if inputs are invalid or division by zero
+ * Divide two values for monetary calculations (FOR MONEY ONLY)
+ * @param a - Numerator (dividend)
+ * @param b - Denominator (divisor)
+ * @returns Quotient as number (rounded to 2 decimals)
+ * @throws Error if inputs are invalid, division by zero, or result is negative
  */
 export const divide = (a: number | string, b: number | string): number => {
   const aNum = parseFloat(String(a));
@@ -589,7 +620,15 @@ export const divide = (a: number | string, b: number | string): number => {
     throw new Error("Division by zero is not allowed.");
   }
 
-  return roundPrice(aNum / bNum);
+  const result = aNum / bNum;
+  
+  if (result < 0) {
+    throw new Error(
+      `Price division resulted in negative value: ${a} / ${b} = ${result}`
+    );
+  }
+  
+  return roundToDecimals(result, 2);
 };
 
 /**
