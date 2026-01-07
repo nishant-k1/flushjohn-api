@@ -373,6 +373,9 @@ export const chargeSalesOrder = async (
   // We only update sales order totals here, and let the webhook handle email sending
   // This prevents duplicate processing when both immediate response and webhook fire
   if (paymentIntent.status === "succeeded") {
+    // Cancel any pending payment links for this sales order
+    await cancelPendingPaymentLinksForSalesOrder(salesOrderId);
+
     // Update sales order with Stripe customer ID if not already set
     if (!salesOrder.stripeCustomerId) {
       await salesOrdersRepository.updateById(salesOrderId, {
@@ -824,6 +827,9 @@ export const syncPaymentLinkStatus = async (paymentId) => {
 
       await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
 
+      // Cancel any pending payment links for this sales order
+      await cancelPendingPaymentLinksForSalesOrder(salesOrderIdForUpdate);
+
       // Send receipt email automatically when payment succeeds via sync
       try {
         const finalPayment = await paymentsRepository.findById(payment._id);
@@ -849,6 +855,53 @@ export const syncPaymentLinkStatus = async (paymentId) => {
   } catch (error) {
     console.error("Error syncing payment link status:", error);
     throw new Error(`Failed to sync payment link status: ${error.message}`);
+  }
+};
+
+/**
+ * Cancel all pending payment links for a sales order
+ * Called automatically when a card payment succeeds
+ */
+export const cancelPendingPaymentLinksForSalesOrder = async (salesOrderId) => {
+  try {
+    // Find all pending payment links for this sales order
+    const pendingPaymentLinks = await paymentsRepository.findAll({
+      query: {
+        salesOrder: salesOrderId,
+        paymentMethod: "payment_link",
+        status: "pending",
+      },
+    });
+
+    // Cancel each pending payment link
+    for (const payment of pendingPaymentLinks) {
+      try {
+        await cancelPaymentLink(payment._id.toString());
+        console.log(
+          `✅ Cancelled pending payment link ${payment._id} for sales order ${salesOrderId}`
+        );
+      } catch (error) {
+        // Log error but continue with other payments
+        console.error(
+          `Failed to cancel pending payment link ${payment._id}:`,
+          error.message
+        );
+      }
+    }
+
+    return {
+      cancelledCount: pendingPaymentLinks.length,
+    };
+  } catch (error) {
+    console.error(
+      `Error cancelling pending payment links for sales order ${salesOrderId}:`,
+      error
+    );
+    // Don't throw - this is a cleanup operation, shouldn't fail the main payment flow
+    return {
+      cancelledCount: 0,
+      error: error.message,
+    };
   }
 };
 
@@ -1043,7 +1096,10 @@ export const handleStripeWebhook = async (event) => {
       try {
         await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
       } catch (totalsError) {
-        console.error("❌ Error updating sales order payment totals:", totalsError);
+        console.error(
+          "❌ Error updating sales order payment totals:",
+          totalsError
+        );
         // Emit error event for frontend notification
         try {
           const { emitPaymentError } = await import(
@@ -1058,6 +1114,11 @@ export const handleStripeWebhook = async (event) => {
         } catch (emitError) {
           console.error("Failed to emit payment error event:", emitError);
         }
+      }
+
+      // Cancel any pending payment links for this sales order (only if this is a card payment, not a payment link)
+      if (payment.paymentMethod !== "payment_link") {
+        await cancelPendingPaymentLinksForSalesOrder(salesOrderIdForUpdate);
       }
 
       // Send sales receipt email (only once, prevents duplicates via receiptSent flag)
@@ -1160,7 +1221,10 @@ export const handleStripeWebhook = async (event) => {
         try {
           await updateSalesOrderPaymentTotals(salesOrderIdForUpdate);
         } catch (totalsError) {
-          console.error("❌ Error updating sales order payment totals:", totalsError);
+          console.error(
+            "❌ Error updating sales order payment totals:",
+            totalsError
+          );
           // Emit error event for frontend notification
           try {
             const { emitPaymentError } = await import(
@@ -1176,6 +1240,9 @@ export const handleStripeWebhook = async (event) => {
             console.error("Failed to emit payment error event:", emitError);
           }
         }
+
+        // Cancel any pending payment links for this sales order (card payment succeeded)
+        await cancelPendingPaymentLinksForSalesOrder(salesOrderIdForUpdate);
 
         // Send sales receipt email (only once, prevents duplicates via receiptSent flag)
         console.log(
@@ -1259,7 +1326,10 @@ export const handleStripeWebhook = async (event) => {
             }
           }
         } catch (updateError) {
-          console.error("❌ Error updating payment status to failed:", updateError);
+          console.error(
+            "❌ Error updating payment status to failed:",
+            updateError
+          );
           // Emit error event for frontend notification
           try {
             const salesOrderIdForUpdate =

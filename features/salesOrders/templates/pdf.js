@@ -3,12 +3,15 @@ import styles from "./styles.js";
 import { logoDataUris } from "../../../constants.js";
 import {
   safeValue,
-  safeGet,
-  safeDate,
   safeCurrency,
   safePhone,
 } from "../../../utils/safeValue.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
+import { calculateOrderTotalsWithTax } from "../../../utils/taxCalculations.js";
+import {
+  calculateInvoiceExpirationDate,
+  formatInvoiceExpirationDate,
+} from "../../../utils/invoiceExpirationCalculations.js";
 
 const itemRows = (products) => {
   if (!products || !Array.isArray(products)) {
@@ -43,17 +46,6 @@ const itemRows = (products) => {
     .join("");
 };
 
-const totalAmount = (products) => {
-  if (!products || !Array.isArray(products)) {
-    return 0;
-  }
-  return products.reduce((accumulator, currentValue) => {
-    const quantity = parseFloat(currentValue.quantity) || 0;
-    const rate = parseFloat(currentValue.rate) || 0;
-    return accumulator + parseFloat(calculateProductAmount(quantity, rate));
-  }, 0);
-};
-
 const htmlTemplate = (salesOrderData) => {
   if (!salesOrderData) return;
   const homepage = process.env.FLUSH_JOHN_HOMEPAGE;
@@ -86,6 +78,31 @@ const htmlTemplate = (salesOrderData) => {
       })
     : "";
 
+  // Calculate totals using single source of truth
+  const totals = calculateOrderTotalsWithTax(
+    salesOrderData.products || [],
+    salesOrderData.taxRate
+  );
+
+  // Payment terms - can be customized via environment or default
+  const paymentTerms =
+    salesOrderData.paymentTerms ||
+    process.env.DEFAULT_PAYMENT_TERMS ||
+    "Net 30 - Payment due within 30 days of invoice date";
+
+  // Calculate invoice expiration (24 hours from creation) if payment link exists
+  let invoiceValiditySection = "";
+  if (salesOrderData.paymentLinkUrl) {
+    const invoiceDate = new Date(salesOrderData.createdAt);
+    const expirationDate = calculateInvoiceExpirationDate(invoiceDate);
+    const formattedExpirationDate = formatInvoiceExpirationDate(expirationDate);
+    invoiceValiditySection = `
+        <div class='quote-expiration' style="margin-top: 1rem;">
+          <p><strong>Invoice Payment Link Validity:</strong> This invoice payment link is valid for 24 hours only and will expire on ${formattedExpirationDate}. Please complete your payment before the expiration time.</p>
+        </div>
+        `;
+  }
+
   return `<html>
       <head>
         <style>
@@ -94,81 +111,88 @@ const htmlTemplate = (salesOrderData) => {
       </head>
       <body>
         <div class="section-1">
-        <img src="${
-          logoDataUris.flushjohn
-        }" alt="logo" class="logo" style="max-width: 100px !important; width: 100px !important; height: 60px !important; object-fit: contain !important;" />          
+          <div class="section-1-left">
+            <img src="${logoDataUris.flushjohn}" alt="logo" class="logo" />
+          </div>
           <div class="section-1-right">
-          <h1>Customer No. # ${
-            salesOrderData.customerNo ? salesOrderData.customerNo : ""
-          }</h1>
-            <h1>Sales Order No. # ${
-              salesOrderData.salesOrderNo ? salesOrderData.salesOrderNo : ""
-            }</h1>
-            <h3>${salesOrderData.createdAt ? createdAt : ""}</h3>
+            <span class="document-badge">Sales Order</span>
+            <h1>Sales Order # ${safeValue(salesOrderData.salesOrderNo)}</h1>
+            ${
+              salesOrderData.customerNo
+                ? `<h3>Customer No. # ${safeValue(
+                    salesOrderData.customerNo
+                  )}</h3>`
+                : ""
+            }
+            <h3>Date: ${createdAt}</h3>
           </div>
         </div>
         <hr/>
         <div class="section-2">
           <div class='section-2-left'>
             <div>
-              <h3>Customer Name</h3>
-              <p>${salesOrderData.fName ? salesOrderData.fName : ""}
-                ${" "}<span>${
-    salesOrderData.lName ? salesOrderData.lName : ""
-  }</span>
-              </p>
+              <h3>Bill To</h3>
+              <p><strong>${safeValue(salesOrderData.fName)} ${safeValue(
+    salesOrderData.lName
+  )}</strong></p>
+              ${
+                salesOrderData.cName
+                  ? `<p>${safeValue(salesOrderData.cName)}</p>`
+                  : ""
+              }
             </div>
-            ${
-              salesOrderData.cName
-                ? `
-            <div>
-              <h3>Company Name</h3>
-              <p>${salesOrderData.cName}</p>
-            </div>
-            `
-                : ""
-            }
             <div>
               <h3>Delivery Address</h3>
-              <p>${
-                salesOrderData.streetAddress ? salesOrderData.streetAddress : ""
-              }</p>
-              <p>${salesOrderData.city ? salesOrderData.city : ""} ${
-    salesOrderData.state ? salesOrderData.state : ""
-  } ${salesOrderData.zip ? salesOrderData.zip : ""}</p>
+              <p>${safeValue(salesOrderData.streetAddress)}</p>
+              <p>${safeValue(salesOrderData.city)} ${safeValue(
+    salesOrderData.state
+  )} ${safeValue(salesOrderData.zip)}</p>
             </div>
           </div>
 
           <div class='section-2-right'>
             <div>
               <h3>Delivery Date</h3>
-              <p>${
-                salesOrderData.deliveryDate ? deliveryDate : ""
-              }</p>            
+              <p>${deliveryDate || "Not specified"}</p>            
             </div>
             <div>
               <h3>Pickup Date</h3>
-              <p>${salesOrderData.pickupDate ? pickupDate : ""}</p>
+              <p>${pickupDate || "Not specified"}</p>
             </div>
+            ${
+              salesOrderData.contactPersonName ||
+              salesOrderData.contactPersonPhone
+                ? `
             <div>
-              <h3>Instructions</h3>
-              <p>${
-                salesOrderData.instructions ? salesOrderData.instructions : ""
-              }</p>
-            </div>
-            <div>
-              <h3>Onsite Contact Person Details</h3>
-              <p>Name: ${
+              <h3>Onsite Contact</h3>
+              ${
                 salesOrderData.contactPersonName
-                  ? salesOrderData.contactPersonName
+                  ? `<p><strong>Name:</strong> ${safeValue(
+                      salesOrderData.contactPersonName
+                    )}</p>`
                   : ""
-              } </p>
-              <p>Phone: ${
+              }
+              ${
                 salesOrderData.contactPersonPhone
-                  ? salesOrderData.contactPersonPhone
+                  ? `<p><strong>Phone:</strong> ${safePhone(
+                      salesOrderData.contactPersonPhone
+                    )}</p>`
                   : ""
-              }</p>
+              }
             </div>
+            `
+                : ""
+            }
+            ${
+              salesOrderData.instructions
+                ? `
+            <div>
+              <h3>Special Instructions</h3>
+              <p>${safeValue(salesOrderData.instructions)}</p>
+            </div>
+            `
+                : ""
+            }
           </div>
         </div>
       
@@ -190,13 +214,47 @@ const htmlTemplate = (salesOrderData) => {
               <h3>TOTAL</h3>
             </li>
           </ul>
-            ${itemRows(salesOrderData.products)}
+          ${itemRows(salesOrderData.products || [])}
+          
+          <div class='totals-section'>
+            <div class='total-row'>
+              <span class='total-row-label'>Subtotal:</span>
+              <span class='total-row-value'>${safeCurrency(
+                totals.subtotal
+              )}</span>
+            </div>
+            ${
+              totals.taxRate > 0
+                ? `
+            <div class='total-row'>
+              <span class='total-row-label'>Tax (${totals.taxRate}%):</span>
+              <span class='total-row-value'>${safeCurrency(
+                totals.taxAmount
+              )}</span>
+            </div>
+            `
+                : ""
+            }
+          </div>
+          
           <div class='total-amount-container'>
-            <h4>Total Amount: ${safeCurrency(
-              totalAmount(salesOrderData.products)
-            )}</h4>
+            <h4>Total Amount: ${safeCurrency(totals.total)}</h4>
           </div>
         </div>
+        
+        ${
+          paymentTerms
+            ? `
+        <div class='payment-terms-section'>
+          <h3>Payment Terms</h3>
+          <p>${paymentTerms}</p>
+          <p>Payment methods accepted: Credit Card or Payment Link</p>
+        </div>
+        `
+            : ""
+        }
+        ${invoiceValiditySection}
+        
         <hr/>
         <div class='section-4'>
           <div>

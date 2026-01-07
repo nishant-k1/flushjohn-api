@@ -9,6 +9,7 @@ import {
   safePhone,
 } from "../../../utils/safeValue.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
+import { calculateOrderTotalsWithTax } from "../../../utils/taxCalculations.js";
 
 const itemRows = (products) => {
   if (!products || !Array.isArray(products)) {
@@ -43,17 +44,6 @@ const itemRows = (products) => {
     .join("");
 };
 
-const totalAmount = (products) => {
-  if (!products || !Array.isArray(products)) {
-    return 0;
-  }
-  return products.reduce((accumulator, currentValue) => {
-    const quantity = parseFloat(currentValue.quantity) || 0;
-    const rate = parseFloat(currentValue.rate) || 0;
-    return accumulator + parseFloat(calculateProductAmount(quantity, rate));
-  }, 0);
-};
-
 const htmlTemplate = (jobOrderData) => {
   if (!jobOrderData) return;
   const cName = process.env.QUENGENESIS_COMPANY_NAME;
@@ -67,6 +57,12 @@ const htmlTemplate = (jobOrderData) => {
   const deliveryDate = safeDate(jobOrderData.deliveryDate);
   const pickupDate = safeDate(jobOrderData.pickupDate);
 
+  // Calculate totals using single source of truth
+  const totals = calculateOrderTotalsWithTax(
+    jobOrderData.products || [],
+    jobOrderData.taxRate
+  );
+
   return `<html>
     <head>
       <style>
@@ -79,91 +75,139 @@ const htmlTemplate = (jobOrderData) => {
             <div>
               <img src="${
                 logoDataUris.quengenesis
-              }" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />          
-            <div>
-              <h4>${cName}</h4>
-              ${address ? `<p>${address}</p>` : ""}
-              <p><strong>Email: </strong>${email}</p>
-              <p><strong>Phone: </strong>${phone}</p>
-            </div>
-            </div>
-            <div>
-            <h3 style="font-size:x-large">Customer</h3>
-            <h4>${safeValue(jobOrderData.fName)} ${safeValue(
-    jobOrderData.lName
-  )}</h4>
-            ${
-              jobOrderData.cName
-                ? `<p>${safeValue(jobOrderData.cName)}</p>`
-                : ""
-            }
-            <p><strong>Email: </strong>${safeValue(jobOrderData.email)}</p>
-            <p><strong>Phone: </strong>${safePhone(jobOrderData.phone)}</p>
+              }" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />
+              <div style="margin-top: 0.5rem;">
+                <h4>${cName}</h4>
+                ${
+                  address
+                    ? `<p style="font-size: 0.75rem; color: #666;">${address}</p>`
+                    : ""
+                }
+                <p style="font-size: 0.75rem; color: #666;"><strong>Email: </strong>${email}</p>
+                <p style="font-size: 0.75rem; color: #666;"><strong>Phone: </strong>${phone}</p>
+              </div>
             </div>
           </div>
 
           <div class="section-1-right">
-            <div>
-              <h1>Job Order # ${safeValue(jobOrderData.jobOrderNo)}</h1>
-              <h3>${createdAt}</h3>
-            </div>
-            <div style="margin-top: 48px;">
-            <h3 style="font-size:x-large">Vendor</h3>
-            <h4>${safeGet(jobOrderData, "vendor.name")}</h4>
-            <p>${safeGet(jobOrderData, "vendor.streetAddress")}</p>
-            <p>${safeGet(jobOrderData, "vendor.city")} ${safeGet(
-    jobOrderData,
-    "vendor.state"
-  )} ${safeGet(jobOrderData, "vendor.zip")}</p>
-            <p><strong>Email: </strong>${safeGet(
-              jobOrderData,
-              "vendor.email"
-            )}</p>
-            <p><strong>Phone: </strong>${safePhone(
-              safeGet(jobOrderData, "vendor.phone")
-            )}</p>
-            <p><strong>Fax: </strong>${safePhone(
-              safeGet(jobOrderData, "vendor.fax")
-            )}</p>
-          </div>
+            <span class="document-badge">Job Order</span>
+            <h1>Job Order # ${safeValue(jobOrderData.jobOrderNo)}</h1>
+            <h3>Date: ${createdAt}</h3>
           </div>
         </div>
         <hr/>
-      <div class="section-2">
-        <div class='section-2-left'>
-          <div>
-            <h3>Delivery Address</h3>
-            <p>${safeValue(jobOrderData.streetAddress)}</p>
-            <p>${safeValue(jobOrderData.city)} ${safeValue(
+        
+        <div class="section-2">
+          <div class='section-2-left'>
+            <div>
+              <h3>Customer</h3>
+              <p><strong>${safeValue(jobOrderData.fName)} ${safeValue(
+    jobOrderData.lName
+  )}</strong></p>
+              ${
+                jobOrderData.cName
+                  ? `<p>${safeValue(jobOrderData.cName)}</p>`
+                  : ""
+              }
+              ${
+                jobOrderData.email
+                  ? `<p><strong>Email: </strong>${safeValue(
+                      jobOrderData.email
+                    )}</p>`
+                  : ""
+              }
+              ${
+                jobOrderData.phone
+                  ? `<p><strong>Phone: </strong>${safePhone(
+                      jobOrderData.phone
+                    )}</p>`
+                  : ""
+              }
+            </div>
+            <div>
+              <h3>Delivery Address</h3>
+              <p>${safeValue(jobOrderData.streetAddress)}</p>
+              <p>${safeValue(jobOrderData.city)} ${safeValue(
     jobOrderData.state
   )} ${safeValue(jobOrderData.zip)}</p>
+            </div>
+            ${
+              jobOrderData.instructions
+                ? `
+            <div>
+              <h3>Special Instructions</h3>
+              <p>${safeValue(jobOrderData.instructions)}</p>
+            </div>
+            `
+                : ""
+            }
+            ${
+              jobOrderData.contactPersonName || jobOrderData.contactPersonPhone
+                ? `
+            <div>
+              <h3>Onsite Contact</h3>
+              ${
+                jobOrderData.contactPersonName
+                  ? `<p><strong>Name: </strong>${safeValue(
+                      jobOrderData.contactPersonName
+                    )}</p>`
+                  : ""
+              }
+              ${
+                jobOrderData.contactPersonPhone
+                  ? `<p><strong>Phone: </strong>${safePhone(
+                      jobOrderData.contactPersonPhone
+                    )}</p>`
+                  : ""
+              }
+            </div>
+            `
+                : ""
+            }
           </div>
-          <div>
-          <h3>Instructions</h3>
-          <p>${safeValue(jobOrderData.instructions)}</p>
-        </div>
-        <div>
-          <h3>Onsite Contact Person Details</h3>
-          <p><strong>Name: </strong>${safeValue(
-            jobOrderData.contactPersonName
-          )}</p>
-          <p><strong>Phone: </strong>${safePhone(
-            jobOrderData.contactPersonPhone
-          )}</p>
-        </div>
-        </div>
 
-        <div class='section-2-right'>
-          <div>
-            <h3>Delivery Date</h3>
-            <p>${deliveryDate}</p>
-          </div>
-          <div>
-            <h3>Pickup Date</h3>
-            <p>${pickupDate}</p>
+          <div class='section-2-right'>
+            <div>
+              <h3>Vendor</h3>
+              <p><strong>${safeGet(jobOrderData, "vendor.name")}</strong></p>
+              <p>${safeGet(jobOrderData, "vendor.streetAddress")}</p>
+              <p>${safeGet(jobOrderData, "vendor.city")} ${safeGet(
+    jobOrderData,
+    "vendor.state"
+  )} ${safeGet(jobOrderData, "vendor.zip")}</p>
+              ${
+                safeGet(jobOrderData, "vendor.email")
+                  ? `<p><strong>Email: </strong>${safeGet(
+                      jobOrderData,
+                      "vendor.email"
+                    )}</p>`
+                  : ""
+              }
+              ${
+                safeGet(jobOrderData, "vendor.phone")
+                  ? `<p><strong>Phone: </strong>${safePhone(
+                      safeGet(jobOrderData, "vendor.phone")
+                    )}</p>`
+                  : ""
+              }
+              ${
+                safeGet(jobOrderData, "vendor.fax")
+                  ? `<p><strong>Fax: </strong>${safePhone(
+                      safeGet(jobOrderData, "vendor.fax")
+                    )}</p>`
+                  : ""
+              }
+            </div>
+            <div>
+              <h3>Delivery Date</h3>
+              <p>${deliveryDate || "Not specified"}</p>
+            </div>
+            <div>
+              <h3>Pickup Date</h3>
+              <p>${pickupDate || "Not specified"}</p>
+            </div>
           </div>
         </div>
-      </div>
     
       <div class='section-3'>
         <ul class='items-heading'>
@@ -183,16 +227,36 @@ const htmlTemplate = (jobOrderData) => {
             <h3>TOTAL</h3>
           </li>
         </ul>
-          ${itemRows(jobOrderData.products)}
-        <div class='total-amount-container'>
-          <h4>Total Amount: ${safeCurrency(
-            totalAmount(jobOrderData.products)
-          )}</h4>
-        </div>
+          ${itemRows(jobOrderData.products || [])}
+          
+          <div class='totals-section'>
+            <div class='total-row'>
+              <span class='total-row-label'>Subtotal:</span>
+              <span class='total-row-value'>${safeCurrency(
+                totals.subtotal
+              )}</span>
+            </div>
+            ${
+              totals.taxRate > 0
+                ? `
+            <div class='total-row'>
+              <span class='total-row-label'>Tax (${totals.taxRate}%):</span>
+              <span class='total-row-value'>${safeCurrency(
+                totals.taxAmount
+              )}</span>
+            </div>
+            `
+                : ""
+            }
+          </div>
+          
+          <div class='total-amount-container'>
+            <h4>Total Amount: ${safeCurrency(totals.total)}</h4>
+          </div>
       </div>
       <hr/>
       <div>
-       <h3>By accepting this Job Order, the Vendor (Receiver of the Job Order) agrees:</h3>
+       <h3 style="margin-bottom: 1rem;">By accepting this Job Order, the Vendor (Receiver of the Job Order) agrees:</h3>
 
         <div class='section-4'>
           <ul>
@@ -201,7 +265,7 @@ const htmlTemplate = (jobOrderData) => {
             </li>
             <li>
               Not to ask for work, contact, or support in the servicing of clients/customers specified in the Job Orders issued by this Company to the vendor in order to:
-              <ul class='inner'>
+              <ul class='inner' style="margin-top: 0.5rem; padding-left: 1.5rem;">
                 <li>
                   Persuade the Company's clients/prospects to cancel, transfer, or cease doing business in whole or in part with the Company; or
                 </li>

@@ -3,6 +3,7 @@
  */
 
 import VendorPricingHistory from "../models/VendorPricingHistory.js";
+import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
 
 export const create = async (pricingData) => {
   return await (VendorPricingHistory as any).create(pricingData);
@@ -105,12 +106,12 @@ export const calculateAveragePricing = async ({
   );
   const averagePricePerUnit = totalPricePerUnit / pricingHistory.length;
 
-  // Calculate average total price for the requested quantity
-  const averageTotalPrice = averagePricePerUnit * quantity;
+  // Calculate average total price for the requested quantity using utility function
+  const averageTotalPrice = parseFloat(calculateProductAmount(quantity, averagePricePerUnit));
 
   return {
     averagePricePerUnit: Math.round(averagePricePerUnit * 100) / 100,
-    averageTotalPrice: Math.round(averageTotalPrice * 100) / 100,
+    averageTotalPrice: parseFloat(averageTotalPrice),
     sampleSize: pricingHistory.length,
     pricingHistory: pricingHistory.slice(0, 5), // Return top 5 for reference
   };

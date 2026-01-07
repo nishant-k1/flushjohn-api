@@ -1,6 +1,10 @@
 // @ts-nocheck
 import { getFlushJohnEmailSignature } from "../../common/constants/emailSignatures.js";
 import { calculateOrderTotal } from "../../../utils/productAmountCalculations.js";
+import {
+  calculateInvoiceExpirationDate,
+  formatInvoiceExpirationDate,
+} from "../../../utils/invoiceExpirationCalculations.js";
 
 const template = (invoiceData) => {
   const email_signature = getFlushJohnEmailSignature();
@@ -18,6 +22,13 @@ const template = (invoiceData) => {
 
   let paymentLinkSection = "";
   if (invoiceData.paymentLinkUrl) {
+    // Calculate expiration date (24 hours from invoice creation)
+    const invoiceDate = invoiceData.createdAt
+      ? new Date(invoiceData.createdAt)
+      : new Date();
+    const expirationDate = calculateInvoiceExpirationDate(invoiceDate);
+    const formattedExpirationDate = formatInvoiceExpirationDate(expirationDate);
+
     paymentLinkSection = `
 
 PAYMENT LINK:
@@ -29,6 +40,8 @@ You can pay your invoice of $${
         : orderTotal.toFixed(2)
     } by clicking the link below:
 ${invoiceData.paymentLinkUrl}
+
+IMPORTANT: This payment link is valid for 24 hours only and will expire on ${formattedExpirationDate}. Please complete your payment before the expiration time.
 
 Or copy and paste the link into your browser if the link doesn't work.
 

@@ -22,6 +22,7 @@ import { createServer, Server } from "http";
 import dbConnect from "./lib/dbConnect.js";
 import socketConnect from "./lib/socketConnect.js";
 import { initializeCronJobs } from "./features/blogs/services/cronScheduler.js";
+import { initializeInvoiceLinkCronJob } from "./features/payments/services/invoiceLinkCronScheduler.js";
 import indexRouter from "./routes/index.js";
 import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
@@ -374,6 +375,12 @@ try {
   initializeCronJobs();
 } catch {
   // Failed to initialize cron jobs
+}
+
+try {
+  initializeInvoiceLinkCronJob();
+} catch {
+  // Failed to initialize invoice link cron job
 }
 
 app.use((req: Request, res: Response, next: NextFunction) => {

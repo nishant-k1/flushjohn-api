@@ -3,11 +3,12 @@ import styles from "./styles.js";
 import { logoDataUris } from "../../../constants.js";
 import {
   safeValue,
+  safeGet,
+  safeDate,
   safeCurrency,
   safePhone,
 } from "../../../utils/safeValue.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
-import { calculateOrderTotalsWithTax } from "../../../utils/taxCalculations.js";
 
 const itemRows = (products) => {
   if (!products || !Array.isArray(products)) {
@@ -42,6 +43,17 @@ const itemRows = (products) => {
     .join("");
 };
 
+const totalAmount = (products) => {
+  if (!products || !Array.isArray(products)) {
+    return 0;
+  }
+  return products.reduce((accumulator, currentValue) => {
+    const quantity = parseFloat(currentValue.quantity) || 0;
+    const rate = parseFloat(currentValue.rate) || 0;
+    return accumulator + parseFloat(calculateProductAmount(quantity, rate));
+  }, 0);
+};
+
 const htmlTemplate = (quoteData) => {
   const homepage = process.env.FLUSH_JOHN_HOMEPAGE;
   const email = process.env.FLUSH_JOHN_EMAIL_ID;
@@ -72,28 +84,6 @@ const htmlTemplate = (quoteData) => {
       })
     : "";
 
-  // Calculate expiration date (default 30 days from creation)
-  const expirationDays = quoteData.expirationDays || 30;
-  const expirationDate = new Date(quoteData.createdAt);
-  expirationDate.setDate(expirationDate.getDate() + expirationDays);
-  const formattedExpirationDate = expirationDate.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  // Calculate totals using single source of truth
-  const totals = calculateOrderTotalsWithTax(
-    quoteData.products || [],
-    quoteData.taxRate
-  );
-
-  // Payment terms for quotes
-  const paymentTerms =
-    quoteData.paymentTerms ||
-    process.env.DEFAULT_QUOTE_PAYMENT_TERMS ||
-    "Payment due upon acceptance of quote. 50% deposit required for long-term rentals.";
-
   return `<html>
       <head>
         <style>
@@ -102,81 +92,66 @@ const htmlTemplate = (quoteData) => {
       </head>
       <body>
         <div class="section-1">
-          <div class="section-1-left">
-            <img src="${logoDataUris.flushjohn}" alt="logo" class="logo" />
-          </div>
+          <img src="${
+            logoDataUris.flushjohn
+          }" alt="logo" class="logo" style="max-width: 100px !important; width: 100px !important; height: 60px !important; object-fit: contain !important;" />
           <div class="section-1-right">
-            <span class="document-badge">Quote</span>
-            <h1>Quote # ${safeValue(quoteData.quoteNo)}</h1>
-            <h3>Date: ${createdAt}</h3>
+            <h1>Quote No. # ${quoteData.quoteNo || ""}</h1>
+            <h3>${createdAt || ""}</h3>
           </div>
         </div>
-        
-        <div class="quote-expiration">
-          <p><strong>Valid Until:</strong> ${formattedExpirationDate} (${expirationDays} days from quote date)</p>
-        </div>
-        
         <hr/>
         <div class="section-2">
           <div class='section-2-left'>
             <div>
-              <h3>Bill To</h3>
-              <p><strong>${safeValue(quoteData.fName)} ${safeValue(
-    quoteData.lName
-  )}</strong></p>
-              ${quoteData.cName ? `<p>${safeValue(quoteData.cName)}</p>` : ""}
+              <h3>Customer Name</h3>
+              <p>${quoteData.fName || ""}
+                <span>
+                  ${" "}${quoteData.lName ? quoteData.lName : ""}
+                </span>
+              </p>
             </div>
+            ${
+              quoteData.cName
+                ? `
+            <div>
+              <h3>Company Name</h3>
+              <p>${quoteData.cName}</p>
+            </div>
+            `
+                : ""
+            }
             <div>
               <h3>Delivery Address</h3>
-              <p>${safeValue(quoteData.streetAddress)}</p>
-              <p>${safeValue(quoteData.city)} ${safeValue(
-    quoteData.state
-  )} ${safeValue(quoteData.zip)}</p>
+              <p>${quoteData.streetAddress ? quoteData.streetAddress : ""}</p>
+              <p>${quoteData.city ? quoteData.city : ""} ${
+    quoteData.state ? quoteData.state : ""
+  } ${quoteData.zip ? quoteData.zip : ""}</p>
             </div>
           </div>
 
           <div class='section-2-right'>
             <div>
               <h3>Delivery Date</h3>
-              <p>${deliveryDate || "To be determined"}</p>
+              <p>${quoteData.deliveryDate ? deliveryDate : ""}</p>
             </div>
             <div>
               <h3>Pickup Date</h3>
-              <p>${pickupDate || "To be determined"}</p>
+              <p>${quoteData.pickupDate ? pickupDate : ""}</p>
             </div>
-            ${
-              quoteData.contactPersonName || quoteData.contactPersonPhone
-                ? `
             <div>
-              <h3>Onsite Contact</h3>
-              ${
-                quoteData.contactPersonName
-                  ? `<p><strong>Name:</strong> ${safeValue(
-                      quoteData.contactPersonName
-                    )}</p>`
-                  : ""
-              }
-              ${
-                quoteData.contactPersonPhone
-                  ? `<p><strong>Phone:</strong> ${safePhone(
-                      quoteData.contactPersonPhone
-                    )}</p>`
-                  : ""
-              }
-            </div>
-            `
-                : ""
-            }
-            ${
-              quoteData.instructions
-                ? `
-            <div>
-              <h3>Special Instructions</h3>
-              <p>${safeValue(quoteData.instructions)}</p>
-            </div>
-            `
-                : ""
-            }
+            <h3>Instructions</h3>
+            <p>${quoteData.instructions ? quoteData.instructions : ""}</p>
+          </div>
+          <div>
+            <h3>Onsite Contact Person Details</h3>
+            <p>Name: ${
+              quoteData.contactPersonName ? quoteData.contactPersonName : ""
+            } </p>
+            <p>Phone: ${
+              quoteData.contactPersonPhone ? quoteData.contactPersonPhone : ""
+            }</p>
+          </div>
           </div>
         </div>
       
@@ -198,46 +173,15 @@ const htmlTemplate = (quoteData) => {
               <h3>TOTAL</h3>
             </li>
           </ul>
-          ${itemRows(quoteData.products || [])}
-          
-          <div class='totals-section'>
-            <div class='total-row'>
-              <span class='total-row-label'>Subtotal:</span>
-              <span class='total-row-value'>${safeCurrency(
-                totals.subtotal
-              )}</span>
-            </div>
-            ${
-              totals.taxRate > 0
-                ? `
-            <div class='total-row'>
-              <span class='total-row-label'>Tax (${totals.taxRate}%):</span>
-              <span class='total-row-value'>${safeCurrency(
-                totals.taxAmount
-              )}</span>
-            </div>
-            `
-                : ""
-            }
-          </div>
-          
+            ${quoteData.products ? itemRows(quoteData.products) : ""}
           <div class='total-amount-container'>
-            <h4>Total Amount: ${safeCurrency(totals.total)}</h4>
+            <h4>Total Amount: ${
+              quoteData.products
+                ? safeCurrency(totalAmount(quoteData.products))
+                : "$0.00"
+            }</h4>
           </div>
         </div>
-        
-        ${
-          paymentTerms
-            ? `
-        <div class='payment-terms-section'>
-          <h3>Payment Terms</h3>
-          <p>${paymentTerms}</p>
-          <p>Payment methods accepted: Credit Card or Payment Link</p>
-        </div>
-        `
-            : ""
-        }
-        
         <hr/>
         <div class='section-4'>
           <div>

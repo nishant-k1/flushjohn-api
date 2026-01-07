@@ -218,7 +218,9 @@ export const getVendorPricing = async ({
       const suggestedRatePerUnit = aiSuggestedRate.suggestedRatePerUnit;
 
       // Use utility function for consistent calculation
-      averagePrice = parseFloat(calculateProductAmount(quantity, suggestedRatePerUnit));
+      averagePrice = parseFloat(
+        calculateProductAmount(quantity, suggestedRatePerUnit)
+      );
       recommendedPrice = averagePrice;
       if (aiSuggestedRate.dataSources) {
         historicalData = {
@@ -242,7 +244,10 @@ export const getVendorPricing = async ({
           : 1.0;
 
       vendorBasePrice = basePricePerUnit * eventTypeMultiplier;
-      averagePrice = vendorBasePrice * quantity;
+      // Use utility function for consistent calculation
+      averagePrice = parseFloat(
+        calculateProductAmount(quantity, vendorBasePrice)
+      );
       recommendedPrice = averagePrice + DEFAULT_MARGIN_AMOUNT;
 
       historicalData.message =

@@ -140,6 +140,10 @@ export const createPaymentLink = async ({
       metadata: {
         ...metadata,
         description: description || "",
+        // Store expiration timestamp in metadata for cron job tracking
+        expiresAt: (
+          await import("../../../utils/invoiceExpirationCalculations.js")
+        ).calculateInvoiceExpirationISO(),
       },
       after_completion: {
         type: "redirect",
