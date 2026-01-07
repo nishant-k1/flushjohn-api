@@ -85,10 +85,15 @@ const htmlTemplate = (salesOrderData) => {
   );
 
   // Payment terms - can be customized via environment or default
+  // If payment link exists, default to 24-hour payment terms, otherwise use Net 30
+  const defaultPaymentTerms = salesOrderData.paymentLinkUrl
+    ? "Payment due within 24 hours via payment link"
+    : "Net 30 - Payment due within 30 days of invoice date";
+
   const paymentTerms =
     salesOrderData.paymentTerms ||
     process.env.DEFAULT_PAYMENT_TERMS ||
-    "Net 30 - Payment due within 30 days of invoice date";
+    defaultPaymentTerms;
 
   // Calculate invoice expiration (24 hours from creation) if payment link exists
   let invoiceValiditySection = "";
@@ -262,7 +267,7 @@ const htmlTemplate = (salesOrderData) => {
             <ul>
               <li>The billing cycle period is 28 days.</li>
               <li>Includes weekly cleaning service.</li>
-              <li>If the service is extended after the end of the first billing cycle period, the same amount will be charged for the next month.</li>
+              <li>If the service is extended beyond the first billing cycle period, the same amount will be charged for the next billing cycle.</li>
             </ul>
           </div>
           <div>

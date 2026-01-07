@@ -43,7 +43,7 @@ ${invoiceData.paymentLinkUrl}
 
 IMPORTANT: This payment link is valid for 24 hours only and will expire on ${formattedExpirationDate}. Please complete your payment before the expiration time.
 
-Or copy and paste the link into your browser if the link doesn't work.
+If the link doesn't work, please copy and paste it into your browser.
 
 This is a secure payment link powered by Stripe. You can safely enter your payment information.`;
   }

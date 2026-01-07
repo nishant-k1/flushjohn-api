@@ -21,7 +21,7 @@ PAYMENT LINK:
 You can pay your invoice of $${orderTotalDisplay} by clicking the link below:
 ${salesOrderData.paymentLinkUrl}
 
-Or copy and paste the link into your browser if the link doesn't work.`;
+If the link doesn't work, please copy and paste it into your browser.`;
   }
 
   return `Hi ${salesOrderData.fName ? salesOrderData.fName : ""} ${

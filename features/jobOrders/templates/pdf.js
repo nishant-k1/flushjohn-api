@@ -256,7 +256,7 @@ const htmlTemplate = (jobOrderData) => {
       </div>
       <hr/>
       <div>
-       <h3 style="margin-bottom: 1rem;">By accepting this Job Order, the Vendor (Receiver of the Job Order) agrees:</h3>
+       <h3 style="margin-bottom: 1rem;">By accepting this Job Order, the vendor agrees:</h3>
 
         <div class='section-4'>
           <ul>
@@ -264,7 +264,7 @@ const htmlTemplate = (jobOrderData) => {
               Not to accept work, enter into an agreement, or accept an obligation with any client/customer whose job has been assigned to the vendor via this job order.
             </li>
             <li>
-              Not to ask for work, contact, or support in the servicing of clients/customers specified in the Job Orders issued by this Company to the vendor in order to:
+              Not to ask for work, contact, or support in the servicing of clients/customers specified in the Job Orders issued by this Company to the vendor to:
               <ul class='inner' style="margin-top: 0.5rem; padding-left: 1.5rem;">
                 <li>
                   Persuade the Company's clients/prospects to cancel, transfer, or cease doing business in whole or in part with the Company; or
@@ -275,7 +275,7 @@ const htmlTemplate = (jobOrderData) => {
               </ul>
             </li>
             <li>
-              To maintain the necessary General Liability Insurance, Worker's Compensation Insurance, Disability Insurance, Auto Accident, Auto Theft, Auto Damage, and Property Damage or Loss insurance. The vendor also agrees to be responsible for any claims by Quengenesis LLC customers while the equipment is in use.
+              To maintain the necessary General Liability Insurance, Workers' Compensation Insurance, Disability Insurance, Auto Accident, Auto Theft, Auto Damage, and Property Damage or Loss insurance. The vendor also agrees to be responsible for any claims by Quengenesis LLC customers while the equipment is in use.
             </li>
           </ul>
         </div>

@@ -245,7 +245,7 @@ const htmlTemplate = (quoteData) => {
             <ul>
               <li>The billing cycle period is 28 days.</li>
               <li>Includes weekly cleaning service.</li>
-              <li>If the service is extended after the end of the first billing cycle period, the same amount will be charged for the next month.</li>
+              <li>If the service is extended beyond the first billing cycle period, the same amount will be charged for the next billing cycle.</li>
             </ul>
           </div>
           <div>
