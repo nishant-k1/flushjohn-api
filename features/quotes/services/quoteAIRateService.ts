@@ -334,7 +334,7 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.3, // Lower temperature for more consistent rates
+      temperature: 0.6, // Balanced temperature for reasonable variation while maintaining consistency
       max_tokens: 500,
       response_format: { type: "json_object" },
     });
