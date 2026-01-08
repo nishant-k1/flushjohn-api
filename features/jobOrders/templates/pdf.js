@@ -85,7 +85,7 @@ const htmlTemplate = (jobOrderData) => {
                     : ""
                 }
                 <p style="font-size: 0.75rem; color: #666;"><strong>Email: </strong>${email}</p>
-                <p style="font-size: 0.75rem; color: #666;"><strong>Phone: </strong>${phone}</p>
+                <p style="font-size: 0.75rem; color: #666;"><strong>Phone: </strong>${safePhone(phone)}</p>
               </div>
             </div>
           </div>
@@ -201,11 +201,11 @@ const htmlTemplate = (jobOrderData) => {
             </div>
             <div>
               <h3>Delivery Date</h3>
-              <p>${deliveryDate || "Not specified"}</p>
+              <p>${deliveryDate}</p>
             </div>
             <div>
               <h3>Pickup Date</h3>
-              <p>${pickupDate || "Not specified"}</p>
+              <p>${pickupDate}</p>
             </div>
           </div>
         </div>
@@ -231,7 +231,7 @@ const htmlTemplate = (jobOrderData) => {
           ${itemRows(jobOrderData.products || [])}
           
           <div class='total-amount-container'>
-            <h4>Total Amount: ${safeCurrency(total.toFixed(2))}</h4>
+            <h4>Total Amount: ${safeCurrency(total)}</h4>
           </div>
       </div>
       <hr/>

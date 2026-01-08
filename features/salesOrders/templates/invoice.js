@@ -6,6 +6,7 @@ import {
   formatInvoiceExpirationDate,
 } from "../../../utils/invoiceExpirationCalculations.js";
 import { calculateBalanceDue } from "../../../utils/priceCalculations.js";
+import { safeDate, safeCurrency } from "../../../utils/safeValue.js";
 
 const template = (invoiceData) => {
   const email_signature = getFlushJohnEmailSignature();
@@ -33,13 +34,9 @@ const template = (invoiceData) => {
     paymentLinkSection = `
 
 PAYMENT LINK:
-You can pay your invoice of $${
-      balanceDue > 0
-        ? balanceDue.toFixed(2)
-        : typeof orderTotal === "string"
-          ? orderTotal
-          : orderTotal.toFixed(2)
-    } by clicking the link below:
+You can pay your invoice of ${safeCurrency(
+      balanceDue > 0 ? balanceDue : orderTotal
+    )} by clicking the link below:
 ${invoiceData.paymentLinkUrl}
 
 IMPORTANT: This payment link is valid for 24 hours only and will expire on ${formattedExpirationDate}. Please complete your payment before the expiration time.
@@ -60,22 +57,16 @@ Thank you for your business with ${flushjohn_cName}.
 
 INVOICE DETAILS:
 Sales Order #: ${invoiceData.salesOrderNo || "N/A"}
-Invoice Date: ${
-    invoiceData.createdAt
-      ? new Date(invoiceData.createdAt).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })
-      : "N/A"
-  }
-Order Total: $${
-    typeof orderTotal === "string" ? orderTotal : orderTotal.toFixed(2)
-  }
-${paidAmount > 0 ? `Amount Paid: $${paidAmount.toFixed(2)}` : ""}
+Invoice Date: ${safeDate(invoiceData.createdAt, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })}
+Order Total: ${safeCurrency(orderTotal)}
+${paidAmount > 0 ? `Amount Paid: ${safeCurrency(paidAmount)}` : ""}
 ${
   balanceDue > 0
-    ? `Balance Due: $${balanceDue.toFixed(2)}`
+    ? `Balance Due: ${safeCurrency(balanceDue)}`
     : `Status: Paid in Full`
 }${paymentLinkSection}
 

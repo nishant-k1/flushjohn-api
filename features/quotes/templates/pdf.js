@@ -5,6 +5,7 @@ import {
   safeValue,
   safeCurrency,
   safePhone,
+  safeDate,
 } from "../../../utils/safeValue.js";
 import {
   calculateProductAmount,
@@ -52,33 +53,29 @@ const htmlTemplate = (quoteData) => {
 
   if (!quoteData) return;
 
-  const createdAt = new Date(quoteData.createdAt).toLocaleDateString("en-US", {
+  const createdAt = safeDate(quoteData.createdAt, {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
-  const deliveryDate = quoteData.deliveryDate
-    ? new Date(quoteData.deliveryDate).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "";
+  const deliveryDate = safeDate(quoteData.deliveryDate, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  const pickupDate = quoteData.pickupDate
-    ? new Date(quoteData.pickupDate).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "";
+  const pickupDate = safeDate(quoteData.pickupDate, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   // Calculate expiration date (default 30 days from creation)
   const expirationDays = quoteData.expirationDays || 30;
   const expirationDate = new Date(quoteData.createdAt);
   expirationDate.setDate(expirationDate.getDate() + expirationDays);
-  const formattedExpirationDate = expirationDate.toLocaleDateString("en-US", {
+  const formattedExpirationDate = safeDate(expirationDate, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -88,12 +85,6 @@ const htmlTemplate = (quoteData) => {
   // Tax is calculated on client side and stored as a product in the array
   const products = quoteData.products || [];
   const total = parseFloat(calculateOrderTotal(products));
-
-  // Payment terms for quotes
-  const paymentTerms =
-    quoteData.paymentTerms ||
-    process.env.DEFAULT_QUOTE_PAYMENT_TERMS ||
-    "Payment due upon acceptance of quote. 50% deposit required for long-term rentals.";
 
   return `<html>
       <head>
@@ -139,11 +130,11 @@ const htmlTemplate = (quoteData) => {
           <div class='section-2-right'>
             <div>
               <h3>Delivery Date</h3>
-              <p>${deliveryDate || "To be determined"}</p>
+              <p>${deliveryDate}</p>
             </div>
             <div>
               <h3>Pickup Date</h3>
-              <p>${pickupDate || "To be determined"}</p>
+              <p>${pickupDate}</p>
             </div>
             ${
               quoteData.contactPersonName || quoteData.contactPersonPhone
@@ -202,21 +193,9 @@ const htmlTemplate = (quoteData) => {
           ${itemRows(quoteData.products || [])}
           
           <div class='total-amount-container'>
-            <h4>Total Amount: ${safeCurrency(total.toFixed(2))}</h4>
+            <h4>Total Amount: ${safeCurrency(total)}</h4>
           </div>
         </div>
-        
-        ${
-          paymentTerms
-            ? `
-        <div class='payment-terms-section'>
-          <h3>Payment Terms</h3>
-          <p>${paymentTerms}</p>
-          <p>Payment methods accepted: Credit Card or Payment Link</p>
-        </div>
-        `
-            : ""
-        }
         
         <hr/>
         <div class='section-4'>
@@ -248,3 +227,4 @@ const htmlTemplate = (quoteData) => {
 };
 
 export default htmlTemplate;
+

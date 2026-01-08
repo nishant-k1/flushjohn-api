@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { getFlushJohnEmailSignature } from "../../common/constants/emailSignatures.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
+import { safeDate, safeCurrency } from "../../../utils/safeValue.js";
 
 /**
  * Payment Receipt Email Template (HTML)
@@ -23,21 +24,13 @@ const template = (paymentData) => {
         ? `Saved Card${cardLast4 ? ` (•••• ${cardLast4})` : ""}`
         : `Card Payment${cardLast4 ? ` (•••• ${cardLast4})` : ""}`;
 
-  const paymentDate = createdAt
-    ? new Date(createdAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+  const paymentDate = safeDate(createdAt || new Date(), {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   const customerName =
     salesOrder?.lead?.fName && salesOrder?.lead?.lName
@@ -59,8 +52,8 @@ const template = (paymentData) => {
         product.item || "N/A"
       }</td>
       <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: center; font-size: 12px;">${quantity}</td>
-      <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: right; font-size: 12px;">$${typeof rate === "number" ? rate.toFixed(2) : parseFloat(rate || 0).toFixed(2)}</td>
-      <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: right; font-weight: 600; font-size: 12px;">$${total}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: right; font-size: 12px;">${safeCurrency(rate)}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: right; font-weight: 600; font-size: 12px;">${safeCurrency(total)}</td>
     </tr>
   `;
       })
@@ -82,9 +75,7 @@ const template = (paymentData) => {
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
   <!-- Preheader text - shown in email preview, prevents Gmail collapse -->
   <div class="preheader" style="display: none !important; visibility: hidden; opacity: 0; color: transparent; height: 0; width: 0; line-height: 0; font-size: 0;">
-    Your payment of $${amount.toFixed(
-      2
-    )} has been successfully processed. Receipt for Sales Order #${
+    Your payment of ${safeCurrency(amount)} has been successfully processed. Receipt for Sales Order #${
       salesOrder?.salesOrderNo || "N/A"
     }.
   </div>
@@ -115,8 +106,8 @@ const template = (paymentData) => {
             <td style="padding: 20px 30px;">
               <p style="margin: 0 0 15px; font-size: 16px; color: #2c3e50; line-height: 1.5;">
                 <strong>Hi ${customerName},</strong><br>
-                <span style="font-size: 14px; color: #4b5563; font-weight: normal;">Your payment of <strong style="color: #2e7d32; font-size: 18px;">$${amount.toFixed(
-                  2
+                <span style="font-size: 14px; color: #4b5563; font-weight: normal;">Your payment of <strong style="color: #2e7d32; font-size: 18px;">${safeCurrency(
+                  amount
                 )}</strong> has been successfully processed.</span>
               </p>
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 6px; border: 1px solid #d1d5db; margin-top: 10px;">
@@ -190,7 +181,7 @@ const template = (paymentData) => {
             <td style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #d1d5db;">
               <p style="margin: 0 0 10px; font-size: 14px; color: #2c3e50; font-weight: 600;">${flushjohn_cName}</p>
               <p style="margin: 0; font-size: 12px; color: #4b5563; line-height: 1.6;">
-                ${flushjohn_phone ? `Phone: ${flushjohn_phone}<br>` : ""}
+                ${flushjohn_phone ? `Phone: ${safePhone(flushjohn_phone)}<br>` : ""}
                 ${flushjohn_email ? `Email: ${flushjohn_email}<br>` : ""}
                 ${
                   flushjohn_website

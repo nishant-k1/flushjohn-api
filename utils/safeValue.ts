@@ -4,12 +4,22 @@
 
 /**
  * Safely get a value or return empty string if undefined/null
+ * Trims whitespace and treats whitespace-only values as empty
  */
 export const safeValue = (value: unknown, fallback: string = ""): string => {
   if (value === null || value === undefined || value === "") {
     return fallback;
   }
-  return String(value);
+
+  const str = String(value);
+  const trimmed = str.trim();
+
+  // Return fallback if trimmed value is empty (whitespace-only)
+  if (!trimmed) {
+    return fallback;
+  }
+
+  return trimmed;
 };
 
 /**
@@ -43,6 +53,7 @@ export const safeGet = (
 
 /**
  * Safely format a date
+ * Uses US local timezone (America/New_York) by default
  */
 export const safeDate = (
   dateValue: string | Date | null | undefined,
@@ -61,9 +72,10 @@ export const safeDate = (
       year: "numeric",
       month: "long",
       day: "numeric",
+      timeZone: options.timeZone || "America/New_York", // US local timezone
       ...options,
     });
-  } catch (error) {
+  } catch {
     return "TBD";
   }
 };
@@ -94,6 +106,7 @@ export const safeCurrency = (
 
 /**
  * Safely format phone number
+ * Handles E.164 format (+1XXXXXXXXXX) and regular formats
  */
 export const safePhone = (phone: string | null | undefined): string => {
   if (!phone || phone === "") {
@@ -103,11 +116,17 @@ export const safePhone = (phone: string | null | undefined): string => {
   // Remove any non-digit characters
   const digits = phone.replace(/\D/g, "");
 
-  // Format as (XXX) XXX-XXXX if 10 digits
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  // Handle E.164 format: if 11 digits and starts with 1, remove the leading 1
+  let phoneDigits = digits;
+  if (digits.length === 11 && digits.startsWith("1")) {
+    phoneDigits = digits.slice(1); // Remove the leading 1 (country code)
   }
 
-  // Return as-is if not 10 digits
+  // Format as (XXX) XXX-XXXX if 10 digits
+  if (phoneDigits.length === 10) {
+    return `(${phoneDigits.slice(0, 3)}) ${phoneDigits.slice(3, 6)}-${phoneDigits.slice(6)}`;
+  }
+
+  // Return as-is if not 10 digits after processing
   return phone;
 };

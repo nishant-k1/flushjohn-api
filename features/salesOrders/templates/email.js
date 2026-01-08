@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { getFlushJohnEmailSignature } from "../../common/constants/emailSignatures.js";
 import { calculateOrderTotal } from "../../../utils/productAmountCalculations.js";
+import { safeCurrency } from "../../../utils/safeValue.js";
 
 const template = (salesOrderData) => {
   const email_signature = getFlushJohnEmailSignature();
@@ -9,16 +10,13 @@ const template = (salesOrderData) => {
   // Handle both number (from DB) and string (from calculateOrderTotal)
   const orderTotal =
     salesOrderData.orderTotal || calculateOrderTotal(salesOrderData.products);
-  // Ensure consistent string format for display
-  const orderTotalDisplay =
-    typeof orderTotal === "string" ? orderTotal : orderTotal.toFixed(2);
 
   let paymentLinkSection = "";
   if (salesOrderData.paymentLinkUrl) {
     paymentLinkSection = `
 
 PAYMENT LINK:
-You can pay your invoice of $${orderTotalDisplay} by clicking the link below:
+You can pay your invoice of ${safeCurrency(orderTotal)} by clicking the link below:
 ${salesOrderData.paymentLinkUrl}
 
 If the link doesn't work, please copy and paste it into your browser.`;

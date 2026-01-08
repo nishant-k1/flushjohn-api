@@ -1,7 +1,11 @@
 // @ts-nocheck
 import styles from "../../quotes/templates/styles.js";
 import { logoDataUris } from "../../../constants.js";
-import { safeValue, safeCurrency } from "../../../utils/safeValue.js";
+import {
+  safeValue,
+  safeCurrency,
+  safeDate,
+} from "../../../utils/safeValue.js";
 import {
   calculateProductAmount,
   calculateOrderTotal,
@@ -71,21 +75,13 @@ const htmlTemplate = (receiptData) => {
   const phone = process.env.FLUSH_JOHN_PHONE;
   const phone_link = process.env.FLUSH_JOHN_PHONE_LINK;
 
-  const paymentDate = createdAt
-    ? new Date(createdAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : new Date().toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+  const paymentDate = safeDate(createdAt || new Date(), {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   const paymentMethodDisplay =
     paymentMethod === "payment_link"
@@ -100,19 +96,17 @@ const htmlTemplate = (receiptData) => {
                 : ""
           }`;
 
-  const formattedSalesOrderDate = salesOrderCreatedAt
-    ? new Date(salesOrderCreatedAt).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "";
+  const formattedSalesOrderDate = safeDate(salesOrderCreatedAt, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   // Calculate subtotal using single source of truth
   const subtotal =
     products && products.length > 0
       ? calculateOrderTotal(products)
-      : parseFloat(amount || 0).toFixed(2);
+      : parseFloat(amount || 0);
 
   const referenceNumber = transactionId || paymentId || "N/A";
 
@@ -153,16 +147,10 @@ const htmlTemplate = (receiptData) => {
               <h3>Sales Order #</h3>
               <p>${safeValue(salesOrderNo)}</p>
             </div>
-            ${
-              formattedSalesOrderDate
-                ? `
             <div>
               <h3>Sales Order Date</h3>
               <p>${formattedSalesOrderDate}</p>
             </div>
-            `
-                : ""
-            }
             <div>
               <h3>Payment Method</h3>
               <p>${paymentMethodDisplay}</p>

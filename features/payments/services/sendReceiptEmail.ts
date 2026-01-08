@@ -9,6 +9,7 @@ import receiptEmailTemplate from "../templates/email.js";
 import * as salesOrdersRepository from "../../salesOrders/repositories/salesOrdersRepository.js";
 import { generateReceiptPDFBuffer } from "../../fileManagement/services/pdfService.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
+import { safeDate, safeCurrency } from "../../../utils/safeValue.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -103,21 +104,13 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
     const subject = `${companyName}: Payment Receipt - Sales Order #${salesOrder.salesOrderNo}`;
 
     // Format payment date and method for plain text
-    const paymentDate = payment.createdAt
-      ? new Date(payment.createdAt).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+    const paymentDate = safeDate(payment.createdAt || new Date(), {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     const paymentMethodDisplay =
       payment.paymentMethod === "payment_link"
@@ -146,13 +139,13 @@ Payment Receipt - Sales Order #${salesOrder.salesOrderNo}
 
 Hi ${receiptData.fName || "Customer"},
 
-Your payment of $${payment.amount.toFixed(2)} has been successfully processed.
+Your payment of ${safeCurrency(payment.amount)} has been successfully processed.
 
 Payment Details:
 - Sales Order #: ${salesOrder.salesOrderNo}
 - Payment Date: ${paymentDate}
 - Payment Method: ${paymentMethodDisplay}
-- Amount Paid: $${payment.amount.toFixed(2)}
+- Amount Paid: ${safeCurrency(payment.amount)}
 
 ${
   salesOrder?.products?.length > 0

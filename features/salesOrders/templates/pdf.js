@@ -5,6 +5,7 @@ import {
   safeValue,
   safeCurrency,
   safePhone,
+  safeDate,
 } from "../../../utils/safeValue.js";
 import {
   calculateProductAmount,
@@ -55,30 +56,23 @@ const htmlTemplate = (salesOrderData) => {
   const phone = process.env.FLUSH_JOHN_PHONE;
   const phone_link = process.env.FLUSH_JOHN_PHONE_LINK;
 
-  const createdAt = new Date(salesOrderData.createdAt).toLocaleDateString(
-    "en-US",
-    {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }
-  );
+  const createdAt = safeDate(salesOrderData.createdAt, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  const deliveryDate = salesOrderData.deliveryDate
-    ? new Date(salesOrderData.deliveryDate).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "";
+  const deliveryDate = safeDate(salesOrderData.deliveryDate, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  const pickupDate = salesOrderData.pickupDate
-    ? new Date(salesOrderData.pickupDate).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
-    : "";
+  const pickupDate = safeDate(salesOrderData.pickupDate, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   // Calculate total from all products (tax is already included as a product)
   // Tax is calculated on client side and stored as a product in the array
@@ -159,11 +153,11 @@ const htmlTemplate = (salesOrderData) => {
           <div class='section-2-right'>
             <div>
               <h3>Delivery Date</h3>
-              <p>${deliveryDate || "Not specified"}</p>            
+              <p>${deliveryDate}</p>            
             </div>
             <div>
               <h3>Pickup Date</h3>
-              <p>${pickupDate || "Not specified"}</p>
+              <p>${pickupDate}</p>
             </div>
             ${
               salesOrderData.contactPersonName ||
@@ -223,7 +217,7 @@ const htmlTemplate = (salesOrderData) => {
           ${itemRows(salesOrderData.products || [])}
           
           <div class='total-amount-container'>
-            <h4>Total Amount: ${safeCurrency(total.toFixed(2))}</h4>
+            <h4>Total Amount: ${safeCurrency(total)}</h4>
           </div>
         </div>
         
