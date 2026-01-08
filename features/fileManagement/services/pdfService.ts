@@ -327,46 +327,46 @@ export const generatePDF = async (documentData, documentType, documentId) => {
       }
     }
 
-    // OPTIMIZATION: Upload to S3 in background (non-blocking)
-    // Generate URL immediately without waiting for upload to complete
+    // CRITICAL FIX: Wait for S3 upload to complete before returning URL
+    // Prevents race condition where user gets old PDF from S3 before upload completes
+    // The same S3 key overwrites old files, so we must wait to ensure correct PDF is available
     const s3PrepStartTime = Date.now();
     const fileName = `${documentType}-${documentId}.pdf`;
     const key = `pdfs/${fileName}`;
     const bucketName = process.env.AWS_S3_BUCKET_NAME;
     const cloudFrontUrl = process.env.CLOUDFRONT_URL;
+    
+    // Upload to S3 and wait for completion (ensures correct PDF is available)
+    const s3UploadStartTime = Date.now();
+    try {
+      await uploadPDFToS3(pdfBuffer, documentType, documentId);
+      const s3UploadTime = Date.now() - s3UploadStartTime;
+      console.log(
+        `⏱️ [PDF ${documentType}-${documentId}] S3 upload: ${s3UploadTime}ms`
+      );
+    } catch (uploadError) {
+      console.error(
+        `⚠️ [PDF ${documentType}-${documentId}] S3 upload failed:`,
+        uploadError.message
+      );
+      // Still return URL even if upload fails (user can retry)
+      // But log the error so it can be investigated
+    }
+
+    // Generate URL with timestamp for cache busting (after upload completes)
     const timestamp = Date.now();
     const s3DirectUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}?t=${timestamp}`;
     const pdfUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/${key}?t=${timestamp}`
       : s3DirectUrl;
-    const s3PrepTime = Date.now() - s3PrepStartTime;
-    console.log(
-      `⏱️ [PDF ${documentType}-${documentId}] S3 URL prep: ${s3PrepTime}ms`
-    );
-
-    // Upload to S3 in background (don't await - fire and forget)
-    const s3UploadStartTime = Date.now();
-    uploadPDFToS3(pdfBuffer, documentType, documentId)
-      .then(() => {
-        const s3UploadTime = Date.now() - s3UploadStartTime;
-        console.log(
-          `⏱️ [PDF ${documentType}-${documentId}] S3 upload (background): ${s3UploadTime}ms`
-        );
-      })
-      .catch((error) => {
-        console.error(
-          `⚠️ [PDF ${documentType}-${documentId}] Background S3 upload failed (non-critical):`,
-          error.message
-        );
-      });
-
+    
     const totalTime = Date.now() - totalStartTime;
     console.log(
       `⏱️ [PDF ${documentType}-${documentId}] Total PDF generation: ${totalTime}ms`
     );
 
     return {
-      pdfUrl: pdfUrl, // Return immediately without waiting for upload
+      pdfUrl: pdfUrl, // Return URL after upload completes (ensures correct PDF)
       pdfBuffer: pdfBuffer, // Return buffer to avoid re-downloading from S3
     };
   } catch (error) {
