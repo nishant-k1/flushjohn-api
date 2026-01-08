@@ -8,7 +8,6 @@ import {
   calculateTotalPages,
   calculateSkip,
 } from "../../../utils/numericCalculations.js";
-import { serializeContactData } from "../../../utils/serializers.js";
 
 export const generateSalesOrderNumber = async () => {
   const maxRetries = 5;
@@ -131,11 +130,9 @@ export const createSalesOrder = async (salesOrderData) => {
     quote: salesOrderData.quote || null,
   };
 
-  // Normalize all contact data (phone, email, zip, etc.) to standard formats
-  const normalizedSalesOrderData = serializeContactData(newSalesOrderData);
-
+  // Data is automatically serialized by middleware
   const createdSalesOrder = await salesOrdersRepository.create(
-    normalizedSalesOrderData
+    newSalesOrderData
   );
 
   // Update ConversationLog for AI learning - mark as converted
@@ -886,11 +883,10 @@ export const updateSalesOrder = async (id, updateData) => {
   // ✅ Update the associated Lead if it exists and there are lead fields to update
   if (leadId && Object.keys(leadFields).length > 0) {
     const Leads = (await import("../../leads/models/Leads.js")).default;
-    // Normalize lead fields before updating
-    const normalizedLeadFields = serializeContactData(leadFields);
+    // Data is automatically serialized by middleware
     await (Leads as any).findByIdAndUpdate(
       leadId,
-      { $set: normalizedLeadFields },
+      { $set: leadFields },
       { new: true, runValidators: true }
     );
   }
@@ -908,17 +904,15 @@ export const updateSalesOrder = async (id, updateData) => {
     billingCycles: updateData.billingCycles,
   };
 
-  // Normalize sales order-specific fields that contain contact data
-  const normalizedSalesOrderFields = serializeContactData(salesOrderFields);
-
-  // Remove undefined fields from normalizedSalesOrderFields
-  Object.keys(normalizedSalesOrderFields).forEach(
-    (key) => normalizedSalesOrderFields[key] === undefined && delete normalizedSalesOrderFields[key]
+  // Data is automatically serialized by middleware
+  // Remove undefined fields from salesOrderFields
+  Object.keys(salesOrderFields).forEach(
+    (key) => salesOrderFields[key] === undefined && delete salesOrderFields[key]
   );
 
   // ✅ Update the SalesOrder with only sales-order-specific fields
   const salesOrder = await salesOrdersRepository.updateById(id, {
-    ...normalizedSalesOrderFields,
+    ...salesOrderFields,
     ...(leadId && { lead: leadId }),
     ...(updateData.emailStatus === undefined && { emailStatus: "Pending" }),
     updatedAt: getCurrentDateTime(),

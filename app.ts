@@ -56,6 +56,7 @@ import {
   publicLimiter,
 } from "./middleware/rateLimiter.js";
 import { csrfProtection } from "./middleware/csrf.js";
+import { serializeRequest } from "./middleware/serialization.js";
 
 // All routers are now directly imported above
 
@@ -164,6 +165,11 @@ app.use(
 
 app.use(json({ limit: "10mb" }));
 app.use(urlencoded({ extended: false, limit: "10mb" }));
+
+// Serialization middleware - normalize data at API boundary
+// Must be AFTER body parsing, BEFORE routes
+app.use(serializeRequest);  // Serialize incoming requests
+// Note: serializeResponse is optional - responses are formatted in controllers
 app.use(cookieParser());
 
 // CSRF Protection - Apply to all routes except public endpoints

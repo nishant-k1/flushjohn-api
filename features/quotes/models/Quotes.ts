@@ -1,10 +1,6 @@
 import mongoose from "mongoose";
 
 const QuotesSchema = new mongoose.Schema({
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
   quoteNo: {
     type: Number,
     unique: true,
@@ -29,42 +25,52 @@ const QuotesSchema = new mongoose.Schema({
   },
   leadNo: {
     type: String,
+    trim: true,
   },
   // ⚠️ REMOVED: leadId - Duplicate of lead ObjectId reference
-  // leadId: {
-  //   type: String,
-  // },
 
   // Quote specific fields
   emailStatus: {
     type: String,
     default: "Pending",
+    trim: true,
   },
   // ⚠️ REMOVED: Contact fields - Use lead reference instead
-  // fName, lName, cName, email, phone, fax, address fields, usageType
   // Access via: quote.lead.fName, quote.lead.email, etc.
+  
   products: {
     type: Array,
   },
+  
+  // Dates - Using Date type for proper Mongoose handling
   deliveryDate: {
-    type: String,
+    type: Date,
   },
   pickupDate: {
-    type: String,
+    type: Date,
   },
+  
+  // Contact person info
   contactPersonName: {
     type: String,
+    trim: true,
+    maxlength: 100,
   },
   contactPersonPhone: {
     type: String,
+    trim: true,
   },
+  
   instructions: {
     type: String,
+    trim: true,
   },
-
   note: {
     type: String,
+    trim: true,
   },
+}, {
+  timestamps: true, // Auto-manage createdAt and updatedAt
 });
 
 // Add indexes for faster queries

@@ -15,7 +15,6 @@ import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
 import { createLeadNotification } from "../../notifications/services/notificationHelpers.js";
 import { deleteNotificationsByLeadId } from "../../notifications/services/notificationsService.js";
 import { calculateProductAmount } from "../../../utils/productAmountCalculations.js";
-import { serializeContactData } from "../../../utils/serializers.js";
 
 /**
  * Transform products based on lead source
@@ -81,8 +80,8 @@ export const prepareLeadData = (leadData) => {
     streetAddress: street || streetAddress || "", // Map 'street' to 'streetAddress'
   };
 
-  // Normalize all contact data (phone, email, zip, etc.) to standard formats
-  return serializeContactData(preparedData);
+  // Data is automatically serialized by middleware
+  return preparedData;
 };
 
 /**
@@ -524,11 +523,9 @@ export const updateLead = async (id, updateData) => {
     throw error;
   }
 
-  // Normalize all contact data before updating
-  const normalizedUpdateData = serializeContactData(updateData);
-
+  // Data is automatically serialized by middleware
   const lead = await leadsRepository.updateById(id, {
-    ...normalizedUpdateData,
+    ...updateData,
     updatedAt: getCurrentDateTime(),
   });
 
