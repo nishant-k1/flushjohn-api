@@ -55,10 +55,10 @@ export interface ParsedPagination {
 export type MongooseFilter<T = Record<string, unknown>> = {
   [K in keyof T]?: T[K] | { $or?: Array<{ [key: string]: unknown }> };
 } & Record<string, unknown> & {
-  $expr?: any;
-  $or?: Array<{ [key: string]: unknown }>;
-  $and?: Array<{ [key: string]: unknown }>;
-};
+    $expr?: any;
+    $or?: Array<{ [key: string]: unknown }>;
+    $and?: Array<{ [key: string]: unknown }>;
+  };
 
 /**
  * JWT decoded payload with userId

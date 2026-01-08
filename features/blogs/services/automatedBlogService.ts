@@ -16,7 +16,6 @@ import { dbConnect, waitForConnection } from "../../../lib/dbConnect.js";
 import * as blogsService from "./blogsService.js";
 import * as blogGeneratorService from "./blogGeneratorService.js";
 import { getNextTopic, getCurrentSeason } from "./contentCalendar.js";
-import { getCurrentDateTime } from "../../../lib/dayjs.js";
 import OpenAI from "openai";
 
 // Lazy initialization of OpenAI client
@@ -87,10 +86,10 @@ export async function generateAutomatedBlogPost(
       topic.templateType === "citySpecific"
         ? [topic.title, topic.city, topic.state, keywordsObj]
         : topic.templateType === "industryGuide"
-        ? [topic.title, keywordsObj, topic.focus]
-        : topic.templateType === "caseStudy"
-        ? [topic.title, keywordsObj, topic.focus]
-        : [topic.title, keywordsObj, topic.season, topic.focus]
+          ? [topic.title, keywordsObj, topic.focus]
+          : topic.templateType === "caseStudy"
+            ? [topic.title, keywordsObj, topic.focus]
+            : [topic.title, keywordsObj, topic.season, topic.focus]
     );
 
     // Generate comprehensive AI metadata

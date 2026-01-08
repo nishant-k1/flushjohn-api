@@ -1,5 +1,3 @@
-import { Request, Response, NextFunction } from "express";
-
 declare global {
   namespace Express {
     interface Request {
@@ -60,7 +58,7 @@ declare module "express-serve-static-core" {
       ...handlers: any[]
     ): this;
   }
-  
+
   interface Application {
     use(...handlers: any[]): this;
     get<P = any, ResBody = any, ReqBody = any, ReqQuery = any>(

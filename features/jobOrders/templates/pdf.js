@@ -103,8 +103,8 @@ const htmlTemplate = (jobOrderData) => {
             <div>
               <h3>Customer</h3>
               <p><strong>${safeValue(jobOrderData.fName)} ${safeValue(
-    jobOrderData.lName
-  )}</strong></p>
+                jobOrderData.lName
+              )}</strong></p>
               ${
                 jobOrderData.cName
                   ? `<p>${safeValue(jobOrderData.cName)}</p>`
@@ -129,8 +129,8 @@ const htmlTemplate = (jobOrderData) => {
               <h3>Delivery Address</h3>
               <p>${safeValue(jobOrderData.streetAddress)}</p>
               <p>${safeValue(jobOrderData.city)} ${safeValue(
-    jobOrderData.state
-  )} ${safeValue(jobOrderData.zip)}</p>
+                jobOrderData.state
+              )} ${safeValue(jobOrderData.zip)}</p>
             </div>
             ${
               jobOrderData.instructions
@@ -173,9 +173,9 @@ const htmlTemplate = (jobOrderData) => {
               <p><strong>${safeGet(jobOrderData, "vendor.name")}</strong></p>
               <p>${safeGet(jobOrderData, "vendor.streetAddress")}</p>
               <p>${safeGet(jobOrderData, "vendor.city")} ${safeGet(
-    jobOrderData,
-    "vendor.state"
-  )} ${safeGet(jobOrderData, "vendor.zip")}</p>
+                jobOrderData,
+                "vendor.state"
+              )} ${safeGet(jobOrderData, "vendor.zip")}</p>
               ${
                 safeGet(jobOrderData, "vendor.email")
                   ? `<p><strong>Email: </strong>${safeGet(

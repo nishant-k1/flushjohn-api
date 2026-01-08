@@ -123,16 +123,16 @@ const htmlTemplate = (quoteData) => {
             <div>
               <h3>Bill To</h3>
               <p><strong>${safeValue(quoteData.fName)} ${safeValue(
-    quoteData.lName
-  )}</strong></p>
+                quoteData.lName
+              )}</strong></p>
               ${quoteData.cName ? `<p>${safeValue(quoteData.cName)}</p>` : ""}
             </div>
             <div>
               <h3>Delivery Address</h3>
               <p>${safeValue(quoteData.streetAddress)}</p>
               <p>${safeValue(quoteData.city)} ${safeValue(
-    quoteData.state
-  )} ${safeValue(quoteData.zip)}</p>
+                quoteData.state
+              )} ${safeValue(quoteData.zip)}</p>
             </div>
           </div>
 

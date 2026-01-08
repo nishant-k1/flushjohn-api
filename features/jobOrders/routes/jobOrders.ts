@@ -231,9 +231,8 @@ router.post(
         createdAt: req.body.createdAt || jobOrder.createdAt,
       };
 
-      const { generateJobOrderPDF } = await import(
-        "../../fileManagement/services/pdfService.js"
-      );
+      const { generateJobOrderPDF } =
+        await import("../../fileManagement/services/pdfService.js");
       const pdfUrls = await generateJobOrderPDF(pdfData, id);
 
       res.status(201).json({
@@ -290,9 +289,8 @@ router.post(
         });
       }
 
-      const { getVendorById } = await import(
-        "../../vendors/services/vendorsService.js"
-      );
+      const { getVendorById } =
+        await import("../../vendors/services/vendorsService.js");
       const vendor = await getVendorById(req.body.vendor._id);
 
       if (!vendor) {
@@ -341,12 +339,10 @@ router.post(
         ccEmail: ccEmail, // Add CC email if different
       };
 
-      const { generateJobOrderPDF } = await import(
-        "../../fileManagement/services/pdfService.js"
-      );
-      const { sendJobOrderEmail } = await import(
-        "../../common/services/emailService.js"
-      );
+      const { generateJobOrderPDF } =
+        await import("../../fileManagement/services/pdfService.js");
+      const { sendJobOrderEmail } =
+        await import("../../common/services/emailService.js");
 
       let pdfUrls;
       try {

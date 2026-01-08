@@ -1,5 +1,5 @@
 import { Router } from "express";
-// @ts-ignore - cleanupOldPDFs may not be exported
+// @ts-expect-error - cleanupOldPDFs may not be exported
 import { cleanupOldPDFs } from "../services/pdfService.js";
 import {
   authenticateToken,

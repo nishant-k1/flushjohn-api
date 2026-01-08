@@ -131,9 +131,8 @@ export const createSalesOrder = async (salesOrderData) => {
   };
 
   // Data is automatically serialized by middleware
-  const createdSalesOrder = await salesOrdersRepository.create(
-    newSalesOrderData
-  );
+  const createdSalesOrder =
+    await salesOrdersRepository.create(newSalesOrderData);
 
   // Update ConversationLog for AI learning - mark as converted
   if (createdSalesOrder.lead) {
@@ -532,7 +531,8 @@ const getAllSalesOrdersWithAggregation = async ({
     (SalesOrders as any).aggregate(countPipeline),
   ]);
 
-  const total = countResult[0]?.total || 0;
+  // Use nullish coalescing to preserve 0 values
+  const total = countResult[0]?.total ?? 0;
 
   return {
     data: results,
@@ -812,11 +812,17 @@ export const getSalesOrderById = async (id) => {
   const salesOrderObj = salesOrder.toObject
     ? salesOrder.toObject()
     : salesOrder;
-  const { calculateOrderTotal } = await import(
-    "../../../utils/productAmountCalculations.js"
-  );
+  const { calculateOrderTotal } =
+    await import("../../../utils/productAmountCalculations.js");
+  // Validate products before calculation - if products is missing, log error and skip recalculation
+  if (salesOrderObj.products == null) {
+    console.error(
+      `Sales Order ${id} has null/undefined products. Cannot recalculate order total.`
+    );
+    return formatSalesOrderResponse(salesOrder, salesOrder.lead);
+  }
   const calculatedOrderTotal = parseFloat(
-    calculateOrderTotal(salesOrderObj.products || [])
+    calculateOrderTotal(salesOrderObj.products)
   );
 
   // Check if recalculation is needed: orderTotal doesn't match calculated total, or balanceDue is 0 when it shouldn't be
@@ -970,8 +976,9 @@ export const cancelSalesOrder = async (id) => {
   });
 
   // Check if any payment has outstanding refund amount
+  // Use nullish coalescing to preserve 0 values
   const hasUnrefundedPayments = payments.some((payment) => {
-    const refundedAmount = payment.refundedAmount || 0;
+    const refundedAmount = payment.refundedAmount ?? 0;
     return payment.amount > refundedAmount;
   });
 

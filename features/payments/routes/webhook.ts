@@ -70,9 +70,8 @@ router.post("/", async function (req, res) {
 
       // Try to extract sales order ID from event to emit error
       try {
-        const { emitPaymentError } = await import(
-          "../../salesOrders/sockets/salesOrders.js"
-        );
+        const { emitPaymentError } =
+          await import("../../salesOrders/sockets/salesOrders.js");
 
         // Try to find sales order ID from event data
         let salesOrderId = null;
@@ -86,9 +85,8 @@ router.post("/", async function (req, res) {
           event.type === "payment_intent.payment_failed"
         ) {
           // Try to find payment by payment intent ID
-          const { findByStripePaymentIntentId } = await import(
-            "../repositories/paymentsRepository.js"
-          );
+          const { findByStripePaymentIntentId } =
+            await import("../repositories/paymentsRepository.js");
           const payment = await findByStripePaymentIntentId(
             event.data?.object?.id
           );

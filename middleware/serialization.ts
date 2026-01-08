@@ -1,10 +1,10 @@
 /**
  * Serialization Middleware
- * 
+ *
  * Centralized data serialization/normalization at the API boundary.
  * This middleware automatically serializes incoming request data before
  * it reaches controllers and services, similar to Axios interceptors on the client.
- * 
+ *
  * Single Source of Truth: Uses utils/serializers.ts
  */
 
@@ -14,7 +14,7 @@ import { serializeContactData } from "../utils/serializers.js";
 /**
  * Serialize incoming request body data
  * Runs BEFORE controllers/services
- * 
+ *
  * Automatically normalizes:
  * - Phone numbers → E.164 format
  * - Emails → lowercase
@@ -42,7 +42,7 @@ export const serializeRequest = (
     const path = req.path.toLowerCase();
 
     // Determine which routes need contact data serialization
-    const needsContactSerialization = 
+    const needsContactSerialization =
       path.includes("/leads") ||
       path.includes("/customers") ||
       path.includes("/quotes") ||
@@ -52,10 +52,12 @@ export const serializeRequest = (
     if (needsContactSerialization) {
       // Serialize contact data using centralized utility
       req.body = serializeContactData(req.body);
-      
+
       // Optional: Log for debugging (can be removed in production)
       if (process.env.NODE_ENV === "development") {
-        console.log(`[Serialization] ${req.method} ${req.path} - Data serialized`);
+        console.log(
+          `[Serialization] ${req.method} ${req.path} - Data serialized`
+        );
       }
     }
 
@@ -71,7 +73,7 @@ export const serializeRequest = (
 /**
  * Format outgoing response data (optional)
  * Runs AFTER controllers/services
- * 
+ *
  * Note: Response formatting is typically handled in controllers.
  * This middleware is kept for potential future use but is not critical.
  */
@@ -84,4 +86,3 @@ export const serializeResponse = (
   // No transformation needed at middleware level
   next();
 };
-

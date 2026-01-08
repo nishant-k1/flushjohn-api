@@ -1,12 +1,12 @@
 /**
  * General Numeric Calculation Utilities
  * FOR NON-MONEY CALCULATIONS ONLY
- * 
+ *
  * This file contains utilities for general numeric operations:
  * - Counts, scores, percentages, ratings
  * - Pagination, file sizes, reading time
  * - Any numeric calculation that is NOT about money/prices
- * 
+ *
  * For money/currency calculations, use priceCalculations.ts instead.
  */
 

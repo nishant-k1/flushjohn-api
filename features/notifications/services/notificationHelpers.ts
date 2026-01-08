@@ -13,7 +13,10 @@ export const createLeadNotification = async (lead) => {
     }
 
     // Get all active users
-    const users = await (User as any).find({ isActive: true }).select("_id").lean();
+    const users = await (User as any)
+      .find({ isActive: true })
+      .select("_id")
+      .lean();
 
     if (!users || users.length === 0) {
       console.log("No active users found for notification creation");
@@ -54,10 +57,11 @@ export const createLeadNotification = async (lead) => {
     );
 
     await Promise.all(notificationPromises);
-    console.log(`✅ Created notifications for ${users.length} users for lead ${lead._id}`);
+    console.log(
+      `✅ Created notifications for ${users.length} users for lead ${lead._id}`
+    );
   } catch (error) {
     console.error("❌ Error creating lead notifications:", error);
     // Don't throw - notification creation should not block lead creation
   }
 };
-

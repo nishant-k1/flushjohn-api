@@ -39,10 +39,15 @@ async function generateSingleBlogPost(postData, templateType = "citySpecific") {
       templateType === "citySpecific"
         ? [postData.title, postData.city, postData.state, postData.keywords]
         : templateType === "industryGuide"
-        ? [postData.title, postData.keywords, postData.focus]
-        : templateType === "caseStudy"
-        ? [postData.title, postData.keywords, postData.focus]
-        : [postData.title, postData.keywords, postData.season, postData.focus]
+          ? [postData.title, postData.keywords, postData.focus]
+          : templateType === "caseStudy"
+            ? [postData.title, postData.keywords, postData.focus]
+            : [
+                postData.title,
+                postData.keywords,
+                postData.season,
+                postData.focus,
+              ]
     );
 
     const metaDescription = await blogGeneratorService.generateMetaDescription(

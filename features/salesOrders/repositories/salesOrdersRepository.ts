@@ -14,7 +14,8 @@ export const findAll = async ({
   skip = 0,
   limit = 10,
 }) => {
-  return await (SalesOrders as any).find(query)
+  return await (SalesOrders as any)
+    .find(query)
     .populate("lead")
     .populate("quote")
     .sort(sort)
@@ -28,7 +29,10 @@ export const count = async (query = {}) => {
 };
 
 export const findById = async (id) => {
-  return await (SalesOrders as any).findById(id).populate("lead").populate("quote");
+  return await (SalesOrders as any)
+    .findById(id)
+    .populate("lead")
+    .populate("quote");
 };
 
 export const findOne = async (query, projection = null) => {

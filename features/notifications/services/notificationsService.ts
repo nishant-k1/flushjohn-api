@@ -25,9 +25,7 @@ export const getUnreadCount = async (userId) => {
 
 export const createNotification = async (notificationData) => {
   try {
-    const notification = await notificationsRepository.create(
-      notificationData
-    );
+    const notification = await notificationsRepository.create(notificationData);
     return notification;
   } catch (error) {
     console.error("Error creating notification:", error);
@@ -110,4 +108,3 @@ export const deleteAllNotifications = async (userId) => {
     throw error;
   }
 };
-

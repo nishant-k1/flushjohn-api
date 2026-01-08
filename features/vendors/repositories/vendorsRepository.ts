@@ -8,8 +8,18 @@ export const create = async (vendorData) => {
   return await (Vendors as any).create(vendorData);
 };
 
-export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await (Vendors as any).find(query).sort(sort).skip(skip).limit(limit).lean();
+export const findAll = async ({
+  query = {},
+  sort = {},
+  skip = 0,
+  limit = 10,
+}) => {
+  return await (Vendors as any)
+    .find(query)
+    .sort(sort)
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
 export const count = async (query = {}) => {
@@ -21,7 +31,9 @@ export const findById = async (id) => {
 };
 
 export const findOne = async (query, projection = null) => {
-  return await (Vendors as any).findOne(query, projection).sort({ vendorNo: -1 });
+  return await (Vendors as any)
+    .findOne(query, projection)
+    .sort({ vendorNo: -1 });
 };
 
 export const updateById = async (id, updateData) => {

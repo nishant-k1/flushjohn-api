@@ -6,7 +6,6 @@
  */
 
 import mongoose, { FilterQuery } from "mongoose";
-import { MongooseFilter } from "../types/common.js";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -66,7 +65,11 @@ const migrateQuotes = async () => {
     lead: { $exists: false },
   };
   const quotes = await findSafe<{ lead?: { $exists: boolean } }>(
-    Quote as unknown as { find: (filter: FilterQuery<{ lead?: { $exists: boolean } }>) => Promise<typeof quotes> },
+    Quote as unknown as {
+      find: (
+        filter: FilterQuery<{ lead?: { $exists: boolean } }>
+      ) => Promise<typeof quotes>;
+    },
     quotesFilter
   );
   let migrated = 0;
@@ -85,7 +88,11 @@ const migrateQuotes = async () => {
           leadNo: quote.leadNo,
         };
         lead = await findOneSafe<{ leadNo: string }>(
-          Lead as unknown as { findOne: (filter: FilterQuery<{ leadNo: string }>) => Promise<typeof lead> },
+          Lead as unknown as {
+            findOne: (
+              filter: FilterQuery<{ leadNo: string }>
+            ) => Promise<typeof lead>;
+          },
           leadFilter
         );
       }
@@ -113,7 +120,11 @@ const migrateSalesOrders = async () => {
     quote: { $exists: false },
   };
   const salesOrders = await findSafe<{ quote?: { $exists: boolean } }>(
-    SalesOrder as unknown as { find: (filter: FilterQuery<{ quote?: { $exists: boolean } }>) => Promise<typeof salesOrders> },
+    SalesOrder as unknown as {
+      find: (
+        filter: FilterQuery<{ quote?: { $exists: boolean } }>
+      ) => Promise<typeof salesOrders>;
+    },
     salesOrdersFilter
   );
   let migrated = 0;
@@ -127,7 +138,11 @@ const migrateSalesOrders = async () => {
           leadNo: order.leadNo,
         };
         lead = await findOneSafe<{ leadNo: string }>(
-          Lead as unknown as { findOne: (filter: FilterQuery<{ leadNo: string }>) => Promise<typeof lead> },
+          Lead as unknown as {
+            findOne: (
+              filter: FilterQuery<{ leadNo: string }>
+            ) => Promise<typeof lead>;
+          },
           leadFilter
         );
       }
@@ -143,7 +158,11 @@ const migrateSalesOrders = async () => {
           customerNo: order.customerNo,
         };
         customer = await findOneSafe<{ customerNo: number }>(
-          Customer as unknown as { findOne: (filter: FilterQuery<{ customerNo: number }>) => Promise<typeof customer> },
+          Customer as unknown as {
+            findOne: (
+              filter: FilterQuery<{ customerNo: number }>
+            ) => Promise<typeof customer>;
+          },
           customerFilter
         );
       }
@@ -172,7 +191,11 @@ const migrateJobOrders = async () => {
     salesOrder: { $exists: false },
   };
   const jobOrders = await findSafe<{ salesOrder?: { $exists: boolean } }>(
-    JobOrder as unknown as { find: (filter: FilterQuery<{ salesOrder?: { $exists: boolean } }>) => Promise<typeof jobOrders> },
+    JobOrder as unknown as {
+      find: (
+        filter: FilterQuery<{ salesOrder?: { $exists: boolean } }>
+      ) => Promise<typeof jobOrders>;
+    },
     filter
   );
   let migrated = 0;
@@ -186,7 +209,11 @@ const migrateJobOrders = async () => {
           salesOrderNo: jobOrder.salesOrderNo,
         };
         salesOrder = await findOneSafe<{ salesOrderNo: number }>(
-          SalesOrder as unknown as { findOne: (filter: FilterQuery<{ salesOrderNo: number }>) => Promise<typeof salesOrder> },
+          SalesOrder as unknown as {
+            findOne: (
+              filter: FilterQuery<{ salesOrderNo: number }>
+            ) => Promise<typeof salesOrder>;
+          },
           salesOrderFilter
         );
       }

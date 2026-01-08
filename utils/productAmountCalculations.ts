@@ -1,5 +1,4 @@
 import { dollarsToCents, centsToDollars, add } from "./priceCalculations";
-import { round } from "./numericCalculations";
 
 const MAX_QUANTITY = 1_000_000;
 const MAX_RATE = 1_000_000;

@@ -13,7 +13,6 @@ import {
   parsePaginationQuery,
   safeStringQuery,
   isValidationError,
-  MongooseFilter,
 } from "../../../types/common.js";
 
 const router: any = Router();
@@ -53,8 +52,8 @@ router.get("/", async function (req, res) {
           Array.isArray(slug)
             ? (slug[0] as string)
             : typeof slug === "string"
-            ? slug
-            : String(slug)
+              ? slug
+              : String(slug)
         )
       : null;
     const statusValue = status
@@ -62,8 +61,8 @@ router.get("/", async function (req, res) {
           Array.isArray(status)
             ? (status[0] as string)
             : typeof status === "string"
-            ? status
-            : String(status)
+              ? status
+              : String(status)
         )
       : null;
 

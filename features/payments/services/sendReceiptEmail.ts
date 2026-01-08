@@ -123,10 +123,10 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
       payment.paymentMethod === "payment_link"
         ? "Payment Link"
         : payment.paymentMethod === "saved_card"
-        ? `Saved Card${payment.cardLast4 ? ` (•••• ${payment.cardLast4})` : ""}`
-        : `Card Payment${
-            payment.cardLast4 ? ` (•••• ${payment.cardLast4})` : ""
-          }`;
+          ? `Saved Card${payment.cardLast4 ? ` (•••• ${payment.cardLast4})` : ""}`
+          : `Card Payment${
+              payment.cardLast4 ? ` (•••• ${payment.cardLast4})` : ""
+            }`;
 
     // Generate PDF receipt (uses flattened receiptData)
     let pdfBuffer;

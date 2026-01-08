@@ -47,9 +47,8 @@ async function cancelExpiredInvoiceLinksJob() {
 
   try {
     // Calculate the cutoff time: 24 hours ago
-    const { calculateInvoiceExpirationCutoff } = await import(
-      "../../../utils/invoiceExpirationCalculations.js"
-    );
+    const { calculateInvoiceExpirationCutoff } =
+      await import("../../../utils/invoiceExpirationCalculations.js");
     const cutoffTime = calculateInvoiceExpirationCutoff();
 
     // Find all pending payment links created more than 24 hours ago

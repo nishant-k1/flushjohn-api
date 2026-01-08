@@ -4,33 +4,31 @@ import rateLimit from "express-rate-limit";
 import User from "../models/User.js";
 import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 import { generateCsrfToken } from "../../../middleware/csrf.js";
-import {
-  AsyncRouteHandler,
-  isUserJwtPayload,
-  UserJwtPayload,
-  MongooseFilter,
-  isValidationError,
-  isDuplicateKeyError,
-} from "../../../types/common.js";
+import { AsyncRouteHandler, isUserJwtPayload } from "../../../types/common.js";
 
 const router: any = express.Router();
 
 // Rate limiter for authentication endpoints
 // Disabled in development to prevent issues during testing
-const authLimiter = process.env.NODE_ENV === "production"
-  ? rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 20, // limit each IP to 20 requests per windowMs
-      message: {
-        success: false,
-        message:
-          "Too many authentication attempts from this IP, please try again later.",
-        error: "RATE_LIMIT_EXCEEDED",
-      },
-      standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-      legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    })
-  : (req: express.Request, res: express.Response, next: express.NextFunction) => next(); // No-op middleware in development
+const authLimiter =
+  process.env.NODE_ENV === "production"
+    ? rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 20, // limit each IP to 20 requests per windowMs
+        message: {
+          success: false,
+          message:
+            "Too many authentication attempts from this IP, please try again later.",
+          error: "RATE_LIMIT_EXCEEDED",
+        },
+        standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+        legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+      })
+    : (
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction
+      ) => next(); // No-op middleware in development
 
 // Apply rate limiting to login endpoint
 router.post("/", authLimiter, (async (req, res) => {
@@ -45,9 +43,11 @@ router.post("/", authLimiter, (async (req, res) => {
       return;
     }
 
-    const user = await (User as any).findOne({
-      userId,
-    } as any).select("+password"); // Include password field for authentication
+    const user = await (User as any)
+      .findOne({
+        userId,
+      } as any)
+      .select("+password"); // Include password field for authentication
 
     if (user) {
       if (user.isLocked()) {
@@ -95,7 +95,7 @@ router.post("/", authLimiter, (async (req, res) => {
 
         // Generate CSRF token for the session
         const csrfToken = generateCsrfToken(req, res);
-        
+
         res.status(200).json({
           success: true,
           message: "Authentication successful",
@@ -136,45 +136,41 @@ router.post("/", authLimiter, (async (req, res) => {
   }
 }) as AsyncRouteHandler);
 
-router.post(
-  "/register",
-  authenticateToken,
-  requireAdmin,
-  (async (req, res) => {
-    try {
-      const { userId, email, password, fName, lName, role = "user" } = req.body;
+router.post("/register", authenticateToken, requireAdmin, (async (req, res) => {
+  try {
+    const { userId, email, password, fName, lName, role = "user" } = req.body;
 
-      if (!userId || !email || !password || !fName || !lName) {
-        res.status(400).json({
-          success: false,
-          message:
-            "User ID, email, password, first name, and last name are required",
-        });
-        return;
-      }
+    if (!userId || !email || !password || !fName || !lName) {
+      res.status(400).json({
+        success: false,
+        message:
+          "User ID, email, password, first name, and last name are required",
+      });
+      return;
+    }
 
-      // Validate password strength
-      if (password.length < 8) {
-        res.status(400).json({
-          success: false,
-          message: "Password must be at least 8 characters long",
-        });
-        return;
-      }
+    // Validate password strength
+    if (password.length < 8) {
+      res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long",
+      });
+      return;
+    }
 
-      // Validate role is valid
-      const validRoles = ["admin", "manager", "user"];
-      if (!validRoles.includes(role)) {
-        res.status(400).json({
-          success: false,
-          message: "Invalid role. Must be one of: admin, manager, user",
-        });
-        return;
-      }
+    // Validate role is valid
+    const validRoles = ["admin", "manager", "user"];
+    if (!validRoles.includes(role)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid role. Must be one of: admin, manager, user",
+      });
+      return;
+    }
 
-      const existingUser = await (User as any).findOne({
-        $or: [{ userId }, { email }],
-      } as any);
+    const existingUser = await (User as any).findOne({
+      $or: [{ userId }, { email }],
+    } as any);
     if (existingUser) {
       res.status(400).json({
         success: false,

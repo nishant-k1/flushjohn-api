@@ -254,7 +254,6 @@ router.post(
   async function (req, res) {
     const { id } = req.params;
     try {
-
       if (!salesOrdersService.isValidObjectId(id)) {
         return res.status(400).json({
           success: false,
@@ -272,9 +271,8 @@ router.post(
         createdAt: req.body.createdAt || salesOrder.createdAt,
       };
 
-      const { generateSalesOrderPDF } = await import(
-        "../../fileManagement/services/pdfService.js"
-      );
+      const { generateSalesOrderPDF } =
+        await import("../../fileManagement/services/pdfService.js");
       const pdfUrls = await generateSalesOrderPDF(pdfData, id);
 
       res.status(201).json({
@@ -319,7 +317,6 @@ router.post(
   async function (req, res) {
     const { id } = req.params;
     try {
-
       if (!salesOrdersService.isValidObjectId(id)) {
         return res.status(400).json({
           success: false,
@@ -367,9 +364,8 @@ router.post(
       let paymentLinkUrl = req.body.paymentLinkUrl || null;
       if (!paymentLinkUrl && req.body.includePaymentLink) {
         try {
-          const paymentsService = await import(
-            "../../payments/services/paymentsService.js"
-          );
+          const paymentsService =
+            await import("../../payments/services/paymentsService.js");
           const paymentLinkData =
             await paymentsService.createSalesOrderPaymentLink(id, undefined);
           paymentLinkUrl = paymentLinkData.url;
@@ -384,12 +380,10 @@ router.post(
         emailData.paymentLinkUrl = paymentLinkUrl;
       }
 
-      const { generateSalesOrderPDF } = await import(
-        "../../fileManagement/services/pdfService.js"
-      );
-      const { sendSalesOrderEmail, sendInvoiceEmail } = await import(
-        "../../common/services/emailService.js"
-      );
+      const { generateSalesOrderPDF } =
+        await import("../../fileManagement/services/pdfService.js");
+      const { sendSalesOrderEmail, sendInvoiceEmail } =
+        await import("../../common/services/emailService.js");
 
       let pdfUrls;
       try {

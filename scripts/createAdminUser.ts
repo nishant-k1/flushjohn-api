@@ -37,10 +37,7 @@ const createAdminUser = async () => {
 
     // Check if user already exists
     const existingUser = await (User as any).findOne({
-      $or: [
-        { userId: adminUser.userId },
-        { email: adminUser.email },
-      ],
+      $or: [{ userId: adminUser.userId }, { email: adminUser.email }],
     });
 
     if (existingUser) {
@@ -48,7 +45,7 @@ const createAdminUser = async () => {
       console.log(`   User ID: ${existingUser.userId}`);
       console.log(`   Email: ${existingUser.email}`);
       console.log(`   Role: ${existingUser.role}`);
-      
+
       // Update role to admin if not already
       if (existingUser.role !== "admin") {
         existingUser.role = "admin";
@@ -72,7 +69,7 @@ const createAdminUser = async () => {
     console.log(`   Role: ${user.role}`);
     console.log(`   Status: ${user.isActive ? "Active" : "Inactive"}`);
     console.log("\n⚠️  IMPORTANT: Change the password after first login!");
-    
+
     process.exit(0);
   } catch (error: any) {
     console.error("❌ Error creating admin user:", error.message);
@@ -85,4 +82,3 @@ const createAdminUser = async () => {
 
 // Run the script
 createAdminUser();
-

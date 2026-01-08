@@ -136,7 +136,14 @@ export const calculateRevenue = async ({
         return;
       }
 
-      const salesOrderAmount = salesOrder.orderTotal || 0;
+      // Validate salesOrder.orderTotal before calculation
+      if (salesOrder.orderTotal == null) {
+        console.error(
+          `Sales Order ${salesOrder._id} has null/undefined orderTotal. Skipping revenue calculation.`
+        );
+        return; // Skip this sales order if orderTotal is missing
+      }
+      const salesOrderAmount = salesOrder.orderTotal;
       let totalJobOrderAmount = 0;
 
       associatedJobOrders.forEach((jobOrder) => {
@@ -146,9 +153,17 @@ export const calculateRevenue = async ({
           jobOrder.billingCycles.forEach((cycle) => {
             if (cycle.units && cycle.units.length > 0) {
               cycle.units.forEach((unit) => {
+                // Validate unit data before calculation
+                if (unit.quantity == null || unit.rate == null) {
+                  console.error(
+                    `Job Order ${jobOrder._id} has unit with missing quantity or rate. Skipping unit.`,
+                    unit
+                  );
+                  return; // Skip this unit if data is missing
+                }
                 // Use utility function for consistent calculation
                 const unitAmount = parseFloat(
-                  calculateProductAmount(unit.quantity || 0, unit.rate || 0)
+                  calculateProductAmount(unit.quantity, unit.rate)
                 );
                 jobOrderTotal = add(jobOrderTotal, unitAmount);
               });
@@ -159,14 +174,16 @@ export const calculateRevenue = async ({
       });
 
       // Calculate vendor transaction charges
+      // Use nullish coalescing to preserve 0 values
+      const vendorChargesValue = vendorTransactionCharges ?? 0;
       let vendorCharges = 0;
       if (vendorTransactionChargesMode === "percentage") {
         vendorCharges = calculatePercentage(
           salesOrderAmount,
-          vendorTransactionCharges || 0
+          vendorChargesValue
         );
       } else {
-        vendorCharges = parseFloat(String(vendorTransactionCharges || 0));
+        vendorCharges = parseFloat(String(vendorChargesValue));
       }
 
       // Revenue for this sales order = Sales Order Amount - Job Order Amount + Vendor Transaction Charges

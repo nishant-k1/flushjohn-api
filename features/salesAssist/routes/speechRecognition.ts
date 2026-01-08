@@ -48,7 +48,8 @@ router.post("/speech/recognize", async (req, res) => {
         success: false,
         message: "Audio data is required",
         error: "INVALID_REQUEST",
-      }); return;
+      });
+      return;
     }
 
     // Convert base64 to buffer

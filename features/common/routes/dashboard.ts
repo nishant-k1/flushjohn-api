@@ -25,14 +25,16 @@ router.post("/revenue/calculate", async (req, res) => {
       res.status(400).json({
         success: false,
         message: "Start date and end date are required",
-      }); return;
+      });
+      return;
     }
 
     if (new Date(startDate) > new Date(endDate)) {
       res.status(400).json({
         success: false,
         message: "Start date must be before end date",
-      }); return;
+      });
+      return;
     }
 
     const result = await calculateRevenue({

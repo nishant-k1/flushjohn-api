@@ -11,10 +11,7 @@ import {
   listCustomerPaymentMethods,
   retrievePaymentLink,
 } from "./stripeService.js";
-import {
-  calculateOrderTotal,
-  calculateOrderTotalCents,
-} from "../../../utils/productAmountCalculations.js";
+import { calculateOrderTotal } from "../../../utils/productAmountCalculations.js";
 import {
   centsToDollars,
   min,
@@ -66,14 +63,14 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
       // Add the original payment amount
       totalPaid = add(totalPaid, payment.amount);
       // Add any refunded amount (0 for succeeded, amount for refunded, partial for partially_refunded)
-      totalRefunded = add(totalRefunded, payment.refundedAmount || 0);
+      // Use nullish coalescing to preserve 0 values
+      totalRefunded = add(totalRefunded, payment.refundedAmount ?? 0);
     }
   });
 
   // Use utility functions for payment calculations
-  const { calculateNetPaidAmount, calculateBalanceDue } = await import(
-    "../../../utils/priceCalculations.js"
-  );
+  const { calculateNetPaidAmount, calculateBalanceDue } =
+    await import("../../../utils/priceCalculations.js");
   const netPaidAmount = calculateNetPaidAmount(totalPaid, totalRefunded);
   const balanceDue = calculateBalanceDue(orderTotal, netPaidAmount);
 
@@ -98,9 +95,8 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
 
   // Emit socket event for sales order update
   try {
-    const { emitSalesOrderUpdated } = await import(
-      "../../salesOrders/sockets/salesOrders.js"
-    );
+    const { emitSalesOrderUpdated } =
+      await import("../../salesOrders/sockets/salesOrders.js");
     emitSalesOrderUpdated(salesOrderId, updatedSalesOrder);
   } catch (error) {
     console.error("Failed to emit salesOrderUpdated event:", error);
@@ -371,9 +367,8 @@ export const chargeSalesOrder = async (
 
   // Emit socket event for payment creation
   try {
-    const { emitPaymentCreated } = await import(
-      "../../salesOrders/sockets/salesOrders.js"
-    );
+    const { emitPaymentCreated } =
+      await import("../../salesOrders/sockets/salesOrders.js");
     emitPaymentCreated(salesOrderId, payment);
   } catch (error) {
     console.error("Failed to emit paymentCreated event:", error);
@@ -401,9 +396,8 @@ export const chargeSalesOrder = async (
     // Webhook will also try to send, but sendReceiptAndMarkSent prevents duplicates
     try {
       const updatedPayment = await paymentsRepository.findById(payment._id);
-      const updatedSalesOrder = await salesOrdersRepository.findById(
-        salesOrderId
-      );
+      const updatedSalesOrder =
+        await salesOrdersRepository.findById(salesOrderId);
       await sendReceiptAndMarkSent(updatedPayment, updatedSalesOrder);
     } catch (receiptError) {
       // Log error but don't fail the payment - receipt can be sent manually later
@@ -476,12 +470,12 @@ export const refundPayment = async (
   }
 
   // Use utility function for available refund calculation
-  const { calculateAvailableRefund } = await import(
-    "../../../utils/priceCalculations.js"
-  );
+  const { calculateAvailableRefund } =
+    await import("../../../utils/priceCalculations.js");
+  // Use nullish coalescing to preserve 0 values
   const availableToRefund = calculateAvailableRefund(
     payment.amount,
-    payment.refundedAmount || 0
+    payment.refundedAmount ?? 0
   );
   if (availableToRefund <= 0) {
     throw new Error("No amount available to refund");
@@ -522,8 +516,9 @@ export const refundPayment = async (
   });
 
   // Update payment record
+  // Use nullish coalescing to preserve 0 values
   const newRefundedAmount =
-    (payment.refundedAmount || 0) + refundAmountToProcess;
+    (payment.refundedAmount ?? 0) + refundAmountToProcess;
   const newStatus =
     newRefundedAmount >= payment.amount ? "refunded" : "partially_refunded";
 
@@ -534,9 +529,8 @@ export const refundPayment = async (
 
   // Emit socket event for payment update
   try {
-    const { emitPaymentUpdated } = await import(
-      "../../salesOrders/sockets/salesOrders.js"
-    );
+    const { emitPaymentUpdated } =
+      await import("../../salesOrders/sockets/salesOrders.js");
     emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
   } catch (error) {
     console.error("Failed to emit paymentUpdated event:", error);
@@ -657,9 +651,8 @@ export const savePaymentMethod = async (
  */
 export const deletePaymentMethod = async (paymentMethodId) => {
   try {
-    const { detachPaymentMethodFromCustomer } = await import(
-      "../services/stripeService.js"
-    );
+    const { detachPaymentMethodFromCustomer } =
+      await import("../services/stripeService.js");
     await detachPaymentMethodFromCustomer(paymentMethodId);
     return { success: true };
   } catch (error) {
@@ -833,9 +826,8 @@ export const syncPaymentLinkStatus = async (paymentId) => {
 
       // Emit socket event for payment update
       try {
-        const { emitPaymentUpdated } = await import(
-          "../../salesOrders/sockets/salesOrders.js"
-        );
+        const { emitPaymentUpdated } =
+          await import("../../salesOrders/sockets/salesOrders.js");
         emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
       } catch (error) {
         console.error("Failed to emit paymentUpdated event:", error);
@@ -955,9 +947,8 @@ export const cancelPaymentLink = async (paymentId) => {
 
   // Emit socket event for payment update
   try {
-    const { emitPaymentUpdated } = await import(
-      "../../salesOrders/sockets/salesOrders.js"
-    );
+    const { emitPaymentUpdated } =
+      await import("../../salesOrders/sockets/salesOrders.js");
     emitPaymentUpdated(salesOrderId, updatedPayment);
   } catch (error) {
     console.error("Failed to emit paymentUpdated event:", error);
@@ -1033,9 +1024,8 @@ export const handleStripeWebhook = async (event) => {
         }
 
         if (paymentLinkId) {
-          payment = await paymentsRepository.findByStripePaymentLinkId(
-            paymentLinkId
-          );
+          payment =
+            await paymentsRepository.findByStripePaymentLinkId(paymentLinkId);
         }
       }
 
@@ -1101,9 +1091,8 @@ export const handleStripeWebhook = async (event) => {
 
       // Emit socket event for payment update (webhook)
       try {
-        const { emitPaymentUpdated } = await import(
-          "../../salesOrders/sockets/salesOrders.js"
-        );
+        const { emitPaymentUpdated } =
+          await import("../../salesOrders/sockets/salesOrders.js");
         emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
       } catch (error) {
         console.error("Failed to emit paymentUpdated event:", error);
@@ -1118,9 +1107,8 @@ export const handleStripeWebhook = async (event) => {
         );
         // Emit error event for frontend notification
         try {
-          const { emitPaymentError } = await import(
-            "../../salesOrders/sockets/salesOrders.js"
-          );
+          const { emitPaymentError } =
+            await import("../../salesOrders/sockets/salesOrders.js");
           emitPaymentError(
             salesOrderIdForUpdate,
             "payment_totals_update_failed",
@@ -1159,9 +1147,8 @@ export const handleStripeWebhook = async (event) => {
         console.error("❌ Error sending receipt email:", emailError);
         // Emit error event for frontend notification
         try {
-          const { emitPaymentError } = await import(
-            "../../salesOrders/sockets/salesOrders.js"
-          );
+          const { emitPaymentError } =
+            await import("../../salesOrders/sockets/salesOrders.js");
           emitPaymentError(
             salesOrderIdForUpdate,
             "receipt_send_failed",
@@ -1226,9 +1213,8 @@ export const handleStripeWebhook = async (event) => {
 
         // Emit socket event for payment update (webhook)
         try {
-          const { emitPaymentUpdated } = await import(
-            "../../salesOrders/sockets/salesOrders.js"
-          );
+          const { emitPaymentUpdated } =
+            await import("../../salesOrders/sockets/salesOrders.js");
           emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
         } catch (error) {
           console.error("Failed to emit paymentUpdated event:", error);
@@ -1243,9 +1229,8 @@ export const handleStripeWebhook = async (event) => {
           );
           // Emit error event for frontend notification
           try {
-            const { emitPaymentError } = await import(
-              "../../salesOrders/sockets/salesOrders.js"
-            );
+            const { emitPaymentError } =
+              await import("../../salesOrders/sockets/salesOrders.js");
             emitPaymentError(
               salesOrderIdForUpdate,
               "payment_totals_update_failed",
@@ -1282,9 +1267,8 @@ export const handleStripeWebhook = async (event) => {
           // Log error and emit error event for frontend notification
           console.error("❌ Failed to send receipt email:", receiptError);
           try {
-            const { emitPaymentError } = await import(
-              "../../salesOrders/sockets/salesOrders.js"
-            );
+            const { emitPaymentError } =
+              await import("../../salesOrders/sockets/salesOrders.js");
             emitPaymentError(
               salesOrderIdForUpdate,
               "receipt_send_failed",
@@ -1328,9 +1312,8 @@ export const handleStripeWebhook = async (event) => {
           if (salesOrderIdForUpdate) {
             // Emit error event for frontend notification
             try {
-              const { emitPaymentError } = await import(
-                "../../salesOrders/sockets/salesOrders.js"
-              );
+              const { emitPaymentError } =
+                await import("../../salesOrders/sockets/salesOrders.js");
               emitPaymentError(
                 salesOrderIdForUpdate,
                 "payment_failed",
@@ -1353,9 +1336,8 @@ export const handleStripeWebhook = async (event) => {
                 ? payment.salesOrder._id
                 : payment.salesOrder;
             if (salesOrderIdForUpdate) {
-              const { emitPaymentError } = await import(
-                "../../salesOrders/sockets/salesOrders.js"
-              );
+              const { emitPaymentError } =
+                await import("../../salesOrders/sockets/salesOrders.js");
               emitPaymentError(
                 salesOrderIdForUpdate,
                 "payment_status_update_failed",
@@ -1430,9 +1412,8 @@ export const handleStripeWebhook = async (event) => {
             if (salesOrderIdForUpdate) {
               // Emit socket event for payment update
               try {
-                const { emitPaymentUpdated } = await import(
-                  "../../salesOrders/sockets/salesOrders.js"
-                );
+                const { emitPaymentUpdated } =
+                  await import("../../salesOrders/sockets/salesOrders.js");
                 emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
               } catch (error) {
                 console.error("Failed to emit paymentUpdated event:", error);
@@ -1447,13 +1428,15 @@ export const handleStripeWebhook = async (event) => {
       }
 
       // Payment found by charge ID - process refund update
+      // Use nullish coalescing to preserve 0 values
       const amountRefundedInDollars = centsToDollars(
-        charge.amount_refunded || 0
+        charge.amount_refunded ?? 0
       );
       const paymentAmount = payment.amount;
 
       // Only update if the refunded amount has changed (prevent duplicate processing)
-      const currentRefundedAmount = payment.refundedAmount || 0;
+      // Use nullish coalescing to preserve 0 values
+      const currentRefundedAmount = payment.refundedAmount ?? 0;
       if (
         abs(subtract(amountRefundedInDollars, currentRefundedAmount)) < 0.01
       ) {
@@ -1484,9 +1467,8 @@ export const handleStripeWebhook = async (event) => {
       if (salesOrderIdForUpdate) {
         // Emit socket event for payment update
         try {
-          const { emitPaymentUpdated } = await import(
-            "../../salesOrders/sockets/salesOrders.js"
-          );
+          const { emitPaymentUpdated } =
+            await import("../../salesOrders/sockets/salesOrders.js");
           emitPaymentUpdated(salesOrderIdForUpdate, updatedPayment);
         } catch (error) {
           console.error("Failed to emit paymentUpdated event:", error);

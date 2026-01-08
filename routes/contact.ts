@@ -17,7 +17,12 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
     const emailData = req.body as ContactEmailData;
 
     // Validate required fields
-    if (!emailData.firstName || !emailData.lastName || !emailData.email || !emailData.message) {
+    if (
+      !emailData.firstName ||
+      !emailData.lastName ||
+      !emailData.email ||
+      !emailData.message
+    ) {
       res.status(400).json({
         success: false,
         message: "Missing required fields",

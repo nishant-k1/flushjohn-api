@@ -69,7 +69,6 @@ export const setupS3LifecyclePolicies = async () => {
     });
 
     await s3.send(command);
-
   } catch (error) {
     console.error("❌ Error setting up S3 lifecycle policies:", error);
     throw error;
@@ -107,7 +106,6 @@ export const setupSmartLifecyclePolicy = async () => {
     });
 
     await s3.send(command);
-
   } catch (error) {
     console.error("❌ Error setting up smart lifecycle policy:", error);
     throw error;

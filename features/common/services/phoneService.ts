@@ -60,7 +60,7 @@ export const initiateCall = async (phoneNumber) => {
     };
   } catch (error) {
     console.error("Phone.com API error:", error.message);
-    
+
     // If API call fails, fallback to tel: link
     return {
       success: true,
@@ -71,4 +71,3 @@ export const initiateCall = async (phoneNumber) => {
     };
   }
 };
-

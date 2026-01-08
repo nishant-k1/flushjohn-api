@@ -1,17 +1,17 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import User from "../models/User.js";
-import {
-  isUserJwtPayload,
-  UserJwtPayload,
-  MongooseFilter,
-} from "../../../types/common.js";
+import { isUserJwtPayload } from "../../../types/common.js";
 
 /**
  * JWT Authentication Middleware
  * Verifies JWT tokens and adds user information to the request
  */
-export const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const authHeader = req.headers.authorization;
     const queryToken = req.query.token as string | undefined;
@@ -129,7 +129,11 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
  * Similar to authenticateToken but doesn't require authentication
  * If token is provided, it will be verified and user info added to request
  */
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const authHeader = req.headers.authorization;
     const queryToken = req.query.token as string | undefined;
@@ -206,7 +210,11 @@ export const authorizeRoles = (...roles: string[]) => {
  * Admin-only Authorization Middleware
  * Must be used after authenticateToken middleware
  */
-export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const requireAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -231,7 +239,11 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
  * Allows access if user is accessing their own data or is an admin
  * Must be used after authenticateToken middleware
  */
-export const selfOrAdmin = (req: Request, res: Response, next: NextFunction) => {
+export const selfOrAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -260,7 +272,11 @@ export const selfOrAdmin = (req: Request, res: Response, next: NextFunction) => 
  * Checks if user has permission to access specific document types
  * Must be used after authenticateToken middleware
  */
-export const checkDocumentAccess = (req: Request, res: Response, next: NextFunction) => {
+export const checkDocumentAccess = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,

@@ -2,7 +2,7 @@
  * US State Sales Tax Rates
  * Single source of truth for state tax rates across the application
  * Rates are state-level base rates and may vary by locality
- * 
+ *
  * Last Updated: 2025
  */
 

@@ -4,7 +4,6 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { getCurrentDateTime } from "../lib/dayjs.js";
 import { calculateProductAmount } from "../utils/productAmountCalculations.js";
 import { roundPrice } from "../utils/priceCalculations.js";
 

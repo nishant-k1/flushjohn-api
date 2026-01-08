@@ -1,6 +1,6 @@
 import { Server as HttpServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
-import { Namespace, Socket } from "socket.io";
+import { Socket } from "socket.io";
 import { leadSocketHandler } from "../features/leads/sockets/leads.js";
 import { salesOrderSocketHandler } from "../features/salesOrders/sockets/salesOrders.js";
 import { initializeSpeechRecognitionNamespace } from "../features/salesAssist/sockets/speechRecognition.js";

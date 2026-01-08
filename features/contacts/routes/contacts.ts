@@ -10,8 +10,6 @@ import * as contactsService from "../services/contactsService.js";
 import { authenticateToken } from "../../auth/middleware/auth.js";
 import {
   RESOURCES,
-  ACTIONS,
-  canCreate,
   canRead,
   canUpdate,
   canDelete,
@@ -33,8 +31,8 @@ router.get(
       const limit = parseInt(req.query.limit) || 10;
       const sortBy = req.query.sortBy || "createdAt";
       const sortOrder = req.query.sortOrder || "desc";
-      const { 
-        status, 
+      const {
+        status,
         search,
         page: _page,
         limit: _limit,
@@ -76,7 +74,8 @@ router.get(
           success: false,
           message: "Invalid ID format",
           error: "INVALID_ID_FORMAT",
-        }); return;
+        });
+        return;
       }
 
       res.status(500).json({
@@ -111,7 +110,8 @@ router.get(
           success: false,
           message: error.message,
           error: "CONTACT_NOT_FOUND",
-        }); return;
+        });
+        return;
       }
 
       if (error.name === "CastError") {
@@ -119,7 +119,8 @@ router.get(
           success: false,
           message: "Invalid ID format",
           error: "INVALID_ID_FORMAT",
-        }); return;
+        });
+        return;
       }
 
       res.status(500).json({
@@ -147,7 +148,8 @@ router.put(
           success: false,
           message: "Invalid contact ID format",
           error: "INVALID_ID_FORMAT",
-        }); return;
+        });
+        return;
       }
 
       if (!req.body || Object.keys(req.body).length === 0) {
@@ -155,7 +157,8 @@ router.put(
           success: false,
           message: "Request body is required for update",
           error: "EMPTY_REQUEST_BODY",
-        }); return;
+        });
+        return;
       }
 
       const contact = await contactsService.updateContact(id, req.body);
@@ -171,7 +174,8 @@ router.put(
           success: false,
           message: error.message,
           error: "CONTACT_NOT_FOUND",
-        }); return;
+        });
+        return;
       }
 
       if (error.name === "CastError") {
@@ -179,7 +183,8 @@ router.put(
           success: false,
           message: "Invalid ID format",
           error: "INVALID_ID_FORMAT",
-        }); return;
+        });
+        return;
       }
 
       res.status(500).json({
@@ -214,7 +219,8 @@ router.delete(
           success: false,
           message: error.message,
           error: "CONTACT_NOT_FOUND",
-        }); return;
+        });
+        return;
       }
 
       if (error.name === "CastError") {
@@ -222,7 +228,8 @@ router.delete(
           success: false,
           message: "Invalid ID format",
           error: "INVALID_ID_FORMAT",
-        }); return;
+        });
+        return;
       }
 
       res.status(500).json({
@@ -238,4 +245,3 @@ router.delete(
 );
 
 export default router;
-

@@ -237,9 +237,8 @@ export const attachPaymentMethodToCustomer = async (
 
       if (isAlreadyAttached) {
         // Payment method is already attached, return it without re-attaching
-        const paymentMethod = await stripe.paymentMethods.retrieve(
-          paymentMethodId
-        );
+        const paymentMethod =
+          await stripe.paymentMethods.retrieve(paymentMethodId);
         return paymentMethod;
       }
     } catch (checkError) {
@@ -270,9 +269,8 @@ export const attachPaymentMethodToCustomer = async (
         error.message?.includes("already attached"))
     ) {
       try {
-        const paymentMethod = await stripe.paymentMethods.retrieve(
-          paymentMethodId
-        );
+        const paymentMethod =
+          await stripe.paymentMethods.retrieve(paymentMethodId);
         return paymentMethod;
       } catch (retrieveError) {
         console.error(

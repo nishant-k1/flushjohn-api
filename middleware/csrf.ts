@@ -12,14 +12,17 @@ import crypto from "crypto";
 const tokenStore = new Map<string, { token: string; expiresAt: number }>();
 
 // Cleanup expired tokens every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of tokenStore.entries()) {
-    if (value.expiresAt < now) {
-      tokenStore.delete(key);
+setInterval(
+  () => {
+    const now = Date.now();
+    for (const [key, value] of tokenStore.entries()) {
+      if (value.expiresAt < now) {
+        tokenStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000
+);
 
 /**
  * Get consistent session ID from request

@@ -1,12 +1,12 @@
 import { uploadPDFToS3 } from "../../common/services/s3Service.js";
 
-// @ts-ignore - PDF templates may not exist at compile time
+// @ts-expect-error - PDF templates may not exist at compile time
 import quoteTemplate from "../../quotes/templates/pdf.js";
-// @ts-ignore
+// @ts-expect-error
 import salesOrderTemplate from "../../salesOrders/templates/pdf.js";
-// @ts-ignore
+// @ts-expect-error
 import jobOrderTemplate from "../../jobOrders/templates/pdf.js";
-// @ts-ignore
+// @ts-expect-error
 import receiptTemplate from "../../payments/templates/pdf.js";
 
 let browserLib = null;
@@ -328,9 +328,8 @@ export const generateSalesOrderPDF = async (salesOrderData, salesOrderId) => {
 export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
   if (jobOrderData.vendor && jobOrderData.vendor._id) {
     try {
-      const { default: Vendors } = await import(
-        "../../vendors/models/Vendors.js"
-      );
+      const { default: Vendors } =
+        await import("../../vendors/models/Vendors.js");
 
       let vendor = await (Vendors as any).findById(jobOrderData.vendor._id);
 

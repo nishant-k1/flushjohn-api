@@ -17,7 +17,6 @@ import {
   runAutomatedBlogGeneration,
   getAutomationStats,
 } from "./automatedBlogService.js";
-import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 const CRON_CONFIG = {
   weeklyBlogGeneration: "0 9 * * 1",
@@ -82,7 +81,6 @@ async function weeklyBlogGenerationJob() {
   const jobName = "weeklyBlogGeneration";
   const startTime = new Date();
 
-
   jobStatus[jobName].isRunning = true;
   jobStatus[jobName].lastRun = startTime;
   jobStatus[jobName].totalRuns++;
@@ -120,7 +118,6 @@ async function midWeekBlogGenerationJob() {
   const jobName = "midWeekBlogGeneration";
   const startTime = new Date();
 
-
   jobStatus[jobName].isRunning = true;
   jobStatus[jobName].lastRun = startTime;
   jobStatus[jobName].totalRuns++;
@@ -157,7 +154,6 @@ async function midWeekBlogGenerationJob() {
 async function weeklyProblemSolvingJob() {
   const jobName = "weeklyProblemSolving";
   const startTime = new Date();
-
 
   jobStatus[jobName].isRunning = true;
   jobStatus[jobName].lastRun = startTime;
@@ -201,7 +197,6 @@ async function dailyStatusCheckJob() {
 
   try {
     const stats = await getAutomationStats();
-
 
     if (stats.lastAutomatedPost) {
     }
@@ -320,7 +315,6 @@ export function initializeCronJobs() {
   problemSolvingJob.start();
   dailyJob.start();
   healthJob.start();
-
 
   return {
     weeklyJob,

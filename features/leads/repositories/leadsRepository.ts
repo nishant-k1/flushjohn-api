@@ -1,6 +1,6 @@
 /**
  * Leads Repository - Database Access Layer
- * 
+ *
  * This layer handles all direct database operations for Leads.
  * No business logic should be here - just pure database queries.
  */
@@ -17,8 +17,14 @@ export const create = async (leadData) => {
 /**
  * Find all leads with filters, sorting, and pagination
  */
-export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await (Leads as any).find(query)
+export const findAll = async ({
+  query = {},
+  sort = {},
+  skip = 0,
+  limit = 10,
+}) => {
+  return await (Leads as any)
+    .find(query)
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -50,11 +56,10 @@ export const findOne = async (query, projection = null) => {
  * Update a lead by ID
  */
 export const updateById = async (id, updateData) => {
-  return await (Leads as any).findByIdAndUpdate(
-    id,
-    updateData,
-    { new: true, runValidators: true }
-  );
+  return await (Leads as any).findByIdAndUpdate(id, updateData, {
+    new: true,
+    runValidators: true,
+  });
 };
 
 /**

@@ -1,134 +1,137 @@
 import { Schema, model } from "mongoose";
 
-const LeadsSchema = new Schema({
-  leadNo: {
-    type: Number,
-    unique: true,
-  },
-  leadSource: {
-    type: String,
-    trim: true,
-  },
-  leadStatus: {
-    type: String,
-    default: "None",
-    trim: true,
-  },
-  assignedTo: {
-    type: String,
-    trim: true,
-  },
-
-  // ✅ MongoDB References (ObjectId) - Relationships to related records
-  quotes: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "Quotes",
+const LeadsSchema = new Schema(
+  {
+    leadNo: {
+      type: Number,
+      unique: true,
     },
-  ],
-  salesOrders: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "SalesOrders",
+    leadSource: {
+      type: String,
+      trim: true,
     },
-  ],
-  jobOrders: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "JobOrders",
+    leadStatus: {
+      type: String,
+      default: "None",
+      trim: true,
     },
-  ],
-  // Optional: reference to customer if lead converted
-  customer: {
-    type: Schema.Types.ObjectId,
-    ref: "Customer",
-  },
+    assignedTo: {
+      type: String,
+      trim: true,
+    },
 
-  usageType: {
-    type: String,
-    trim: true,
-  },
-  products: {
-    type: Array,
-  },
+    // ✅ MongoDB References (ObjectId) - Relationships to related records
+    quotes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Quotes",
+      },
+    ],
+    salesOrders: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "SalesOrders",
+      },
+    ],
+    jobOrders: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "JobOrders",
+      },
+    ],
+    // Optional: reference to customer if lead converted
+    customer: {
+      type: Schema.Types.ObjectId,
+      ref: "Customer",
+    },
 
-  // Contact Information - with normalization
-  fName: {
-    type: String,
-    trim: true,
-    maxlength: 50,
-  },
-  lName: {
-    type: String,
-    trim: true,
-    maxlength: 50,
-  },
-  cName: {
-    type: String,
-    trim: true,
-    maxlength: 100,
-  },
-  email: {
-    type: String,
-    lowercase: true,
-    trim: true,
-  },
-  phone: {
-    type: String,
-    trim: true,
-  },
-  fax: {
-    type: String,
-    trim: true,
-  },
-  contactPersonName: {
-    type: String,
-    trim: true,
-    maxlength: 100,
-  },
-  contactPersonPhone: {
-    type: String,
-    trim: true,
-  },
+    usageType: {
+      type: String,
+      trim: true,
+    },
+    products: {
+      type: Array,
+    },
 
-  // Dates - Changed from String to Date for proper Mongoose handling
-  deliveryDate: {
-    type: Date,
-  },
-  pickupDate: {
-    type: Date,
-  },
+    // Contact Information - with normalization
+    fName: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+    },
+    lName: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+    },
+    cName: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+    },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+    },
+    phone: {
+      type: String,
+      trim: true,
+    },
+    fax: {
+      type: String,
+      trim: true,
+    },
+    contactPersonName: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+    },
+    contactPersonPhone: {
+      type: String,
+      trim: true,
+    },
 
-  // Address Information
-  streetAddress: {
-    type: String,
-    trim: true,
+    // Dates - Changed from String to Date for proper Mongoose handling
+    deliveryDate: {
+      type: Date,
+    },
+    pickupDate: {
+      type: Date,
+    },
+
+    // Address Information
+    streetAddress: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    state: {
+      type: String,
+      uppercase: true,
+      trim: true,
+    },
+    zip: {
+      type: String,
+      trim: true,
+    },
+    country: {
+      type: String,
+      default: "USA",
+      trim: true,
+    },
+    instructions: {
+      type: String,
+      trim: true,
+    },
   },
-  city: {
-    type: String,
-    trim: true,
-  },
-  state: {
-    type: String,
-    uppercase: true,
-    trim: true,
-  },
-  zip: {
-    type: String,
-    trim: true,
-  },
-  country: {
-    type: String,
-    default: "USA",
-    trim: true,
-  },
-  instructions: {
-    type: String,
-    trim: true,
-  },
-}, {
-  timestamps: true, // Auto-manage createdAt and updatedAt
-});
+  {
+    timestamps: true, // Auto-manage createdAt and updatedAt
+  }
+);
 
 // Indexes for query performance
 LeadsSchema.index({ createdAt: -1 }); // For sorting by creation date

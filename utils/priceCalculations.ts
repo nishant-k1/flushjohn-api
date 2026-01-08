@@ -1,10 +1,10 @@
 /**
  * Price Calculation Utilities
  * MONEY/CURRENCY OPERATIONS ONLY
- * 
+ *
  * This file contains utilities specifically for financial/price calculations.
  * All functions here handle money with proper rounding and validation.
- * 
+ *
  * For general numeric operations (counts, percentages, scores, etc.),
  * use numericCalculations.ts instead.
  */
@@ -515,7 +515,7 @@ export const add = (a: number | string, b: number | string): number => {
   }
 
   const result = aNum + bNum;
-  
+
   // For addition, use roundToDecimals to avoid negative validation issues
   // roundPrice would fail if intermediate calculations produce tiny negatives
   if (result < 0) {
@@ -523,7 +523,7 @@ export const add = (a: number | string, b: number | string): number => {
       `Price addition resulted in negative value: ${a} + ${b} = ${result}`
     );
   }
-  
+
   return roundToDecimals(result, 2);
 };
 
@@ -553,7 +553,7 @@ export const subtract = (a: number | string, b: number | string): number => {
   }
 
   const result = aNum - bNum;
-  
+
   // Use roundToDecimals instead of roundPrice to allow negative values
   // (e.g., when calculating overpayment: paid - total can be negative)
   return roundToDecimals(result, 2);
@@ -583,13 +583,13 @@ export const multiply = (a: number | string, b: number | string): number => {
   }
 
   const result = aNum * bNum;
-  
+
   if (result < 0) {
     throw new Error(
       `Price multiplication resulted in negative value: ${a} * ${b} = ${result}`
     );
   }
-  
+
   return roundToDecimals(result, 2);
 };
 
@@ -621,13 +621,13 @@ export const divide = (a: number | string, b: number | string): number => {
   }
 
   const result = aNum / bNum;
-  
+
   if (result < 0) {
     throw new Error(
       `Price division resulted in negative value: ${a} / ${b} = ${result}`
     );
   }
-  
+
   return roundToDecimals(result, 2);
 };
 

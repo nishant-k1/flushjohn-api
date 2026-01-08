@@ -53,7 +53,8 @@ router.post("/analyze", async (req, res) => {
  */
 router.get("/pricing", async (req, res) => {
   try {
-    const { zipCode, city, state, eventType, quantity, productItem } = req.query;
+    const { zipCode, city, state, eventType, quantity, productItem } =
+      req.query;
 
     if (!zipCode && !city) {
       return res.status(400).json({
@@ -138,9 +139,8 @@ router.post("/vendor-call-suggestions", async (req, res) => {
       });
     }
 
-    const suggestions = await salesAssistService.generateVendorCallSuggestions(
-      leadId
-    );
+    const suggestions =
+      await salesAssistService.generateVendorCallSuggestions(leadId);
 
     res.status(200).json({
       success: true,
@@ -323,9 +323,8 @@ router.get("/vendor-learnings", async (req, res) => {
  */
 async function processVendorConversationForLearning(conversationId) {
   try {
-    const conversation = await vendorConversationLogRepository.findById(
-      conversationId
-    );
+    const conversation =
+      await vendorConversationLogRepository.findById(conversationId);
     if (!conversation || conversation.processed) return;
 
     // Use OpenAI to extract learnings from the conversation

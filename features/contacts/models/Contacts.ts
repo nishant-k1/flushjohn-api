@@ -53,4 +53,3 @@ ContactsSchema.index({ status: 1 });
 const Contacts = model("Contacts", ContactsSchema);
 
 export default Contacts;
-

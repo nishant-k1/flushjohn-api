@@ -4,7 +4,7 @@ import {
   calculateSkip,
 } from "../../../utils/numericCalculations.js";
 import * as conversationLogRepository from "../../salesAssist/repositories/conversationLogRepository.js";
-import { getCurrentDateTime, createDate } from "../../../lib/dayjs.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 export const generateJobOrderNumber = async () => {
   const maxRetries = 5;
@@ -368,7 +368,8 @@ const getAllJobOrdersWithAggregation = async ({
     (JobOrders as any).aggregate(countPipeline),
   ]);
 
-  const total = countResult[0]?.total || 0;
+  // Use nullish coalescing to preserve 0 values
+  const total = countResult[0]?.total ?? 0;
   const totalPages = calculateTotalPages(total, limit);
 
   return {
@@ -530,7 +531,9 @@ export const updateJobOrder = async (id, updateData) => {
 
   // Remove undefined fields from jobOrderFields
   Object.keys(jobOrderFields).forEach(
-    (key) => jobOrderFields[key as keyof typeof jobOrderFields] === undefined && delete jobOrderFields[key as keyof typeof jobOrderFields]
+    (key) =>
+      jobOrderFields[key as keyof typeof jobOrderFields] === undefined &&
+      delete jobOrderFields[key as keyof typeof jobOrderFields]
   );
 
   // ✅ Update the JobOrder with only job-order-specific fields

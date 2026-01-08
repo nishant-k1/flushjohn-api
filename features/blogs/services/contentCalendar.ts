@@ -329,7 +329,8 @@ export const contentCalendar = {
 
   caseStudies: [
     {
-      title: "How We Provided Porta Potty Solutions for a 10,000-Person Music Festival in Austin",
+      title:
+        "How We Provided Porta Potty Solutions for a 10,000-Person Music Festival in Austin",
       category: "events",
       keywords: {
         primary: "Austin music festival porta potty case study",
@@ -338,7 +339,8 @@ export const contentCalendar = {
       },
       templateType: "caseStudy",
       season: "year-round",
-      focus: "Large-scale event management, festival logistics, and capacity planning",
+      focus:
+        "Large-scale event management, festival logistics, and capacity planning",
     },
     {
       title: "Construction Site Porta Potty Success: Dallas High-Rise Project",
@@ -350,7 +352,8 @@ export const contentCalendar = {
       },
       templateType: "caseStudy",
       season: "year-round",
-      focus: "Long-term construction rentals, OSHA compliance, and site management",
+      focus:
+        "Long-term construction rentals, OSHA compliance, and site management",
     },
     {
       title: "Luxury Wedding Porta Potty: Miami Beach Wedding Success Story",
@@ -377,7 +380,8 @@ export const contentCalendar = {
       focus: "Emergency response, same-day delivery, and crisis management",
     },
     {
-      title: "Multi-Site Construction Porta Potty Management: Chicago Success Story",
+      title:
+        "Multi-Site Construction Porta Potty Management: Chicago Success Story",
       category: "construction",
       keywords: {
         primary: "Chicago construction porta potty case study",

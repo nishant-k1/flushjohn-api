@@ -228,9 +228,8 @@ export const serializeState = (state: string | null | undefined): string => {
  * @param data - Object containing contact information
  * @returns Object with normalized contact data
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export const serializeContactData = (data: any): any => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalized: any = { ...data };
 
   // Serialize phone fields

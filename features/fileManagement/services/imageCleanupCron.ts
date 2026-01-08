@@ -4,7 +4,6 @@
  */
 
 import cron from "node-cron";
-import { deleteImageFromS3 } from "./imageCleanupService.js";
 import * as blogsRepository from "../../blogs/repositories/blogsRepository.js";
 
 /**

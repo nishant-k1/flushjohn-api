@@ -37,8 +37,8 @@ You can pay your invoice of $${
       balanceDue > 0
         ? balanceDue.toFixed(2)
         : typeof orderTotal === "string"
-        ? orderTotal
-        : orderTotal.toFixed(2)
+          ? orderTotal
+          : orderTotal.toFixed(2)
     } by clicking the link below:
 ${invoiceData.paymentLinkUrl}
 

@@ -295,9 +295,8 @@ const deleteCoverImageFromS3 = async (blogId) => {
 
     if (!deleted) {
       try {
-        const { ListObjectsV2Command, DeleteObjectCommand } = await import(
-          "@aws-sdk/client-s3"
-        );
+        const { ListObjectsV2Command, DeleteObjectCommand } =
+          await import("@aws-sdk/client-s3");
         const listParams = {
           Bucket: process.env.AWS_S3_BUCKET_NAME,
           Prefix: `images/blog/cover-${blogId}-`,

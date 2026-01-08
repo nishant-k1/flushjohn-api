@@ -13,7 +13,9 @@ const productsData = (leadSource, products) => {
     const quantity = Number(product.quantity) || 0;
     const rate = Number(product.rate) || 0;
     // Use utility function for consistent calculation
-    const amount = Number(product.amount) || parseFloat(calculateProductAmount(quantity, rate));
+    const amount =
+      Number(product.amount) ||
+      parseFloat(calculateProductAmount(quantity, rate));
 
     return {
       id: product.id || `product-${Date.now()}-${index}`,
@@ -77,7 +79,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
         leadNo,
       });
       const lead = await Leads.create(webLead);
-      
+
       // Send alerts in background (non-blocking)
       alertService.sendLeadAlerts(lead).catch(() => {});
 
@@ -100,10 +102,7 @@ export function leadSocketHandler(leadsNamespace, socket) {
   socket.on("getLeads", async () => {
     try {
       // OPTIMIZATION: Add limit to prevent fetching entire collection
-      const leadsList = await Leads.find()
-        .sort({ _id: -1 })
-        .limit(100)
-        .lean();
+      const leadsList = await Leads.find().sort({ _id: -1 }).limit(100).lean();
       socket.emit("leadList", leadsList);
     } catch (error) {}
   });

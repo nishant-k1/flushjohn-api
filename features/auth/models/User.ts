@@ -123,7 +123,10 @@ UserSchema.methods.incLoginAttempts = function () {
     });
   }
 
-  const updates: { $inc: { failedLoginAttempts: number }; $set?: { lockUntil: Date } } = { $inc: { failedLoginAttempts: 1 } };
+  const updates: {
+    $inc: { failedLoginAttempts: number };
+    $set?: { lockUntil: Date };
+  } = { $inc: { failedLoginAttempts: 1 } };
 
   if (this.failedLoginAttempts + 1 >= 5 && !this.isLocked()) {
     updates.$set = { lockUntil: new Date(Date.now() + 2 * 60 * 60 * 1000) }; // 2 hours

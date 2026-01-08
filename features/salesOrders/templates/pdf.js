@@ -139,8 +139,8 @@ const htmlTemplate = (salesOrderData) => {
             <div>
               <h3>Bill To</h3>
               <p><strong>${safeValue(salesOrderData.fName)} ${safeValue(
-    salesOrderData.lName
-  )}</strong></p>
+                salesOrderData.lName
+              )}</strong></p>
               ${
                 salesOrderData.cName
                   ? `<p>${safeValue(salesOrderData.cName)}</p>`
@@ -151,8 +151,8 @@ const htmlTemplate = (salesOrderData) => {
               <h3>Delivery Address</h3>
               <p>${safeValue(salesOrderData.streetAddress)}</p>
               <p>${safeValue(salesOrderData.city)} ${safeValue(
-    salesOrderData.state
-  )} ${safeValue(salesOrderData.zip)}</p>
+                salesOrderData.state
+              )} ${safeValue(salesOrderData.zip)}</p>
             </div>
           </div>
 

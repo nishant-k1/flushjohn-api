@@ -15,7 +15,8 @@ export const findAll = async ({
   limit = 10,
   select = null,
 }) => {
-  let queryBuilder = (Quotes as any).find(query)
+  let queryBuilder = (Quotes as any)
+    .find(query)
     .populate("lead")
     .sort(sort)
     .skip(skip)

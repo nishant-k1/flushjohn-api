@@ -79,7 +79,8 @@ router.put("/:id/read", authenticateToken, async (req, res) => {
         success: false,
         message: error.message,
         error: "NOTIFICATION_NOT_FOUND",
-      }); return;
+      });
+      return;
     }
     res.status(500).json({
       success: false,
@@ -93,9 +94,8 @@ router.put("/:id/read", authenticateToken, async (req, res) => {
 router.put("/read-all", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const result = await notificationsService.markAllNotificationsAsRead(
-      userId
-    );
+    const result =
+      await notificationsService.markAllNotificationsAsRead(userId);
 
     res.json({
       success: true,
@@ -131,7 +131,8 @@ router.delete("/:id", authenticateToken, async (req, res) => {
         success: false,
         message: error.message,
         error: "NOTIFICATION_NOT_FOUND",
-      }); return;
+      });
+      return;
     }
     res.status(500).json({
       success: false,
@@ -163,4 +164,3 @@ router.delete("/", authenticateToken, async (req, res) => {
 });
 
 export default router;
-

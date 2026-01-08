@@ -153,9 +153,8 @@ app.use(
   express.raw({ type: "application/json" }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { default: webhookRouter } = await import(
-        "./features/payments/routes/webhook.js"
-      );
+      const { default: webhookRouter } =
+        await import("./features/payments/routes/webhook.js");
       return webhookRouter(req, res, next);
     } catch (error: any) {
       next(error);
@@ -168,7 +167,7 @@ app.use(urlencoded({ extended: false, limit: "10mb" }));
 
 // Serialization middleware - normalize data at API boundary
 // Must be AFTER body parsing, BEFORE routes
-app.use(serializeRequest);  // Serialize incoming requests
+app.use(serializeRequest); // Serialize incoming requests
 // Note: serializeResponse is optional - responses are formatted in controllers
 app.use(cookieParser());
 
@@ -281,9 +280,8 @@ app.post(
       }
 
       // Use the service to create the lead
-      const { createLead } = await import(
-        "./features/leads/services/leadsService.js"
-      );
+      const { createLead } =
+        await import("./features/leads/services/leadsService.js");
       const lead = await createLead(leadData);
 
       // Emit socket event if namespace is available
@@ -397,7 +395,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next(createError(404));
 });
 
-app.use((err: HttpError, req: Request, res: Response, next: NextFunction) => {
+app.use((err: HttpError, req: Request, res: Response, _next: NextFunction) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
 

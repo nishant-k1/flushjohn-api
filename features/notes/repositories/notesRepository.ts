@@ -2,7 +2,8 @@ import Notes from "../models/Notes.js";
 
 export const findByUserId = async (userId) => {
   try {
-    const notes = await (Notes as any).findOne({ userId })
+    const notes = await (Notes as any)
+      .findOne({ userId })
       .populate("userId", "name email")
       .lean();
     return notes;

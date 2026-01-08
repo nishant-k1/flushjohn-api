@@ -11,7 +11,6 @@ import alertService from "../../common/services/alertService.js";
 import validateAndRecalculateProducts from "../../../middleware/validateProducts.js";
 import { authenticateToken } from "../../auth/middleware/auth.js";
 import {
-  validateCreateLead,
   validateUpdateLead,
   validateLeadId,
   validateGetLeads,
@@ -19,8 +18,6 @@ import {
 } from "../validators/leadValidator.js";
 import {
   RESOURCES,
-  ACTIONS,
-  canCreate,
   canRead,
   canUpdate,
   canDelete,
@@ -28,71 +25,10 @@ import {
 
 const router: any = Router();
 
-// POST /leads is now public (handled in app.js)
-// This route is kept for backward compatibility but won't be used
-// since app.js handles POST /leads before this router
-router.post(
-  "/",
-  authenticateToken,
-  canCreate(RESOURCES.LEADS),
-  validateCreateLead,
-  handleValidationErrors,
-  validateAndRecalculateProducts,
-  async function (req, res, next) {
-    try {
-      const lead = await leadsService.createLead(req.body);
+// POST /leads is now handled as a public endpoint in app.ts
+// This route has been removed as it's no longer needed
 
-      // OPTIMIZATION: Emit only the new lead instead of fetching all leads
-      if (global.leadsNamespace) {
-        try {
-          const payload = {
-            lead: lead.toObject ? lead.toObject() : lead,
-            action: "add",
-          };
-          global.leadsNamespace.emit("leadCreated", payload);
-          console.log("📢 Emitted leadCreated event to socket clients");
-        } catch (emitError) {
-          console.error("❌ Error emitting leadCreated event:", emitError);
-        }
-      }
-
-      res.status(201).json({
-        success: true,
-        message: "Lead created successfully",
-        data: lead,
-      });
-    } catch (error) {
-      if (error.name === "ValidationError") {
-        return res.status(400).json({
-          success: false,
-          message: "Validation failed",
-          error: "VALIDATION_ERROR",
-          details: error.errors
-            ? Object.values(error.errors).map((err: any) => err.message)
-            : [(error as any).message],
-        });
-      }
-
-      if (error.code === 11000) {
-        return res.status(409).json({
-          success: false,
-          message: "Lead already exists",
-          error: "DUPLICATE_LEAD",
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: "Failed to create lead",
-        error: "INTERNAL_SERVER_ERROR",
-        ...(process.env.NODE_ENV === "development" && {
-          details: (error as any).message,
-        }),
-      });
-    }
-  }
-);
-
+// GET /leads - Get all leads with filtering, pagination, and search
 router.get(
   "/",
   authenticateToken,

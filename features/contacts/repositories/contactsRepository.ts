@@ -1,6 +1,6 @@
 /**
  * Contacts Repository - Database Access Layer
- * 
+ *
  * This layer handles all direct database operations for Contacts.
  * No business logic should be here - just pure database queries.
  */
@@ -17,8 +17,14 @@ export const create = async (contactData) => {
 /**
  * Find all contacts with filters, sorting, and pagination
  */
-export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await (Contacts as any).find(query)
+export const findAll = async ({
+  query = {},
+  sort = {},
+  skip = 0,
+  limit = 10,
+}) => {
+  return await (Contacts as any)
+    .find(query)
     .sort(sort)
     .skip(skip)
     .limit(limit)
@@ -43,18 +49,19 @@ export const findById = async (id) => {
  * Find one contact matching query
  */
 export const findOne = async (query, projection = null) => {
-  return await (Contacts as any).findOne(query, projection).sort({ createdAt: -1 });
+  return await (Contacts as any)
+    .findOne(query, projection)
+    .sort({ createdAt: -1 });
 };
 
 /**
  * Update a contact by ID
  */
 export const updateById = async (id, updateData) => {
-  return await (Contacts as any).findByIdAndUpdate(
-    id,
-    updateData,
-    { new: true, runValidators: true }
-  );
+  return await (Contacts as any).findByIdAndUpdate(id, updateData, {
+    new: true,
+    runValidators: true,
+  });
 };
 
 /**
@@ -70,4 +77,3 @@ export const deleteById = async (id) => {
 export const exists = async (id) => {
   return await Contacts.exists({ _id: id });
 };
-

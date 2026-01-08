@@ -794,9 +794,8 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
             aiHelpful: null,
           };
 
-          const savedLog = await conversationLogRepository.create(
-            conversationData
-          );
+          const savedLog =
+            await conversationLogRepository.create(conversationData);
 
           // Trigger async processing for AI learning extraction
           processSalesConversationForLearning(savedLog._id).catch((err) => {
@@ -975,9 +974,8 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
           aiHelpful: (options as any).aiHelpful || null,
         };
 
-        const savedLog = await conversationLogRepository.create(
-          conversationData
-        );
+        const savedLog =
+          await conversationLogRepository.create(conversationData);
 
         socket.emit("conversation-saved", {
           success: true,
@@ -1003,9 +1001,8 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
    */
   async function processVendorConversationForLearning(conversationId) {
     try {
-      const conversation = await vendorConversationLogRepository.findById(
-        conversationId
-      );
+      const conversation =
+        await vendorConversationLogRepository.findById(conversationId);
       if (!conversation || conversation.processed) return;
 
       // Use OpenAI to extract learnings from the conversation
@@ -1036,9 +1033,8 @@ export const speechRecognitionSocketHandler = (namespace, socket) => {
    */
   async function processSalesConversationForLearning(conversationId) {
     try {
-      const conversation = await conversationLogRepository.findById(
-        conversationId
-      );
+      const conversation =
+        await conversationLogRepository.findById(conversationId);
       if (!conversation || conversation.processed) return;
 
       // Use OpenAI to extract learnings from the conversation

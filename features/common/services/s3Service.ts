@@ -151,14 +151,17 @@ export const downloadPDFFromS3 = async (pdfUrlOrKey) => {
   try {
     const bucketName = getBucketName();
     const s3Client = getS3Client();
-    
+
     // Extract key from URL if it's a full URL
     let key = pdfUrlOrKey;
-    if (pdfUrlOrKey.startsWith('http://') || pdfUrlOrKey.startsWith('https://')) {
+    if (
+      pdfUrlOrKey.startsWith("http://") ||
+      pdfUrlOrKey.startsWith("https://")
+    ) {
       try {
         const url = new URL(pdfUrlOrKey);
         // Remove leading slash and query parameters
-        key = url.pathname.replace(/^\//, '');
+        key = url.pathname.replace(/^\//, "");
       } catch (urlError) {
         // Fallback to regex parsing if URL constructor fails
         // Try to match pdfs/... pattern (works for both CloudFront and S3 URLs)
@@ -171,27 +174,29 @@ export const downloadPDFFromS3 = async (pdfUrlOrKey) => {
           if (s3Match) {
             key = s3Match[1];
           } else {
-            throw new Error(`Could not extract S3 key from URL: ${pdfUrlOrKey}`);
+            throw new Error(
+              `Could not extract S3 key from URL: ${pdfUrlOrKey}`
+            );
           }
         }
       }
     }
-    
+
     const getParams = {
       Bucket: bucketName,
       Key: key,
     };
-    
+
     const command = new GetObjectCommand(getParams);
     const response = await s3Client.send(command);
-    
+
     // Convert stream to buffer
     const chunks = [];
     for await (const chunk of response.Body) {
       chunks.push(chunk);
     }
     const buffer = Buffer.concat(chunks);
-    
+
     return buffer;
   } catch (error) {
     console.error("Error downloading PDF from S3:", error);
@@ -209,15 +214,19 @@ export const downloadPDFFromS3 = async (pdfUrlOrKey) => {
  * @param {number} expiresIn - URL expiration time in seconds (default: 300 = 5 minutes)
  * @returns {Promise<Object>} - Object with presignedUrl, key, and publicUrl
  */
-export const generateBlogCoverImagePresignedUrl = async (blogId, fileType, expiresIn = 300) => {
+export const generateBlogCoverImagePresignedUrl = async (
+  blogId,
+  fileType,
+  expiresIn = 300
+) => {
   try {
     const bucketName = getBucketName();
     const s3Client = getS3Client();
-    
+
     const fileExtension = fileType.split("/")[1] || "jpg";
     const fileName = `cover-${blogId}.${fileExtension}`;
     const key = `images/blog/${fileName}`;
-    
+
     const command = new PutObjectCommand({
       Bucket: bucketName,
       Key: key,
@@ -225,15 +234,15 @@ export const generateBlogCoverImagePresignedUrl = async (blogId, fileType, expir
       CacheControl: "public, max-age=31536000", // 1 year cache for images
       ContentDisposition: "inline",
     });
-    
+
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
-    
+
     const cloudFrontUrl = process.env.CLOUDFRONT_URL;
     const timestamp = Date.now();
     const publicUrl = cloudFrontUrl
       ? `${cloudFrontUrl}/${key}?t=${timestamp}`
       : `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}?t=${timestamp}`;
-    
+
     return {
       presignedUrl,
       key,
@@ -241,7 +250,10 @@ export const generateBlogCoverImagePresignedUrl = async (blogId, fileType, expir
       fileName,
     };
   } catch (error) {
-    console.error("Error generating presigned URL for blog cover image:", error);
+    console.error(
+      "Error generating presigned URL for blog cover image:",
+      error
+    );
     throw error;
   }
 };
@@ -255,19 +267,19 @@ export const deleteBlogCoverImageFromS3 = async (blogId) => {
   try {
     const bucketName = getBucketName();
     const s3Client = getS3Client();
-    
+
     const extensions = ["jpg", "jpeg", "png", "gif", "webp"];
-    
+
     for (const ext of extensions) {
       const fileName = `cover-${blogId}.${ext}`;
       const key = `images/blog/${fileName}`;
-      
+
       try {
         const command = new DeleteObjectCommand({
           Bucket: bucketName,
           Key: key,
         });
-        
+
         await s3Client.send(command);
         return true;
       } catch (error) {
@@ -276,7 +288,7 @@ export const deleteBlogCoverImageFromS3 = async (blogId) => {
         }
       }
     }
-    
+
     return true; // Consider it successful if no file exists
   } catch (error) {
     console.error("Error deleting blog cover image from S3:", error);

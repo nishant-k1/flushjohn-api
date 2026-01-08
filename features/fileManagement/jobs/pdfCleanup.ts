@@ -1,5 +1,5 @@
 import cron from "node-cron";
-// @ts-ignore - cleanupOldPDFs may not be exported
+// @ts-expect-error - cleanupOldPDFs may not be exported
 import { cleanupOldPDFs } from "../services/pdfService.js";
 
 /**
@@ -27,8 +27,11 @@ export const schedulePDFCleanup = () => {
         const result = await cleanupOldPDFs(maxAgeInDays);
 
         if (result.deleted > 0) {
+          // Files deleted successfully
         }
-      } catch (error) {}
+      } catch (_error) {
+        // Error handled silently
+      }
     },
     {
       scheduled: true,
@@ -52,5 +55,7 @@ export const runCleanupOnStartup = async () => {
   try {
     const maxAgeInDays = parseInt(process.env.PDF_MAX_AGE_DAYS) || 1;
     const result = await cleanupOldPDFs(maxAgeInDays);
-  } catch (error) {}
+  } catch (_error) {
+    // Error handled silently
+  }
 };

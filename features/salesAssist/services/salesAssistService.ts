@@ -6,7 +6,6 @@ import OpenAI from "openai";
 import * as vendorsRepository from "../../vendors/repositories/vendorsRepository.js";
 import * as vendorPricingRepository from "../repositories/vendorPricingRepository.js";
 import * as leadsRepository from "../../leads/repositories/leadsRepository.js";
-import * as conversationLogRepository from "../repositories/conversationLogRepository.js";
 import * as vendorConversationLogRepository from "../repositories/vendorConversationLogRepository.js";
 import { getCurrentDateTime } from "../../../lib/dayjs.js";
 import * as quoteAIRateService from "../../quotes/services/quoteAIRateService.js";
@@ -248,8 +247,8 @@ export const getVendorPricing = async ({
         eventType === "construction"
           ? 0.9
           : eventType === "wedding"
-          ? 1.2
-          : 1.0;
+            ? 1.2
+            : 1.0;
 
       vendorBasePrice = applyMultiplier(basePricePerUnit, eventTypeMultiplier);
       // Use utility function for consistent calculation
@@ -438,8 +437,8 @@ export const submitVendorQuote = async (quoteData) => {
               accuracyRating > 90
                 ? "AI suggestion was very accurate!"
                 : accuracyRating > 70
-                ? "AI suggestion was reasonably close"
-                : "AI suggestion differed significantly - system will learn from this",
+                  ? "AI suggestion was reasonably close"
+                  : "AI suggestion differed significantly - system will learn from this",
           }
         : null,
     };

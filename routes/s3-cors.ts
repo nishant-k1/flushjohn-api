@@ -1,5 +1,9 @@
 import express from "express";
-import { S3Client, PutBucketCorsCommand, GetBucketCorsCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutBucketCorsCommand,
+  GetBucketCorsCommand,
+} from "@aws-sdk/client-s3";
 
 const router = express.Router();
 
@@ -28,7 +32,7 @@ router.get("/", async (req, res) => {
     });
 
     const corsConfig = await s3Client.send(command);
-    
+
     res.status(200).json({
       success: true,
       message: "S3 CORS configuration retrieved successfully",
@@ -36,7 +40,7 @@ router.get("/", async (req, res) => {
     });
   } catch (error) {
     console.error("Error getting S3 CORS configuration:", error);
-    
+
     if (error.name === "NoSuchCORSConfiguration") {
       res.status(200).json({
         success: true,
@@ -49,7 +53,8 @@ router.get("/", async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Could not retrieve S3 CORS configuration",
-      message: process.env.NODE_ENV === "development" ? error.message : undefined,
+      message:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
@@ -57,16 +62,22 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { allowedOrigins } = req.body;
-    
+
     const defaultOrigins = [
       "http://localhost:3001",
       "http://localhost:3000",
-      process.env.WEBSITE_URL || "https://your-production-domain.com"
+      process.env.WEBSITE_URL || "https://your-production-domain.com",
     ];
-    
-    const origins = allowedOrigins && Array.isArray(allowedOrigins) 
-      ? [...allowedOrigins, ...defaultOrigins.filter(origin => !allowedOrigins.includes(origin))]
-      : defaultOrigins;
+
+    const origins =
+      allowedOrigins && Array.isArray(allowedOrigins)
+        ? [
+            ...allowedOrigins,
+            ...defaultOrigins.filter(
+              (origin) => !allowedOrigins.includes(origin)
+            ),
+          ]
+        : defaultOrigins;
 
     const s3Client = getS3Client();
     const bucketName = process.env.AWS_S3_BUCKET_NAME;
@@ -88,8 +99,7 @@ router.post("/", async (req, res) => {
 
     const command = new PutBucketCorsCommand(corsConfig);
     await s3Client.send(command);
-    
-    
+
     res.status(200).json({
       success: true,
       message: "S3 CORS configuration updated successfully",
@@ -98,11 +108,12 @@ router.post("/", async (req, res) => {
     });
   } catch (error) {
     console.error("Error setting S3 CORS configuration:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Could not update S3 CORS configuration",
-      message: process.env.NODE_ENV === "development" ? error.message : undefined,
+      message:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });
@@ -124,7 +135,7 @@ router.post("/setup-dev", async (req, res) => {
               "http://localhost:3000",
               "http://127.0.0.1:3001",
               "http://127.0.0.1:3000",
-              ...(process.env.WEBSITE_URL ? [process.env.WEBSITE_URL] : [])
+              ...(process.env.WEBSITE_URL ? [process.env.WEBSITE_URL] : []),
             ],
             ExposeHeaders: ["ETag", "x-amz-version-id"],
             MaxAgeSeconds: 86400, // 24 hours for better caching
@@ -135,8 +146,7 @@ router.post("/setup-dev", async (req, res) => {
 
     const command = new PutBucketCorsCommand(corsConfig);
     await s3Client.send(command);
-    
-    
+
     res.status(200).json({
       success: true,
       message: "S3 CORS configuration set up for development",
@@ -144,11 +154,12 @@ router.post("/setup-dev", async (req, res) => {
     });
   } catch (error) {
     console.error("Error setting up S3 CORS for development:", error);
-    
+
     res.status(500).json({
       success: false,
       error: "Could not set up S3 CORS for development",
-      message: process.env.NODE_ENV === "development" ? error.message : undefined,
+      message:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });

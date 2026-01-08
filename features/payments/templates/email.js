@@ -20,8 +20,8 @@ const template = (paymentData) => {
     paymentMethod === "payment_link"
       ? "Payment Link"
       : paymentMethod === "saved_card"
-      ? `Saved Card${cardLast4 ? ` (•••• ${cardLast4})` : ""}`
-      : `Card Payment${cardLast4 ? ` (•••• ${cardLast4})` : ""}`;
+        ? `Saved Card${cardLast4 ? ` (•••• ${cardLast4})` : ""}`
+        : `Card Payment${cardLast4 ? ` (•••• ${cardLast4})` : ""}`;
 
   const paymentDate = createdAt
     ? new Date(createdAt).toLocaleDateString("en-US", {
@@ -59,7 +59,7 @@ const template = (paymentData) => {
         product.item || "N/A"
       }</td>
       <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: center; font-size: 12px;">${quantity}</td>
-      <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: right; font-size: 12px;">$${typeof rate === 'number' ? rate.toFixed(2) : parseFloat(rate || 0).toFixed(2)}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: right; font-size: 12px;">$${typeof rate === "number" ? rate.toFixed(2) : parseFloat(rate || 0).toFixed(2)}</td>
       <td style="padding: 8px; border-bottom: 1px solid #d1d5db; text-align: right; font-weight: 600; font-size: 12px;">$${total}</td>
     </tr>
   `;
@@ -85,8 +85,8 @@ const template = (paymentData) => {
     Your payment of $${amount.toFixed(
       2
     )} has been successfully processed. Receipt for Sales Order #${
-    salesOrder?.salesOrderNo || "N/A"
-  }.
+      salesOrder?.salesOrderNo || "N/A"
+    }.
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 40px 20px;">
     <tr>

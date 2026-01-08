@@ -8,14 +8,9 @@ dotenv.config();
 import fs from "fs/promises";
 import path from "path";
 import * as blogsService from "../services/blogsService.js";
-import {
-  dbConnect,
-  waitForConnection,
-  getConnectionStatus,
-} from "../../../lib/dbConnect.js";
+import { dbConnect, waitForConnection } from "../../../lib/dbConnect.js";
 
 async function publishBlogPosts() {
-
   await dbConnect();
 
   const connected = await waitForConnection(15000); // Wait up to 15 seconds
@@ -36,7 +31,6 @@ async function publishBlogPosts() {
       const filePath = path.join(generatedBlogsDir, file);
 
       try {
-
         const blogData = JSON.parse(await fs.readFile(filePath, "utf8"));
 
         const createdBlog = await blogsService.createBlog(blogData);
@@ -64,13 +58,11 @@ async function publishBlogPosts() {
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
     if (successful.length > 0) {
-      successful.forEach((result, index) => {
-      });
+      successful.forEach((result, index) => {});
     }
 
     if (failed.length > 0) {
-      failed.forEach((result, index) => {
-      });
+      failed.forEach((result, index) => {});
     }
     return results;
   } catch (error) {

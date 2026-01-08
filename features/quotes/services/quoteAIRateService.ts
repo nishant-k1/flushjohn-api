@@ -118,10 +118,11 @@ export const getAISuggestedRate = async ({
                 p.item.toLowerCase().includes(productItem.toLowerCase())
             );
             if (matchingProduct) {
+              // Use nullish coalescing to preserve 0 values
               return {
-                pricePerUnit: matchingProduct.rate || 0,
-                totalPrice: matchingProduct.amount || 0,
-                quantity: matchingProduct.quantity || 0,
+                pricePerUnit: matchingProduct.rate ?? 0,
+                totalPrice: matchingProduct.amount ?? 0,
+                quantity: matchingProduct.quantity ?? 0,
                 date: jo.createdAt,
                 jobOrderNo: jo.jobOrderNo,
               };
@@ -165,10 +166,11 @@ export const getAISuggestedRate = async ({
                 p.item.toLowerCase().includes(productItem.toLowerCase())
             );
             if (matchingProduct) {
+              // Use nullish coalescing to preserve 0 values
               return {
-                pricePerUnit: matchingProduct.rate || 0,
-                totalPrice: matchingProduct.amount || 0,
-                quantity: matchingProduct.quantity || 0,
+                pricePerUnit: matchingProduct.rate ?? 0,
+                totalPrice: matchingProduct.amount ?? 0,
+                quantity: matchingProduct.quantity ?? 0,
                 date: so.createdAt,
                 salesOrderNo: so.salesOrderNo,
               };
@@ -210,10 +212,11 @@ export const getAISuggestedRate = async ({
                 p.item.toLowerCase().includes(productItem.toLowerCase())
             );
             if (matchingProduct) {
+              // Use nullish coalescing to preserve 0 values
               return {
-                pricePerUnit: matchingProduct.rate || 0,
-                totalPrice: matchingProduct.amount || 0,
-                quantity: matchingProduct.quantity || 0,
+                pricePerUnit: matchingProduct.rate ?? 0,
+                totalPrice: matchingProduct.amount ?? 0,
+                quantity: matchingProduct.quantity ?? 0,
                 date: q.createdAt,
                 quoteNo: q.quoteNo,
               };

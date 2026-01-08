@@ -430,7 +430,8 @@ const getAllQuotesWithAggregation = async ({
     (Quotes as any).aggregate(countPipeline),
   ]);
 
-  const total = countResult[0]?.total || 0;
+  // Use nullish coalescing to preserve 0 values
+  const total = countResult[0]?.total ?? 0;
 
   return {
     data: results,

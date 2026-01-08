@@ -91,14 +91,14 @@ const htmlTemplate = (receiptData) => {
     paymentMethod === "payment_link"
       ? "Payment Link"
       : paymentMethod === "saved_card"
-      ? `Saved Card${cardLast4 ? ` (•••• ${cardLast4})` : ""}`
-      : `Card Payment${
-          cardLast4
-            ? ` (•••• ${cardLast4})`
-            : cardBrand
-            ? ` (${cardBrand})`
-            : ""
-        }`;
+        ? `Saved Card${cardLast4 ? ` (•••• ${cardLast4})` : ""}`
+        : `Card Payment${
+            cardLast4
+              ? ` (•••• ${cardLast4})`
+              : cardBrand
+                ? ` (${cardBrand})`
+                : ""
+          }`;
 
   const formattedSalesOrderDate = salesOrderCreatedAt
     ? new Date(salesOrderCreatedAt).toLocaleDateString("en-US", {

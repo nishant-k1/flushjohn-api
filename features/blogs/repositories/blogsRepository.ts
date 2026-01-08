@@ -8,8 +8,18 @@ export const create = async (blogData) => {
   return await (Blogs as any).create(blogData);
 };
 
-export const findAll = async ({ query = {}, sort = {}, skip = 0, limit = 10 }) => {
-  return await (Blogs as any).find(query).sort(sort).skip(skip).limit(limit).lean();
+export const findAll = async ({
+  query = {},
+  sort = {},
+  skip = 0,
+  limit = 10,
+}) => {
+  return await (Blogs as any)
+    .find(query)
+    .sort(sort)
+    .skip(skip)
+    .limit(limit)
+    .lean();
 };
 
 export const count = async (query = {}) => {

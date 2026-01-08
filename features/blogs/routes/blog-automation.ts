@@ -78,7 +78,8 @@ router.post("/trigger", async (req, res) => {
       res.status(400).json({
         success: false,
         message: "Job name is required",
-      }); return;
+      });
+      return;
     }
 
     const validJobs = [

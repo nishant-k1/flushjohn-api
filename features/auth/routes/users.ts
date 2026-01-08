@@ -7,7 +7,9 @@ const router: any = express.Router();
 
 router.get("/", (async (req, res) => {
   try {
-    const users = await (User as any).find({} as MongooseFilter, { password: 0 }); // Exclude password field
+    const users = await (User as any).find({} as MongooseFilter, {
+      password: 0,
+    }); // Exclude password field
 
     res.status(200).json({
       success: true,

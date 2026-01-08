@@ -34,7 +34,8 @@ router.post("/save", authenticateToken, async (req, res) => {
       res.status(400).json({
         success: false,
         message: "Content is required",
-      }); return;
+      });
+      return;
     }
 
     const notes = await notesService.saveUserNotes(userId, content);

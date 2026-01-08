@@ -282,9 +282,8 @@ router.post(
         createdAt: req.body.createdAt || quote.createdAt,
       };
 
-      const { generateQuotePDF } = await import(
-        "../../fileManagement/services/pdfService.js"
-      );
+      const { generateQuotePDF } =
+        await import("../../fileManagement/services/pdfService.js");
       const pdfUrls = await generateQuotePDF(pdfData, id);
 
       res.status(201).json({
@@ -366,12 +365,10 @@ router.post(
         createdAt: req.body.createdAt || quote.createdAt,
       };
 
-      const { generateQuotePDF } = await import(
-        "../../fileManagement/services/pdfService.js"
-      );
-      const { sendQuoteEmail } = await import(
-        "../../common/services/emailService.js"
-      );
+      const { generateQuotePDF } =
+        await import("../../fileManagement/services/pdfService.js");
+      const { sendQuoteEmail } =
+        await import("../../common/services/emailService.js");
 
       let pdfUrls;
       try {

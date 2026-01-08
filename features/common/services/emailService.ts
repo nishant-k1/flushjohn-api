@@ -1,12 +1,12 @@
 import { createTransport } from "nodemailer";
 
-// @ts-ignore - email templates may not exist at compile time
+// @ts-expect-error - email templates may not exist at compile time
 import quoteEmailTemplate from "../../quotes/templates/email.js";
-// @ts-ignore
+// @ts-expect-error
 import salesOrderEmailTemplate from "../../salesOrders/templates/email.js";
-// @ts-ignore
+// @ts-expect-error
 import invoiceEmailTemplate from "../../salesOrders/templates/invoice.js";
-// @ts-ignore
+// @ts-expect-error
 import jobOrderEmailTemplate from "../../jobOrders/templates/email.js";
 import { downloadPDFFromS3 } from "./s3Service.js";
 
