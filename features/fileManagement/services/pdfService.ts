@@ -1,12 +1,8 @@
 import { uploadPDFToS3 } from "../../common/services/s3Service.js";
 
-// @ts-expect-error - PDF templates may not exist at compile time
 import quoteTemplate from "../../quotes/templates/pdf.js";
-// @ts-expect-error
 import salesOrderTemplate from "../../salesOrders/templates/pdf.js";
-// @ts-expect-error
 import jobOrderTemplate from "../../jobOrders/templates/pdf.js";
-// @ts-expect-error
 import receiptTemplate from "../../payments/templates/pdf.js";
 
 let browserLib = null;

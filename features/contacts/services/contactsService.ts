@@ -202,11 +202,11 @@ export const getAllContacts = async ({
     const hasExpr = (query as any).$expr;
 
     if (hasOtherFilters || hasExpr) {
-      const andConditions = [{ $or: searchConditions }];
+      const andConditions: any[] = [{ $or: searchConditions }];
 
       Object.keys(query).forEach((key) => {
         if (key !== "$or" && key !== "$and" && key !== "$expr") {
-          andConditions.push({ [key]: query[key] });
+          andConditions.push({ [key]: query[key] } as any);
         }
       });
 

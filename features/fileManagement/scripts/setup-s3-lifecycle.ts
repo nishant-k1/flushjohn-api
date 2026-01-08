@@ -6,6 +6,7 @@
 import {
   S3Client,
   PutBucketLifecycleConfigurationCommand,
+  ExpirationStatus,
 } from "@aws-sdk/client-s3";
 
 const getS3Client = () => {
@@ -29,7 +30,7 @@ export const setupS3LifecyclePolicies = async () => {
       Rules: [
         {
           ID: "DeleteOldCoverImages",
-          Status: "Enabled",
+          Status: "Enabled" as ExpirationStatus,
           Filter: {
             Prefix: "images/blog/cover-",
           },
@@ -42,7 +43,7 @@ export const setupS3LifecyclePolicies = async () => {
         },
         {
           ID: "DeleteOldContentImages",
-          Status: "Enabled",
+          Status: "Enabled" as ExpirationStatus,
           Filter: {
             Prefix: "images/blog/content-",
           },
@@ -52,7 +53,7 @@ export const setupS3LifecyclePolicies = async () => {
         },
         {
           ID: "DeleteTempImages",
-          Status: "Enabled",
+          Status: "Enabled" as ExpirationStatus,
           Filter: {
             Prefix: "images/temp/",
           },
@@ -86,7 +87,7 @@ export const setupSmartLifecyclePolicy = async () => {
       Rules: [
         {
           ID: "SmartImageCleanup",
-          Status: "Enabled",
+          Status: "Enabled" as ExpirationStatus,
           Filter: {
             Prefix: "images/blog/",
           },

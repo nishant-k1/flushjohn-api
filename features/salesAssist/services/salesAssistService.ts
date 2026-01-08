@@ -204,7 +204,12 @@ export const getVendorPricing = async ({
     let vendorBasePrice = null;
     let averagePrice = null;
     let recommendedPrice = null;
-    let historicalData = {
+    let historicalData: {
+      sampleSize: number;
+      isHistoricalData: boolean;
+      message: string;
+      confidence?: number | null;
+    } = {
       sampleSize: 0,
       isHistoricalData: false,
       message: "Using AI-powered pricing estimation.",

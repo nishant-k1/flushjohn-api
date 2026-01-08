@@ -11,7 +11,7 @@ export const authenticateToken = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     const queryToken = req.query.token as string | undefined;
@@ -25,11 +25,12 @@ export const authenticateToken = async (
     }
 
     if (!token) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Authentication required. Please provide a valid token.",
         error: "UNAUTHORIZED",
       });
+      return;
     }
 
     const decoded = jwt.verify(token, process.env.SECRET_KEY!, {
@@ -37,11 +38,12 @@ export const authenticateToken = async (
     });
 
     if (!isUserJwtPayload(decoded)) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Invalid token format",
         error: "INVALID_TOKEN",
       });
+      return;
     }
 
     const user = await (User as any).findOne({
@@ -49,36 +51,40 @@ export const authenticateToken = async (
     } as any);
 
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "User not found",
         error: "USER_NOT_FOUND",
       });
+      return;
     }
 
     if (!user.isActive) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: "Account is deactivated. Please contact administrator.",
         error: "ACCOUNT_DEACTIVATED",
       });
+      return;
     }
 
     if (user.isLocked()) {
-      return res.status(423).json({
+      res.status(423).json({
         success: false,
         message:
           "Account is temporarily locked due to too many failed login attempts.",
         error: "ACCOUNT_LOCKED",
       });
+      return;
     }
 
     if (decoded.iat && user.changedPasswordAfter(decoded.iat)) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Password was recently changed. Please log in again.",
         error: "PASSWORD_CHANGED",
       });
+      return;
     }
 
     req.user = {
@@ -94,33 +100,37 @@ export const authenticateToken = async (
     next();
   } catch (error) {
     if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Invalid token. Please log in again.",
         error: "INVALID_TOKEN",
       });
+      return;
     }
 
     if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Token expired. Please log in again.",
         error: "TOKEN_EXPIRED",
       });
+      return;
     }
 
     if (error.name === "NotBeforeError") {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Token not active yet. Please try again later.",
         error: "TOKEN_NOT_ACTIVE",
       });
+      return;
     }
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Authentication failed due to server error.",
       error: "AUTHENTICATION_ERROR",
     });
+    return;
   }
 };
 
@@ -133,7 +143,7 @@ export const optionalAuth = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     const queryToken = req.query.token as string | undefined;
@@ -185,21 +195,23 @@ export const optionalAuth = async (
  * Must be used after authenticateToken middleware
  */
 export const authorizeRoles = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         message: "Authentication required",
         error: "UNAUTHORIZED",
       });
+      return;
     }
 
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: "Access denied. Insufficient permissions.",
         error: "FORBIDDEN",
       });
+      return;
     }
 
     next();
@@ -214,21 +226,23 @@ export const requireAdmin = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   if (!req.user) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Authentication required",
       error: "UNAUTHORIZED",
     });
+    return;
   }
 
   if (req.user.role !== "admin") {
-    return res.status(403).json({
+    res.status(403).json({
       success: false,
       message: "Admin access required",
       error: "FORBIDDEN",
     });
+    return;
   }
 
   next();
@@ -243,13 +257,14 @@ export const selfOrAdmin = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   if (!req.user) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Authentication required",
       error: "UNAUTHORIZED",
     });
+    return;
   }
 
   const targetUserId = req.params.userId || req.params.id;
@@ -257,11 +272,12 @@ export const selfOrAdmin = (
   const isAdmin = req.user.role === "admin";
 
   if (!isSelf && !isAdmin) {
-    return res.status(403).json({
+    res.status(403).json({
       success: false,
       message: "Access denied. You can only access your own data.",
       error: "FORBIDDEN",
     });
+    return;
   }
 
   next();
@@ -276,19 +292,20 @@ export const checkDocumentAccess = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): void => {
   if (!req.user) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Authentication required",
       error: "UNAUTHORIZED",
     });
+    return;
   }
 
   const { documentType } = req.params;
   const userRole = req.user.role;
 
-  const accessRules = {
+  const accessRules: Record<string, string[]> = {
     leads: ["admin", "user", "sales"],
     quotes: ["admin", "user", "sales"],
     salesOrders: ["admin", "user", "sales"],
@@ -299,20 +316,22 @@ export const checkDocumentAccess = (
   };
 
   if (!accessRules[documentType]) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: "Invalid document type",
       error: "INVALID_DOCUMENT_TYPE",
     });
+    return;
   }
 
   if (!accessRules[documentType].includes(userRole)) {
-    return res.status(403).json({
+    res.status(403).json({
       success: false,
       message:
         "Access denied. Insufficient permissions for this document type.",
       error: "FORBIDDEN",
     });
+    return;
   }
 
   next();

@@ -1,4 +1,4 @@
-import { dollarsToCents, centsToDollars, add } from "./priceCalculations";
+import { dollarsToCents, centsToDollars, add } from "./priceCalculations.js";
 
 const MAX_QUANTITY = 1_000_000;
 const MAX_RATE = 1_000_000;

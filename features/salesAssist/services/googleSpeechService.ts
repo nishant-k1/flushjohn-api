@@ -114,9 +114,9 @@ const initializeSpeechClient = (): SpeechClient | null => {
  * Create a streaming recognition request configuration
  * @returns {Object} Recognition configuration
  */
-export const createRecognitionConfig = () => {
+export const createRecognitionConfig = (): any => {
   return {
-    encoding: "LINEAR16", // 16-bit linear PCM
+    encoding: "LINEAR16" as const, // 16-bit linear PCM
     sampleRateHertz: 16000, // 16kHz sample rate
     languageCode: "en-US",
     enableAutomaticPunctuation: true,
@@ -134,7 +134,11 @@ export const createRecognitionConfig = () => {
  * @returns {Object} StreamingRecognizeClient and request configuration
  */
 export const startStreamingRecognition = (
-  onTranscript: (transcript: string) => void,
+  onTranscript: (data: {
+    transcript: string;
+    isFinal: boolean;
+    confidence: number | null;
+  }) => void,
   onError: (error: Error) => void
 ): any => {
   // Lazy initialization - initialize on first use
@@ -226,7 +230,7 @@ export const recognizeAudioBuffer = async (audioBuffer) => {
 
   const config = createRecognitionConfig();
   const request = {
-    config: config,
+    config: config as any,
     audio: {
       content: audioBuffer.toString("base64"),
     },
@@ -237,7 +241,7 @@ export const recognizeAudioBuffer = async (audioBuffer) => {
 
     if (response.results && response.results.length > 0) {
       const results = response.results
-        .map((result) => {
+        .map((result: any) => {
           if (result.alternatives && result.alternatives.length > 0) {
             const alternative = result.alternatives[0];
             return {
