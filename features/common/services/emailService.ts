@@ -5,6 +5,7 @@ import salesOrderEmailTemplate from "../../salesOrders/templates/email.js";
 import invoiceEmailTemplate from "../../salesOrders/templates/invoice.js";
 import jobOrderEmailTemplate from "../../jobOrders/templates/email.js";
 import { downloadPDFFromS3 } from "./s3Service.js";
+import { minifyHTML } from "../../../utils/htmlMinifier.js";
 
 // ============================================
 // SMTP CONNECTION POOL FOR FASTER EMAIL SENDING
@@ -31,20 +32,14 @@ export const getPooledTransporter = async (emailConfig) => {
   }
 
   // Return existing transporter if available
+  // OPTIMIZATION: Skip verify() call to avoid latency - connection will be validated on send
   if (transporterPool.has(cacheKey)) {
     const transporter = transporterPool.get(cacheKey);
-    try {
-      // Quick check if connection is still valid
-      await transporter.verify();
-      scheduleTransporterClose(cacheKey);
-      return transporter;
-    } catch (e) {
-      // Connection lost, remove from pool
-      transporterPool.delete(cacheKey);
-    }
+    scheduleTransporterClose(cacheKey);
+    return transporter;
   }
 
-  // Create new pooled transporter
+  // Create new pooled transporter (only verify on first creation)
   const smtpConfigs = [
     {
       host: "smtp.zoho.in",
@@ -52,9 +47,9 @@ export const getPooledTransporter = async (emailConfig) => {
       secure: true,
       auth: emailConfig,
       tls: { rejectUnauthorized: false },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 8000,
+      connectionTimeout: 5000, // Reduced from 8000ms for faster failure
+      greetingTimeout: 5000, // Reduced from 8000ms for faster failure
+      socketTimeout: 10000, // Keep higher for actual sending
       pool: true, // ENABLED: Connection pooling
       maxConnections: 3, // Allow up to 3 connections
       maxMessages: 50, // Messages per connection before recycling
@@ -65,9 +60,9 @@ export const getPooledTransporter = async (emailConfig) => {
       secure: false,
       auth: emailConfig,
       tls: { rejectUnauthorized: false },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 8000,
+      connectionTimeout: 5000, // Reduced from 8000ms for faster failure
+      greetingTimeout: 5000, // Reduced from 8000ms for faster failure
+      socketTimeout: 10000, // Keep higher for actual sending
       pool: true,
       maxConnections: 3,
       maxMessages: 50,
@@ -78,9 +73,9 @@ export const getPooledTransporter = async (emailConfig) => {
       secure: true,
       auth: emailConfig,
       tls: { rejectUnauthorized: false },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 8000,
+      connectionTimeout: 5000, // Reduced from 8000ms for faster failure
+      greetingTimeout: 5000, // Reduced from 8000ms for faster failure
+      socketTimeout: 10000, // Keep higher for actual sending
       pool: true,
       maxConnections: 3,
       maxMessages: 50,
@@ -125,7 +120,7 @@ const scheduleTransporterClose = (cacheKey) => {
     if (transporter) {
       try {
         transporter.close();
-      } catch (e) {
+      } catch (_e) {
         // Ignore close errors
       }
       transporterPool.delete(cacheKey);
@@ -139,10 +134,10 @@ const scheduleTransporterClose = (cacheKey) => {
  * Graceful shutdown - close all transporters
  */
 export const closeEmailPool = () => {
-  for (const [key, transporter] of transporterPool) {
+  for (const [_key, transporter] of transporterPool) {
     try {
       transporter.close();
-    } catch (e) {
+    } catch (_e) {
       // Ignore close errors
     }
   }
@@ -154,23 +149,26 @@ export const closeEmailPool = () => {
 };
 
 /**
- * Send email with PDF attachment from S3
+ * Send email with PDF attachment (from buffer or S3 URL)
  *
  * OPTIMIZATION: Uses pooled SMTP connections for faster email sending
  * - First email takes normal time (establishes connection)
  * - Subsequent emails reuse connection (50%+ faster)
+ * - Accepts PDF buffer directly to avoid unnecessary S3 download
  *
  * @param {Object} documentData - Document data
  * @param {string} documentType - 'quote', 'salesOrder', 'invoice', or 'jobOrder'
  * @param {string} documentId - Document ID
- * @param {string} s3PdfUrl - S3 URL of the PDF
+ * @param {string} s3PdfUrl - S3 URL of the PDF (for fallback or when buffer not provided)
+ * @param {Buffer} pdfBuffer - Optional PDF buffer (preferred to avoid S3 download)
  * @returns {Promise<boolean>} - Success status
  */
 export const sendEmailWithS3PDF = async (
   documentData,
   documentType,
   documentId,
-  s3PdfUrl
+  s3PdfUrl,
+  pdfBuffer = null
 ) => {
   try {
     let emailConfig, emailTemplate, subject, companyName;
@@ -225,17 +223,48 @@ export const sendEmailWithS3PDF = async (
     // Get pooled transporter (reuses existing connection)
     const transporter = await getPooledTransporter(emailConfig);
 
-    const emailContent = emailTemplate(documentData);
+    // Generate email content
+    const emailContentStartTime = Date.now();
+    let emailContent = emailTemplate(documentData);
+    const emailContentTime = Date.now() - emailContentStartTime;
+
+    // OPTIMIZATION: Minify HTML email content if it's HTML (payment receipts)
+    // Plain text emails remain unchanged - minification only affects HTML emails
+    // This reduces email size and can improve delivery speed
+    if (
+      emailContent.includes("<!DOCTYPE html>") ||
+      emailContent.includes("<html")
+    ) {
+      const minifyStartTime = Date.now();
+      emailContent = minifyHTML(emailContent);
+      const minifyTime = Date.now() - minifyStartTime;
+      console.log(
+        `⏱️ [Email ${documentType}-${documentId}] Content generation: ${emailContentTime}ms | HTML minification: ${minifyTime}ms`
+      );
+    } else {
+      // For plain text emails, just trim extra whitespace (safe optimization)
+      emailContent = emailContent.trim().replace(/\n{3,}/g, "\n\n");
+      console.log(
+        `⏱️ [Email ${documentType}-${documentId}] Content generation: ${emailContentTime}ms`
+      );
+    }
+
     const fileName = `${documentType}.pdf`;
 
-    // Download PDF from S3 as buffer (nodemailer needs buffer or local path, not URL)
-    let pdfBuffer;
-    try {
-      pdfBuffer = await downloadPDFFromS3(s3PdfUrl);
-    } catch (downloadError) {
-      throw new Error(
-        `Failed to download PDF from S3: ${downloadError.message}`
-      );
+    // OPTIMIZATION: Use provided buffer if available, otherwise download from S3
+    let finalPdfBuffer = pdfBuffer;
+    if (!finalPdfBuffer && s3PdfUrl) {
+      try {
+        finalPdfBuffer = await downloadPDFFromS3(s3PdfUrl);
+      } catch (downloadError) {
+        throw new Error(
+          `Failed to download PDF from S3: ${downloadError.message}`
+        );
+      }
+    }
+
+    if (!finalPdfBuffer) {
+      throw new Error("PDF buffer or S3 URL must be provided");
     }
 
     const emailOptions = {
@@ -246,7 +275,7 @@ export const sendEmailWithS3PDF = async (
       attachments: [
         {
           filename: fileName,
-          content: pdfBuffer, // Use buffer instead of path
+          content: finalPdfBuffer, // Use buffer instead of path
         },
       ],
     };
@@ -288,10 +317,16 @@ export const sendEmailWithS3PDF = async (
  * @param {Object} quoteData - Quote data
  * @param {string} quoteId - Quote ID
  * @param {string} s3PdfUrl - S3 URL of the PDF
+ * @param {Buffer} pdfBuffer - Optional PDF buffer (preferred to avoid S3 download)
  * @returns {Promise<boolean>} - Success status
  */
-export const sendQuoteEmail = async (quoteData, quoteId, s3PdfUrl) => {
-  return sendEmailWithS3PDF(quoteData, "quote", quoteId, s3PdfUrl);
+export const sendQuoteEmail = async (
+  quoteData,
+  quoteId,
+  s3PdfUrl,
+  pdfBuffer = null
+) => {
+  return sendEmailWithS3PDF(quoteData, "quote", quoteId, s3PdfUrl, pdfBuffer);
 };
 
 /**
@@ -300,13 +335,15 @@ export const sendQuoteEmail = async (quoteData, quoteId, s3PdfUrl) => {
  * @param {string} salesOrderId - Sales Order ID
  * @param {string} s3PdfUrl - S3 URL of the PDF
  * @param {string} paymentLinkUrl - Optional payment link URL
+ * @param {Buffer} pdfBuffer - Optional PDF buffer (preferred to avoid S3 download)
  * @returns {Promise<boolean>} - Success status
  */
 export const sendSalesOrderEmail = async (
   salesOrderData,
   salesOrderId,
   s3PdfUrl,
-  paymentLinkUrl = null
+  paymentLinkUrl = null,
+  pdfBuffer = null
 ) => {
   // Add payment link to sales order data if provided
   const emailDataWithPaymentLink = paymentLinkUrl
@@ -317,7 +354,8 @@ export const sendSalesOrderEmail = async (
     emailDataWithPaymentLink,
     "salesOrder",
     salesOrderId,
-    s3PdfUrl
+    s3PdfUrl,
+    pdfBuffer
   );
 };
 
@@ -326,10 +364,22 @@ export const sendSalesOrderEmail = async (
  * @param {Object} jobOrderData - Job Order data
  * @param {string} jobOrderId - Job Order ID
  * @param {string} s3PdfUrl - S3 URL of the PDF
+ * @param {Buffer} pdfBuffer - Optional PDF buffer (preferred to avoid S3 download)
  * @returns {Promise<boolean>} - Success status
  */
-export const sendJobOrderEmail = async (jobOrderData, jobOrderId, s3PdfUrl) => {
-  return sendEmailWithS3PDF(jobOrderData, "jobOrder", jobOrderId, s3PdfUrl);
+export const sendJobOrderEmail = async (
+  jobOrderData,
+  jobOrderId,
+  s3PdfUrl,
+  pdfBuffer = null
+) => {
+  return sendEmailWithS3PDF(
+    jobOrderData,
+    "jobOrder",
+    jobOrderId,
+    s3PdfUrl,
+    pdfBuffer
+  );
 };
 
 /**
@@ -338,13 +388,15 @@ export const sendJobOrderEmail = async (jobOrderData, jobOrderId, s3PdfUrl) => {
  * @param {string} salesOrderId - Sales Order ID
  * @param {string} s3PdfUrl - S3 URL of the PDF
  * @param {string} paymentLinkUrl - Payment link URL (required for invoice)
+ * @param {Buffer} pdfBuffer - Optional PDF buffer (preferred to avoid S3 download)
  * @returns {Promise<boolean>} - Success status
  */
 export const sendInvoiceEmail = async (
   invoiceData,
   salesOrderId,
   s3PdfUrl,
-  paymentLinkUrl
+  paymentLinkUrl,
+  pdfBuffer = null
 ) => {
   if (!paymentLinkUrl) {
     throw new Error("Payment link URL is required for invoice emails");
@@ -360,6 +412,7 @@ export const sendInvoiceEmail = async (
     emailDataWithPaymentLink,
     "invoice",
     salesOrderId,
-    s3PdfUrl
+    s3PdfUrl,
+    pdfBuffer
   );
 };

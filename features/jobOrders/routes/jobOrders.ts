@@ -345,37 +345,69 @@ router.post(
         await import("../../common/services/emailService.js");
 
       let pdfUrls;
+      const totalStartTime = Date.now();
       try {
+        const pdfStartTime = Date.now();
         pdfUrls = await generateJobOrderPDF(emailData, id);
-        await sendJobOrderEmail(emailData, id, pdfUrls.pdfUrl);
+        const pdfTime = Date.now() - pdfStartTime;
+        console.log(`⏱️ [JobOrder ${id}] PDF generation: ${pdfTime}ms`);
+
+        // OPTIMIZATION: Pass PDF buffer directly to avoid re-downloading from S3
+        const emailStartTime = Date.now();
+        await sendJobOrderEmail(
+          emailData,
+          id,
+          pdfUrls.pdfUrl,
+          pdfUrls.pdfBuffer
+        );
+        const emailTime = Date.now() - emailStartTime;
+        console.log(`⏱️ [JobOrder ${id}] Email sending: ${emailTime}ms`);
       } catch (pdfError) {
         throw pdfError;
       }
 
-      const updatedJobOrder = await jobOrdersService.updateJobOrder(id, {
-        ...emailData,
-        emailStatus: "Sent",
-        vendorAcceptanceStatus: "Accepted",
-      });
+      // OPTIMIZATION: Update database in background (non-blocking) - respond immediately
+      // This allows the API to return faster while DB update happens asynchronously
+      const dbUpdateStartTime = Date.now();
+      jobOrdersService
+        .updateJobOrder(id, {
+          ...emailData,
+          emailStatus: "Sent",
+          vendorAcceptanceStatus: "Accepted",
+        })
+        .then((updatedJobOrder) => {
+          const dbTime = Date.now() - dbUpdateStartTime;
+          console.log(
+            `⏱️ [JobOrder ${id}] Database update completed (background): ${dbTime}ms`
+          );
+          // Link job order to existing customer (in background)
+          jobOrdersService
+            .createOrLinkCustomerFromJobOrder(updatedJobOrder)
+            .catch((linkError) => {
+              console.error(
+                `⚠️ [JobOrder ${id}] Background customer linking failed (non-critical):`,
+                linkError.message
+              );
+            });
+        })
+        .catch((dbError) => {
+          console.error(
+            `⚠️ [JobOrder ${id}] Background database update failed (non-critical):`,
+            dbError.message
+          );
+        });
 
-      // Link job order to existing customer (customer is created when sales order is created)
-      try {
-        await jobOrdersService.createOrLinkCustomerFromJobOrder(
-          updatedJobOrder
-        );
-      } catch (error) {
-        // Log but don't fail the job order email
-        console.error("Error linking job order to customer:", error);
-      }
+      const totalTime = Date.now() - totalStartTime;
+      console.log(`⏱️ [JobOrder ${id}] Total email flow (response sent): ${totalTime}ms`);
 
       res.status(200).json({
         success: true,
         message: "Job Order email sent successfully",
         data: {
-          _id: updatedJobOrder._id,
-          jobOrderNo: updatedJobOrder.jobOrderNo,
-          emailStatus: updatedJobOrder.emailStatus,
-          vendorAcceptanceStatus: updatedJobOrder.vendorAcceptanceStatus,
+          _id: id,
+          jobOrderNo: emailData.jobOrderNo,
+          emailStatus: "Sent",
+          vendorAcceptanceStatus: "Accepted",
           pdfUrl: pdfUrls.pdfUrl,
         },
       });

@@ -391,6 +391,18 @@ try {
   // Failed to initialize invoice link cron job
 }
 
+// OPTIMIZATION: Pre-warm browser pool on server startup for faster first PDF
+try {
+  const { preWarmBrowserPool } =
+    await import("./features/fileManagement/services/pdfService.js");
+  // Pre-warm in background (non-blocking)
+  preWarmBrowserPool().catch((error) => {
+    console.warn("⚠️ Browser pool pre-warming failed (non-critical):", error.message);
+  });
+} catch {
+  // Failed to pre-warm browser pool (non-critical)
+}
+
 app.use((req: Request, res: Response, next: NextFunction) => {
   next(createError(404));
 });

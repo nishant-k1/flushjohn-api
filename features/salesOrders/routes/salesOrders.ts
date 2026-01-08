@@ -386,15 +386,35 @@ router.post(
         await import("../../common/services/emailService.js");
 
       let pdfUrls;
+      const totalStartTime = Date.now();
       try {
+        const pdfStartTime = Date.now();
         pdfUrls = await generateSalesOrderPDF(emailData, id);
+        const pdfTime = Date.now() - pdfStartTime;
+        console.log(`⏱️ [SalesOrder ${id}] PDF generation: ${pdfTime}ms`);
 
+        // OPTIMIZATION: Pass PDF buffer directly to avoid re-downloading from S3
+        const emailStartTime = Date.now();
         // Use invoice template if payment link is provided, otherwise use sales order template
         if (paymentLinkUrl) {
-          await sendInvoiceEmail(emailData, id, pdfUrls.pdfUrl, paymentLinkUrl);
+          await sendInvoiceEmail(
+            emailData,
+            id,
+            pdfUrls.pdfUrl,
+            paymentLinkUrl,
+            pdfUrls.pdfBuffer
+          );
         } else {
-          await sendSalesOrderEmail(emailData, id, pdfUrls.pdfUrl, null);
+          await sendSalesOrderEmail(
+            emailData,
+            id,
+            pdfUrls.pdfUrl,
+            null,
+            pdfUrls.pdfBuffer
+          );
         }
+        const emailTime = Date.now() - emailStartTime;
+        console.log(`⏱️ [SalesOrder ${id}] Email sending: ${emailTime}ms`);
       } catch (pdfError) {
         // Distinguish between PDF generation errors and email sending errors
         if (pdfError.message?.includes("PDF generation failed")) {
@@ -403,25 +423,49 @@ router.post(
         throw pdfError;
       }
 
-      const updatedSalesOrder = await salesOrdersService.updateSalesOrder(id, {
-        ...emailData,
-        emailStatus: "Sent",
-      });
+      // OPTIMIZATION: Update database in background (non-blocking) - respond immediately
+      // This allows the API to return faster while DB update happens asynchronously
+      const dbUpdateStartTime = Date.now();
+      salesOrdersService
+        .updateSalesOrder(id, {
+          ...emailData,
+          emailStatus: "Sent",
+        })
+        .then((updatedSalesOrder) => {
+          const dbTime = Date.now() - dbUpdateStartTime;
+          console.log(
+            `⏱️ [SalesOrder ${id}] Database update completed (background): ${dbTime}ms`
+          );
+          // Link sales order to customer if customer exists (in background)
+          salesOrdersService
+            .linkSalesOrderToCustomer(
+              updatedSalesOrder,
+              updatedSalesOrder.lead?.toString() || null
+            )
+            .catch((linkError) => {
+              console.error(
+                `⚠️ [SalesOrder ${id}] Background customer linking failed (non-critical):`,
+                linkError.message
+              );
+            });
+        })
+        .catch((dbError) => {
+          console.error(
+            `⚠️ [SalesOrder ${id}] Background database update failed (non-critical):`,
+            dbError.message
+          );
+        });
 
-      // Link sales order to customer if customer exists
-      // Customer is created when sales order is created
-      await salesOrdersService.linkSalesOrderToCustomer(
-        updatedSalesOrder,
-        updatedSalesOrder.lead?.toString() || null
-      );
+      const totalTime = Date.now() - totalStartTime;
+      console.log(`⏱️ [SalesOrder ${id}] Total email flow (response sent): ${totalTime}ms`);
 
       res.status(200).json({
         success: true,
         message: "Sales Order email sent successfully",
         data: {
-          _id: updatedSalesOrder._id,
-          salesOrderNo: updatedSalesOrder.salesOrderNo,
-          emailStatus: updatedSalesOrder.emailStatus,
+          _id: id,
+          salesOrderNo: emailData.salesOrderNo,
+          emailStatus: "Sent",
           pdfUrl: pdfUrls.pdfUrl,
         },
       });

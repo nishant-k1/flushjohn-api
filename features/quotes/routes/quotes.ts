@@ -371,25 +371,53 @@ router.post(
         await import("../../common/services/emailService.js");
 
       let pdfUrls;
+      const totalStartTime = Date.now();
       try {
+        const pdfStartTime = Date.now();
         pdfUrls = await generateQuotePDF(emailData, id);
-        await sendQuoteEmail(emailData, id, pdfUrls.pdfUrl);
+        const pdfTime = Date.now() - pdfStartTime;
+        console.log(`⏱️ [Quote ${id}] PDF generation: ${pdfTime}ms`);
+
+        // OPTIMIZATION: Pass PDF buffer directly to avoid re-downloading from S3
+        const emailStartTime = Date.now();
+        await sendQuoteEmail(emailData, id, pdfUrls.pdfUrl, pdfUrls.pdfBuffer);
+        const emailTime = Date.now() - emailStartTime;
+        console.log(`⏱️ [Quote ${id}] Email sending: ${emailTime}ms`);
       } catch (pdfError) {
         throw pdfError;
       }
 
-      const updatedQuote = await quotesService.updateQuote(id, {
-        ...emailData,
-        emailStatus: "Sent",
-      });
+      // OPTIMIZATION: Update database in background (non-blocking) - respond immediately
+      // This allows the API to return faster while DB update happens asynchronously
+      const dbUpdateStartTime = Date.now();
+      quotesService
+        .updateQuote(id, {
+          ...emailData,
+          emailStatus: "Sent",
+        })
+        .then((updatedQuote) => {
+          const dbTime = Date.now() - dbUpdateStartTime;
+          console.log(
+            `⏱️ [Quote ${id}] Database update completed (background): ${dbTime}ms`
+          );
+        })
+        .catch((dbError) => {
+          console.error(
+            `⚠️ [Quote ${id}] Background database update failed (non-critical):`,
+            dbError.message
+          );
+        });
+
+      const totalTime = Date.now() - totalStartTime;
+      console.log(`⏱️ [Quote ${id}] Total email flow (response sent): ${totalTime}ms`);
 
       res.status(200).json({
         success: true,
         message: "Quote email sent successfully",
         data: {
-          _id: updatedQuote._id,
-          quoteNo: updatedQuote.quoteNo,
-          emailStatus: updatedQuote.emailStatus,
+          _id: id,
+          quoteNo: emailData.quoteNo,
+          emailStatus: "Sent", // Email was sent successfully
           pdfUrl: pdfUrls.pdfUrl,
         },
       });
