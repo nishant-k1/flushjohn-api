@@ -37,9 +37,10 @@ export const count = async (query = {}) => {
   return await (Quotes as any).countDocuments(query);
 };
 
-export const findById = async (id, lean = false) => {
+export const findById = async (id, lean = true) => {
   let query = (Quotes as any).findById(id).populate("lead");
-  // ✅ PERFORMANCE: Use .lean() for read-only queries
+  // ✅ PERFORMANCE: Use .lean() for read-only queries (20-30% faster, less memory)
+  // Default to lean() for better performance - set lean=false only when Mongoose document methods are needed
   if (lean) {
     query = query.lean();
   }

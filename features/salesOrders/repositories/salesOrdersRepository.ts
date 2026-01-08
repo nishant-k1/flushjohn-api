@@ -28,11 +28,18 @@ export const count = async (query = {}) => {
   return await (SalesOrders as any).countDocuments(query);
 };
 
-export const findById = async (id) => {
-  return await (SalesOrders as any)
+export const findById = async (id, lean = true) => {
+  let query = (SalesOrders as any)
     .findById(id)
     .populate("lead")
     .populate("quote");
+  
+  // ✅ PERFORMANCE: Use .lean() for read-only queries (20-30% faster, less memory)
+  if (lean) {
+    query = query.lean();
+  }
+  
+  return await query;
 };
 
 export const findOne = async (query, projection = null) => {
