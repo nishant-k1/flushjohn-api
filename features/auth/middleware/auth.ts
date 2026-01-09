@@ -46,8 +46,8 @@ export const authenticateToken = async (
       return;
     }
 
-    // CRITICAL FIX: Improved type safety - removed unnecessary 'as any' casts
-    const user = await User.findOne({
+    // CRITICAL FIX: Type safety - mongoose model requires type assertion
+    const user = await (User as any).findOne({
       userId: decoded.userId,
     });
 
@@ -169,8 +169,8 @@ export const optionalAuth = async (
       return next();
     }
 
-    // CRITICAL FIX: Improved type safety - removed unnecessary 'as any' casts
-    const user = await User.findOne({
+    // CRITICAL FIX: Type safety - mongoose model requires type assertion
+    const user = await (User as any).findOne({
       userId: decoded.userId,
     });
 

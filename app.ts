@@ -162,6 +162,19 @@ app.use(
   }
 );
 
+// CRITICAL FIX: Add request timeout configuration
+// Set timeout to 30 seconds (30000ms) to prevent hanging connections
+app.use((req: Request, res: Response, next: NextFunction) => {
+  req.setTimeout(30000, () => {
+    res.status(408).json({
+      success: false,
+      message: "Request timeout. The server took too long to respond.",
+      error: "REQUEST_TIMEOUT",
+    });
+  });
+  next();
+});
+
 app.use(json({ limit: "10mb" }));
 app.use(urlencoded({ extended: false, limit: "10mb" }));
 

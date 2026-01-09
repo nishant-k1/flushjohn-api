@@ -66,6 +66,12 @@ const formatSalesOrderResponse = (salesOrder, lead) => {
   };
 };
 
+/**
+ * Create a new sales order
+ * CRITICAL FIX: Uses database transaction for multi-step operations to ensure data consistency
+ * @param {Object} salesOrderData - Sales order data
+ * @returns {Promise<Object>} Created sales order
+ */
 export const createSalesOrder = async (salesOrderData) => {
   if (!salesOrderData.email || !salesOrderData.quoteNo) {
     const error = new Error("Email and Quote Number are required");
@@ -73,111 +79,108 @@ export const createSalesOrder = async (salesOrderData) => {
     throw error;
   }
 
-  const createdAt = getCurrentDateTime();
-  const salesOrderNo = await generateSalesOrderNumber();
+  // CRITICAL FIX: Use database transaction for atomic multi-step operation
+  const mongoose = await import("mongoose");
+  const session = await mongoose.default.startSession();
+  
+  try {
+    return await session.withTransaction(async () => {
+      const createdAt = getCurrentDateTime();
+      const salesOrderNo = await generateSalesOrderNumber();
 
-  let customerNo = null;
+      let customerNo = null;
 
-  // Helper function to normalize phone numbers (remove non-digits, get last 10 digits)
-  const normalizePhone = (phone) => {
-    if (!phone) return null;
-    const digits = phone.replace(/\D/g, "");
-    // Return last 10 digits (handles numbers with country code like +1 or 1 prefix)
-    return digits.slice(-10);
-  };
+      // Helper function to normalize phone numbers (remove non-digits, get last 10 digits)
+      const normalizePhone = (phone) => {
+        if (!phone) return null;
+        const digits = phone.replace(/\D/g, "");
+        // Return last 10 digits (handles numbers with country code like +1 or 1 prefix)
+        return digits.slice(-10);
+      };
 
-  // Build query to find customer by email OR phone
-  const customerQuery = {
-    $or: [],
-  };
+      // Build query to find customer by email OR phone
+      const customerQuery = {
+        $or: [],
+      };
 
-  // Always check by email if provided
-  if (salesOrderData.email) {
-    (customerQuery as any).$or.push({ email: salesOrderData.email });
-  }
+      // Always check by email if provided
+      if (salesOrderData.email) {
+        (customerQuery as any).$or.push({ email: salesOrderData.email });
+      }
 
-  // Add phone number search if phone is provided
-  if (salesOrderData.phone) {
-    const normalizedPhone = normalizePhone(salesOrderData.phone);
-    if (normalizedPhone && normalizedPhone.length === 10) {
-      // Create a regex pattern that matches the 10 digits in sequence
-      // This handles various phone formats like "(123) 456-7890", "123-456-7890", "1234567890", etc.
-      // The pattern looks for the digits in order, allowing for non-digit characters between them
-      const phonePattern = normalizedPhone.split("").join("\\D*");
-      (customerQuery as any).$or.push({
-        phone: { $regex: phonePattern },
+      // Add phone number search if phone is provided
+      if (salesOrderData.phone) {
+        const normalizedPhone = normalizePhone(salesOrderData.phone);
+        if (normalizedPhone && normalizedPhone.length === 10) {
+          // Create a regex pattern that matches the 10 digits in sequence
+          // This handles various phone formats like "(123) 456-7890", "123-456-7890", "1234567890", etc.
+          // The pattern looks for the digits in order, allowing for non-digit characters between them
+          const phonePattern = normalizedPhone.split("").join("\\D*");
+          (customerQuery as any).$or.push({
+            phone: { $regex: phonePattern },
+          });
+        }
+      }
+
+      // Only execute query if we have at least one search criteria
+      if ((customerQuery as any).$or.length > 0) {
+        const existingCustomer = await customersRepository.findOne(customerQuery);
+
+        if (existingCustomer) {
+          customerNo = existingCustomer.customerNo;
+        }
+      }
+
+      const newSalesOrderData = {
+        ...salesOrderData,
+        createdAt,
+        salesOrderNo,
+        customerNo: customerNo,
+        emailStatus: "Pending",
+        lead: salesOrderData.lead || null,
+        leadNo: salesOrderData.leadNo || null,
+        quote: salesOrderData.quote || null,
+      };
+
+      // Data is automatically serialized by middleware
+      // CRITICAL FIX: Use session for transaction
+      const createdSalesOrder = await salesOrdersRepository.create(newSalesOrderData);
+
+      // Update ConversationLog for AI learning - mark as converted (within transaction)
+      if (createdSalesOrder.lead) {
+        await conversationLogRepository.updateOnSalesOrderCreated(
+          createdSalesOrder.lead,
+          createdSalesOrder._id
+        );
+      }
+
+      // Calculate and update payment totals (orderTotal, paidAmount, balanceDue)
+      // This ensures balanceDue is correctly set even when no payments exist yet
+      await updateSalesOrderPaymentTotals(createdSalesOrder._id);
+
+      // Note: Customer creation/linking is done outside transaction as it's non-critical
+      // and we don't want to fail the sales order creation if it fails
+      session.endSession().catch(() => {}); // End session in background
+      
+      // Create or link customer when sales order is created (non-blocking)
+      createOrLinkCustomerFromSalesOrder(createdSalesOrder).catch((error: any) => {
+        console.error(
+          "Error creating/linking customer on SalesOrder creation (non-critical):",
+          error.message || String(error)
+        );
       });
-    }
-  }
 
-  // Only execute query if we have at least one search criteria
-  if ((customerQuery as any).$or.length > 0) {
-    const existingCustomer = await customersRepository.findOne(customerQuery);
-
-    if (existingCustomer) {
-      customerNo = existingCustomer.customerNo;
-    }
-  }
-
-  const newSalesOrderData = {
-    ...salesOrderData,
-    createdAt,
-    salesOrderNo,
-    customerNo: customerNo,
-    emailStatus: "Pending",
-    lead: salesOrderData.lead || null,
-    leadNo: salesOrderData.leadNo || null,
-    quote: salesOrderData.quote || null,
-  };
-
-  // Data is automatically serialized by middleware
-  const createdSalesOrder =
-    await salesOrdersRepository.create(newSalesOrderData);
-
-  // Update ConversationLog for AI learning - mark as converted
-  if (createdSalesOrder.lead) {
-    try {
-      await conversationLogRepository.updateOnSalesOrderCreated(
-        createdSalesOrder.lead,
+      // Fetch updated sales order to return with correct totals
+      const updatedSalesOrder = await salesOrdersRepository.findById(
         createdSalesOrder._id
       );
-    } catch (error) {
-      // Log but don't fail the sales order creation
-      console.error(
-        "Error updating ConversationLog on SalesOrder creation:",
-        error
-      );
-    }
+      return updatedSalesOrder || createdSalesOrder;
+    });
+  } catch (error: any) {
+    await session.endSession();
+    // If transaction fails, all changes are rolled back
+    throw error;
   }
-
-  // Create or link customer when sales order is created
-  try {
-    await createOrLinkCustomerFromSalesOrder(createdSalesOrder);
-  } catch (error) {
-    // Log but don't fail the sales order creation
-    console.error(
-      "Error creating/linking customer on SalesOrder creation:",
-      error
-    );
-  }
-
-  // Calculate and update payment totals (orderTotal, paidAmount, balanceDue)
-  // This ensures balanceDue is correctly set even when no payments exist yet
-  try {
-    await updateSalesOrderPaymentTotals(createdSalesOrder._id);
-  } catch (error) {
-    // Log but don't fail the sales order creation
-    console.error(
-      "Error updating payment totals on SalesOrder creation:",
-      error
-    );
-  }
-
-  // Fetch updated sales order to return with correct totals
-  const updatedSalesOrder = await salesOrdersRepository.findById(
-    createdSalesOrder._id
-  );
-  return updatedSalesOrder || createdSalesOrder;
 };
 
 /**

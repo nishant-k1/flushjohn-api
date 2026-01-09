@@ -61,8 +61,19 @@ const verifySocketToken = async (
   }
 };
 
-export default function socketConnect(server: HttpServer): SocketIOServer {
-  const allowedOrigins = [
+/**
+ * Get allowed origins from environment variables or use defaults
+ * CRITICAL FIX: Uses environment variables instead of hardcoded values
+ */
+const getAllowedOrigins = (): string[] => {
+  if (process.env.ORIGINS) {
+    return process.env.ORIGINS.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+  }
+  
+  // Fallback to default origins if ORIGINS env var not set
+  return [
     "http://localhost:8080",
     "http://localhost:3000",
     "http://localhost:3001",
@@ -71,8 +82,13 @@ export default function socketConnect(server: HttpServer): SocketIOServer {
     "https://flushjohn.com",
     "http://flushjohn.com",
   ];
+};
 
-  // Custom origin validation to allow all flushjohn.com subdomains
+export default function socketConnect(server: HttpServer): SocketIOServer {
+  const allowedOrigins = getAllowedOrigins();
+
+  // CRITICAL FIX: Custom origin validation using environment configuration
+  // Allows all flushjohn.com subdomains if ALLOW_SUBDOMAINS is set
   const validateOrigin = (
     origin: string | undefined,
     callback: (err: Error | null, success?: boolean) => void
@@ -86,17 +102,22 @@ export default function socketConnect(server: HttpServer): SocketIOServer {
       return callback(null, true);
     }
 
-    // Allow any flushjohn.com domain (including subdomains)
-    try {
-      const url = new URL(origin);
-      if (
-        url.hostname.endsWith(".flushjohn.com") ||
-        url.hostname === "flushjohn.com"
-      ) {
-        return callback(null, true);
+    // Allow any flushjohn.com domain (including subdomains) if configured
+    const allowSubdomains = process.env.ALLOW_SUBDOMAINS === "true" || 
+                           process.env.NODE_ENV === "development";
+    
+    if (allowSubdomains) {
+      try {
+        const url = new URL(origin);
+        if (
+          url.hostname.endsWith(".flushjohn.com") ||
+          url.hostname === "flushjohn.com"
+        ) {
+          return callback(null, true);
+        }
+      } catch (e) {
+        // Invalid URL - fall through to rejection
       }
-    } catch (e) {
-      // Invalid URL
     }
 
     callback(new Error("Not allowed by CORS"), false);

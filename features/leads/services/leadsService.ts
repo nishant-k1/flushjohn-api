@@ -99,7 +99,7 @@ export const generateLeadNumber = async () => {
         seq: { type: Number, default: 0 }
       }));
 
-    const result = await Counter.findOneAndUpdate(
+    const result = await (Counter as any).findOneAndUpdate(
       { _id: "leadNo" },
       { $inc: { seq: 1 } },
       { upsert: true, new: true }
@@ -112,7 +112,7 @@ export const generateLeadNumber = async () => {
       const initialValue = latestLeadNo + 1;
       
       // Set the counter to the correct value
-      await Counter.findOneAndUpdate(
+      await (Counter as any).findOneAndUpdate(
         { _id: "leadNo" },
         { $set: { seq: initialValue } },
         { upsert: true }

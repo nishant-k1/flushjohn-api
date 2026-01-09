@@ -19,6 +19,7 @@ import {
   add,
   subtract,
 } from "../../../utils/priceCalculations.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 /**
  * Payments Service
@@ -751,7 +752,7 @@ const sendReceiptAndMarkSent = async (payment, salesOrder) => {
       // Mark receipt as sent
       await paymentsRepository.updateById(payment._id, {
         receiptSent: true,
-        receiptSentAt: new Date(),
+        receiptSentAt: getCurrentDateTime(),
       });
       console.log(
         `✅ Payment receipt email sent successfully for payment ${payment._id}`

@@ -9,12 +9,58 @@ import validateAndRecalculateProducts from "../../../middleware/validateProducts
 
 const router: any = Router();
 
+/**
+ * Create a new quote
+ * CRITICAL FIX: Improved error handling with specific error types
+ */
 router.post("/", validateAndRecalculateProducts, async function (req, res) {
   try {
     const quote = await quotesService.createQuote(req.body);
     res.status(201).json({ success: true, data: quote });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error: any) {
+    // CRITICAL FIX: Distinguish between different error types
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        error: "VALIDATION_ERROR",
+        details: error.errors
+          ? Object.values(error.errors).map((err: any) => err.message)
+          : [error.message],
+      });
+    }
+
+    if (error.name === "NotFoundError") {
+      return res.status(404).json({
+        success: false,
+        message: error.message || "Resource not found",
+        error: "NOT_FOUND",
+      });
+    }
+
+    if (error.name === "DuplicateError") {
+      return res.status(409).json({
+        success: false,
+        message: error.message || "Duplicate resource",
+        error: "DUPLICATE_ERROR",
+      });
+    }
+
+    // Generic server error
+    console.error("❌ Error creating quote:", {
+      error: error.message || String(error),
+      stack: error.stack,
+      name: error.name,
+    });
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to create quote",
+      error: "INTERNAL_SERVER_ERROR",
+      ...(process.env.NODE_ENV === "development" && {
+        details: error.message,
+      }),
+    });
   }
 });
 
