@@ -31,6 +31,8 @@ router.get("/", async function (req, res) {
       limit: _limit,
       sortBy: _sortBy,
       sortOrder: _sortOrder,
+      search: _search,
+      searchQuery: _searchQuery,
       ...columnFilters
     } = req.query;
 
@@ -409,7 +411,9 @@ router.post(
         });
 
       const totalTime = Date.now() - totalStartTime;
-      console.log(`⏱️ [Quote ${id}] Total email flow (response sent): ${totalTime}ms`);
+      console.log(
+        `⏱️ [Quote ${id}] Total email flow (response sent): ${totalTime}ms`
+      );
 
       res.status(200).json({
         success: true,

@@ -45,7 +45,18 @@ router.post("/", async function (req, res) {
 router.get("/", async function (req, res) {
   try {
     const pagination = parsePaginationQuery(req.query);
-    const { slug, status, ...columnFilters } = req.query;
+    // Exclude pagination and filter params from columnFilters to avoid overriding parsed values
+    const {
+      slug,
+      status,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      search,
+      searchQuery,
+      ...columnFilters
+    } = req.query;
 
     const slugValue = slug
       ? safeStringQuery(

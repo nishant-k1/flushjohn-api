@@ -57,8 +57,26 @@ router.get(
         limit: _limit,
         sortBy: _sortBy,
         sortOrder: _sortOrder,
+        search: _search,
         ...columnFilters
       } = req.query;
+      
+      // Exclude explicitly handled parameters from columnFilters to prevent overrides
+      const excludedKeys = [
+        "status",
+        "assignedTo",
+        "leadSource",
+        "hasCustomerNo",
+        "createdAtStart",
+        "createdAtEnd",
+        "deliveryDateStart",
+        "deliveryDateEnd",
+        "pickupDateStart",
+        "pickupDateEnd",
+      ];
+      const filteredColumnFilters = Object.fromEntries(
+        Object.entries(columnFilters).filter(([key]) => !excludedKeys.includes(key))
+      );
 
       const validationErrors = leadsService.validatePaginationParams(
         page,
@@ -88,7 +106,7 @@ router.get(
         deliveryDateEnd,
         pickupDateStart,
         pickupDateEnd,
-        ...columnFilters,
+        ...filteredColumnFilters,
       });
 
       res.status(200).json({

@@ -39,6 +39,10 @@ router.get("/", async function (req, res) {
       limit: _limit,
       sortBy: _sortBy,
       sortOrder: _sortOrder,
+      search: _search,
+      searchQuery: _searchQuery,
+      startDate: _startDate,
+      endDate: _endDate,
       ...columnFilters
     } = req.query;
 

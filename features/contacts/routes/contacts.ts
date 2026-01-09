@@ -38,6 +38,7 @@ router.get(
         limit: _limit,
         sortBy: _sortBy,
         sortOrder: _sortOrder,
+        search: _search,
         ...columnFilters
       } = req.query;
 
