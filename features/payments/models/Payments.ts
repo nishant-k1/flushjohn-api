@@ -56,6 +56,8 @@ const PaymentsSchema = new mongoose.Schema({
   stripePaymentIntentId: {
     type: String,
     index: true,
+    unique: true, // CRITICAL: Prevent duplicate payments with same payment intent
+    sparse: true, // Allow null values (payment links don't have intent IDs)
   },
   stripeChargeId: {
     type: String,

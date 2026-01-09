@@ -81,7 +81,10 @@ export function leadSocketHandler(leadsNamespace, socket) {
       const lead = await Leads.create(webLead);
 
       // Send alerts in background (non-blocking)
-      alertService.sendLeadAlerts(lead).catch(() => {});
+      alertService.sendLeadAlerts(lead).catch((alertError: any) => {
+        console.error("❌ Error sending lead alerts:", alertError);
+        // Log but don't fail the lead creation
+      });
 
       // OPTIMIZATION: Emit only the new lead instead of fetching all leads
       // This is 80%+ faster for large lead databases
@@ -99,36 +102,156 @@ export function leadSocketHandler(leadsNamespace, socket) {
     }
   });
 
+  /**
+   * Get all leads (with limit to prevent fetching entire collection)
+   * Validates request and handles errors properly
+   */
   socket.on("getLeads", async () => {
     try {
       // OPTIMIZATION: Add limit to prevent fetching entire collection
       const leadsList = await Leads.find().sort({ _id: -1 }).limit(100).lean();
       socket.emit("leadList", leadsList);
-    } catch (error) {}
+    } catch (error: any) {
+      console.error("❌ Error fetching leads via socket:", error);
+      socket.emit("error", {
+        message: error.message || "Failed to fetch leads",
+        error: error.name || "LEAD_FETCH_ERROR",
+        event: "getLeads",
+      });
+    }
   });
 
+  /**
+   * Get single lead by ID
+   * Validates leadId and handles errors properly
+   */
   socket.on("getLead", async (leadId) => {
     try {
+      // Validate leadId format (MongoDB ObjectId)
+      if (!leadId || typeof leadId !== "string" || !/^[0-9a-fA-F]{24}$/.test(leadId)) {
+        socket.emit("error", {
+          message: "Invalid lead ID format",
+          error: "INVALID_ID_FORMAT",
+          event: "getLead",
+        });
+        return;
+      }
+
       const lead = await Leads.findById(leadId);
+      if (!lead) {
+        socket.emit("error", {
+          message: "Lead not found",
+          error: "LEAD_NOT_FOUND",
+          event: "getLead",
+        });
+        return;
+      }
       socket.emit("leadData", lead);
-    } catch (error) {}
+    } catch (error: any) {
+      console.error("❌ Error fetching lead via socket:", error);
+      socket.emit("error", {
+        message: error.message || "Failed to fetch lead",
+        error: error.name || "LEAD_FETCH_ERROR",
+        event: "getLead",
+      });
+    }
   });
 
+  /**
+   * Update lead
+   * Validates input and handles errors properly
+   */
   socket.on("updateLead", async ({ _id, data }) => {
     try {
+      // Validate input structure
+      if (!_id || typeof _id !== "string") {
+        socket.emit("error", {
+          message: "Lead ID is required",
+          error: "INVALID_INPUT",
+          event: "updateLead",
+        });
+        return;
+      }
+
+      // Validate leadId format (MongoDB ObjectId)
+      if (!/^[0-9a-fA-F]{24}$/.test(_id)) {
+        socket.emit("error", {
+          message: "Invalid lead ID format",
+          error: "INVALID_ID_FORMAT",
+          event: "updateLead",
+        });
+        return;
+      }
+
+      if (!data || typeof data !== "object" || Object.keys(data).length === 0) {
+        socket.emit("error", {
+          message: "Update data is required",
+          error: "INVALID_INPUT",
+          event: "updateLead",
+        });
+        return;
+      }
+
       const lead = await Leads.findByIdAndUpdate(_id, data, {
         new: true,
       });
+
+      if (!lead) {
+        socket.emit("error", {
+          message: "Lead not found",
+          error: "LEAD_NOT_FOUND",
+          event: "updateLead",
+        });
+        return;
+      }
+
       socket.emit("leadUpdated", lead);
-    } catch (error) {}
+    } catch (error: any) {
+      console.error("❌ Error updating lead via socket:", error);
+      socket.emit("error", {
+        message: error.message || "Failed to update lead",
+        error: error.name || "LEAD_UPDATE_ERROR",
+        event: "updateLead",
+      });
+    }
   });
 
+  /**
+   * Delete lead
+   * Validates leadId and handles errors properly
+   */
   socket.on("deleteLead", async (leadId) => {
     try {
-      await Leads.findByIdAndDelete(leadId);
+      // Validate leadId format (MongoDB ObjectId)
+      if (!leadId || typeof leadId !== "string" || !/^[0-9a-fA-F]{24}$/.test(leadId)) {
+        socket.emit("error", {
+          message: "Invalid lead ID format",
+          error: "INVALID_ID_FORMAT",
+          event: "deleteLead",
+        });
+        return;
+      }
+
+      const deletedLead = await Leads.findByIdAndDelete(leadId);
+      if (!deletedLead) {
+        socket.emit("error", {
+          message: "Lead not found",
+          error: "LEAD_NOT_FOUND",
+          event: "deleteLead",
+        });
+        return;
+      }
+
       // OPTIMIZATION: Emit deleted lead ID instead of fetching all leads
       socket.emit("leadDeleted", { leadId, action: "delete" });
-    } catch (error) {}
+    } catch (error: any) {
+      console.error("❌ Error deleting lead via socket:", error);
+      socket.emit("error", {
+        message: error.message || "Failed to delete lead",
+        error: error.name || "LEAD_DELETE_ERROR",
+        event: "deleteLead",
+      });
+    }
   });
 
   socket.on("disconnect", () => {});

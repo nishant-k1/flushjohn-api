@@ -96,10 +96,25 @@ export const generateLeadNumber = async () => {
 /**
  * Send lead alerts (non-blocking)
  */
+/**
+ * Send lead alerts (non-blocking)
+ * @param lead - Lead data
+ * @param leadNo - Lead number
+ */
 export const sendLeadAlerts = async (lead, leadNo) => {
   try {
     const alertResults = await alertService.sendLeadAlerts(lead);
-  } catch (alertError) {}
+    return alertResults;
+  } catch (alertError: any) {
+    console.error("❌ Error sending lead alerts:", {
+      leadId: lead?._id,
+      leadNo,
+      error: alertError.message || String(alertError),
+      stack: alertError.stack,
+    });
+    // Don't throw - alerts are non-critical, lead creation should succeed
+    return null;
+  }
 };
 
 /**
@@ -119,11 +134,22 @@ export const createLead = async (leadData) => {
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
   const lead = await leadsRepository.create(preparedData);
-  sendLeadAlerts(lead, leadNo);
+  
+  // Send alerts in background (non-blocking)
+  sendLeadAlerts(lead, leadNo).catch((alertError: any) => {
+    console.error("❌ Error in sendLeadAlerts background task:", {
+      leadId: lead._id,
+      error: alertError.message || String(alertError),
+    });
+  });
 
   // Create notifications for all active users (non-blocking)
-  createLeadNotification(lead).catch((error) => {
-    console.error("Error creating notifications:", error);
+  createLeadNotification(lead).catch((error: any) => {
+    console.error("❌ Error creating notifications:", {
+      leadId: lead._id,
+      error: error.message || String(error),
+      stack: error.stack,
+    });
   });
 
   return lead;

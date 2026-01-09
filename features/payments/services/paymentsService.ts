@@ -231,8 +231,9 @@ export const chargeSalesOrder = async (
     throw new Error("Order total must be greater than 0");
   }
 
-  // Check for existing pending or succeeded payment with the same payment intent to prevent duplicates
-  // This prevents double-charging if the API is called multiple times
+  // CRITICAL FIX: Check for existing pending or succeeded payment to prevent duplicates
+  // This prevents double-charging if the API is called multiple times concurrently
+  // Use a more robust check that considers both time and status
   const existingPayments = await paymentsRepository.findAll({
     query: {
       salesOrder: salesOrderId,
@@ -240,19 +241,38 @@ export const chargeSalesOrder = async (
     },
     sort: { createdAt: -1 },
     skip: 0,
-    limit: 1,
+    limit: 5, // Check last 5 payments for better duplicate detection
   });
 
-  // If there's a very recent payment (within last 5 seconds), prevent duplicate
+  // If there's a very recent payment (within last 10 seconds), prevent duplicate
+  // Increased window to account for network delays and concurrent requests
   if (existingPayments.length > 0) {
-    const recentPayment = existingPayments[0];
-    const timeSinceCreation =
-      Date.now() - new Date(recentPayment.createdAt).getTime();
-    if (timeSinceCreation < 5000) {
-      // Very recent payment, likely a duplicate request
-      throw new Error(
-        "A payment is already being processed for this order. Please wait a moment."
-      );
+    const now = Date.now();
+    const recentPayments = existingPayments.filter((payment) => {
+      const timeSinceCreation = now - new Date(payment.createdAt).getTime();
+      return timeSinceCreation < 10000; // 10 second window
+    });
+
+    if (recentPayments.length > 0) {
+      const mostRecent = recentPayments[0];
+      const timeSinceCreation = now - new Date(mostRecent.createdAt).getTime();
+      
+      // If payment is very recent (within 10 seconds), it's likely a duplicate
+      if (timeSinceCreation < 10000) {
+        // Check if it's a succeeded payment - definitely a duplicate
+        if (mostRecent.status === "succeeded") {
+          throw new Error(
+            `A payment for this order was already completed. Payment ID: ${mostRecent._id}`
+          );
+        }
+        
+        // If it's pending and very recent, likely a duplicate request
+        if (mostRecent.status === "pending" && timeSinceCreation < 5000) {
+          throw new Error(
+            "A payment is already being processed for this order. Please wait a moment before retrying."
+          );
+        }
+      }
     }
   }
 
@@ -346,24 +366,69 @@ export const chargeSalesOrder = async (
       (paymentIntent as any).charges?.data?.[0]?.id) ||
     null;
 
-  // Create payment record
-  const payment = await paymentsRepository.create({
-    salesOrder: salesOrderId,
-    customer: salesOrder.customer || null,
-    amount: orderTotal,
-    currency: "usd",
-    paymentMethod: saveCard ? "saved_card" : "card",
+  // CRITICAL FIX: Check for existing payment with same payment intent ID before creating
+  // This prevents duplicate payments from concurrent requests
+  const existingPaymentWithIntent = await paymentsRepository.findOne({
     stripePaymentIntentId: paymentIntent.id,
-    stripeChargeId: chargeId,
-    stripeCustomerId,
-    stripePaymentMethodId: paymentMethodId || null,
-    status: paymentIntent.status === "succeeded" ? "succeeded" : "pending",
-    cardLast4,
-    cardBrand,
-    metadata: {
-      salesOrderNo: salesOrder.salesOrderNo,
-    },
   });
+
+  if (existingPaymentWithIntent) {
+    // Payment with this intent already exists - return it instead of creating duplicate
+    console.warn(
+      `⚠️ Payment with intent ${paymentIntent.id} already exists. Returning existing payment.`
+    );
+    return {
+      paymentId: existingPaymentWithIntent._id,
+      paymentIntentId: paymentIntent.id,
+      status: existingPaymentWithIntent.status,
+      clientSecret: paymentIntent.client_secret,
+      requiresAction: paymentIntent.status === "requires_action",
+    };
+  }
+
+  // Create payment record with duplicate protection
+  let payment;
+  try {
+    payment = await paymentsRepository.create({
+      salesOrder: salesOrderId,
+      customer: salesOrder.customer || null,
+      amount: orderTotal,
+      currency: "usd",
+      paymentMethod: saveCard ? "saved_card" : "card",
+      stripePaymentIntentId: paymentIntent.id,
+      stripeChargeId: chargeId,
+      stripeCustomerId,
+      stripePaymentMethodId: paymentMethodId || null,
+      status: paymentIntent.status === "succeeded" ? "succeeded" : "pending",
+      cardLast4,
+      cardBrand,
+      metadata: {
+        salesOrderNo: salesOrder.salesOrderNo,
+      },
+    });
+  } catch (createError: any) {
+    // Handle duplicate key error (unique index on stripePaymentIntentId)
+    if (createError.code === 11000 || createError.name === "MongoServerError") {
+      // Duplicate payment intent - fetch existing one
+      const existingPayment = await paymentsRepository.findOne({
+        stripePaymentIntentId: paymentIntent.id,
+      });
+      if (existingPayment) {
+        console.warn(
+          `⚠️ Duplicate payment prevented. Returning existing payment for intent ${paymentIntent.id}`
+        );
+        return {
+          paymentId: existingPayment._id,
+          paymentIntentId: paymentIntent.id,
+          status: existingPayment.status,
+          clientSecret: paymentIntent.client_secret,
+          requiresAction: paymentIntent.status === "requires_action",
+        };
+      }
+    }
+    // Re-throw if it's not a duplicate error
+    throw createError;
+  }
 
   // Emit socket event for payment creation
   try {
