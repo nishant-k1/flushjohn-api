@@ -451,8 +451,19 @@ export const generateJobOrderPDF = async (jobOrderData, jobOrderId) => {
           ...vendor.toObject(),
         };
       } else {
+        // Vendor not found - continue without vendor data
+        console.warn(
+          `⚠️ [PDF JobOrder-${jobOrderId}] Vendor not found: ${jobOrderData.vendor._id || jobOrderData.vendor.name}`
+        );
       }
-    } catch (error) {}
+    } catch (error: any) {
+      // Log vendor lookup error but continue with PDF generation
+      console.error(
+        `❌ [PDF JobOrder-${jobOrderId}] Error looking up vendor:`,
+        error.message || String(error)
+      );
+      // Continue without vendor data - PDF generation should still work
+    }
   } else {
   }
 

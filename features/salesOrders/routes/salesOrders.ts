@@ -159,7 +159,8 @@ router.post("/:id/cancel", async function (req, res) {
 router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const { id } = req.params;
-
+    
+    // CRITICAL FIX: Validate ObjectId format before database query
     if (!salesOrdersService.isValidObjectId(id)) {
       return res.status(400).json({
         success: false,
@@ -427,38 +428,64 @@ router.post(
         throw pdfError;
       }
 
-      // OPTIMIZATION: Update database in background (non-blocking) - respond immediately
+      // CRITICAL FIX: Improved background database update with retry logic
+      // Update database in background (non-blocking) - respond immediately
       // This allows the API to return faster while DB update happens asynchronously
       const dbUpdateStartTime = Date.now();
-      salesOrdersService
-        .updateSalesOrder(id, {
-          ...emailData,
-          emailStatus: "Sent",
-        })
-        .then((updatedSalesOrder) => {
+      const updateWithRetry = async (retries = 3): Promise<void> => {
+        try {
+          const updatedSalesOrder = await salesOrdersService.updateSalesOrder(id, {
+            ...emailData,
+            emailStatus: "Sent",
+          });
           const dbTime = Date.now() - dbUpdateStartTime;
           console.log(
             `⏱️ [SalesOrder ${id}] Database update completed (background): ${dbTime}ms`
           );
+          
           // Link sales order to customer if customer exists (in background)
-          salesOrdersService
-            .linkSalesOrderToCustomer(
+          try {
+            await salesOrdersService.linkSalesOrderToCustomer(
               updatedSalesOrder,
               updatedSalesOrder.lead?.toString() || null
-            )
-            .catch((linkError) => {
-              console.error(
-                `⚠️ [SalesOrder ${id}] Background customer linking failed (non-critical):`,
-                linkError.message
-              );
-            });
-        })
-        .catch((dbError) => {
+            );
+          } catch (linkError: any) {
+            console.error(
+              `⚠️ [SalesOrder ${id}] Background customer linking failed (non-critical):`,
+              linkError.message || String(linkError)
+            );
+            // Don't retry customer linking - it's non-critical
+          }
+        } catch (dbError: any) {
+          if (retries > 0 && dbError.name !== "ValidationError" && dbError.name !== "NotFoundError") {
+            // Retry transient errors (network, timeout, etc.)
+            console.warn(
+              `⚠️ [SalesOrder ${id}] Database update failed, retrying... (${retries} retries left)`,
+              dbError.message || String(dbError)
+            );
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+            return updateWithRetry(retries - 1);
+          }
+          // Log final failure after retries exhausted or non-retryable error
           console.error(
-            `⚠️ [SalesOrder ${id}] Background database update failed (non-critical):`,
-            dbError.message
+            `❌ [SalesOrder ${id}] Background database update failed after retries:`,
+            {
+              error: dbError.message || String(dbError),
+              name: dbError.name,
+              stack: dbError.stack,
+            }
           );
-        });
+          // TODO: Consider adding to a failed jobs queue for manual retry
+        }
+      };
+      
+      // Start background update (fire and forget with retry)
+      updateWithRetry().catch((finalError: any) => {
+        console.error(
+          `❌ [SalesOrder ${id}] Fatal error in background update:`,
+          finalError.message || String(finalError)
+        );
+      });
 
       const totalTime = Date.now() - totalStartTime;
       console.log(`⏱️ [SalesOrder ${id}] Total email flow (response sent): ${totalTime}ms`);

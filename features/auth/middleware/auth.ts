@@ -46,9 +46,10 @@ export const authenticateToken = async (
       return;
     }
 
-    const user = await (User as any).findOne({
+    // CRITICAL FIX: Improved type safety - removed unnecessary 'as any' casts
+    const user = await User.findOne({
       userId: decoded.userId,
-    } as any);
+    });
 
     if (!user) {
       res.status(401).json({
@@ -168,9 +169,10 @@ export const optionalAuth = async (
       return next();
     }
 
-    const user = await (User as any).findOne({
+    // CRITICAL FIX: Improved type safety - removed unnecessary 'as any' casts
+    const user = await User.findOne({
       userId: decoded.userId,
-    } as any);
+    });
 
     if (user && user.isActive && !user.isLocked()) {
       req.user = {

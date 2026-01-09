@@ -9,20 +9,59 @@ import crypto from "crypto";
  */
 
 // In-memory token store (for production, consider using Redis)
+// CRITICAL FIX: Added max size limit to prevent memory leaks
 const tokenStore = new Map<string, { token: string; expiresAt: number }>();
+const MAX_STORE_SIZE = 10000; // Maximum number of tokens to store
+const CLEANUP_INTERVAL = 2 * 60 * 1000; // Cleanup every 2 minutes (more frequent)
 
-// Cleanup expired tokens every 5 minutes
-setInterval(
-  () => {
-    const now = Date.now();
-    for (const [key, value] of tokenStore.entries()) {
-      if (value.expiresAt < now) {
-        tokenStore.delete(key);
-      }
+// Cleanup expired tokens and enforce max size
+const cleanupTokens = () => {
+  const now = Date.now();
+  let deletedCount = 0;
+  
+  // First, remove expired tokens
+  for (const [key, value] of tokenStore.entries()) {
+    if (value.expiresAt < now) {
+      tokenStore.delete(key);
+      deletedCount++;
     }
-  },
-  5 * 60 * 1000
-);
+  }
+  
+  // If still over limit after cleanup, remove oldest tokens (LRU-like)
+  if (tokenStore.size > MAX_STORE_SIZE) {
+    const entries = Array.from(tokenStore.entries())
+      .sort((a, b) => a[1].expiresAt - b[1].expiresAt); // Sort by expiration time
+    
+    const toDelete = tokenStore.size - MAX_STORE_SIZE;
+    for (let i = 0; i < toDelete; i++) {
+      tokenStore.delete(entries[i][0]);
+      deletedCount++;
+    }
+    
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `⚠️ CSRF token store exceeded max size (${MAX_STORE_SIZE}). Removed ${toDelete} oldest tokens.`
+      );
+    }
+  }
+  
+  if (deletedCount > 0 && process.env.NODE_ENV === "development") {
+    console.debug(
+      `🧹 CSRF token cleanup: Removed ${deletedCount} tokens. Store size: ${tokenStore.size}/${MAX_STORE_SIZE}`
+    );
+  }
+};
+
+// Run cleanup more frequently to prevent memory buildup
+setInterval(cleanupTokens, CLEANUP_INTERVAL);
+
+// Also cleanup on token generation if store is getting large
+const checkAndCleanupIfNeeded = () => {
+  if (tokenStore.size > MAX_STORE_SIZE * 0.9) {
+    // If store is 90% full, trigger immediate cleanup
+    cleanupTokens();
+  }
+};
 
 /**
  * Get consistent session ID from request
@@ -54,6 +93,9 @@ const getSessionId = (req: Request): string => {
  */
 export const generateCsrfToken = (req: Request, res: Response): string => {
   const sessionId = getSessionId(req);
+
+  // CRITICAL FIX: Check and cleanup before adding new token
+  checkAndCleanupIfNeeded();
 
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
