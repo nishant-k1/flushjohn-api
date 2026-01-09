@@ -6,7 +6,7 @@
  * - Use process.env.QUENGENESIS_* for QuenGenesis company info
  * - Use process.env.CLOUDFRONT_URL for S3 assets
  * - Use process.env.LOCAL_ASSETS_URL for local assets
- * - Use process.env.API_BASE_URL and process.env.WEBSITE_URL for API URLs
+ * - Use process.env.API_BASE_URL and process.env.FLUSH_JOHN_WEBSITE_URL for API URLs
  */
 
 // Removed s3assets and localAssetsUrl - use process.env.CLOUDFRONT_URL and process.env.LOCAL_ASSETS_URL directly where needed
@@ -59,4 +59,4 @@ export const logoDataUris = {
   quengenesis: quengenesisLogoBase64,
 };
 
-// Removed apiBaseUrls - use process.env.API_BASE_URL and process.env.WEBSITE_URL directly where needed
+// Removed apiBaseUrls - use process.env.API_BASE_URL and process.env.FLUSH_JOHN_WEBSITE_URL directly where needed

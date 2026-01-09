@@ -13,7 +13,7 @@ const template = (paymentData) => {
   const flushjohn_phone = process.env.FLUSH_JOHN_PHONE;
   const flushjohn_email = process.env.FLUSH_JOHN_EMAIL_ID;
   const flushjohn_website =
-    process.env.FLUSH_JOHN_HOMEPAGE || process.env.WEBSITE_URL;
+    process.env.FLUSH_JOHN_HOMEPAGE || process.env.FLUSH_JOHN_WEBSITE_URL;
   const { salesOrder, amount, createdAt, paymentMethod, cardLast4, cardBrand } =
     paymentData;
 

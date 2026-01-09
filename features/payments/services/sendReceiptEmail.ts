@@ -114,7 +114,7 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
     const flushjohn_phone = process.env.FLUSH_JOHN_PHONE;
     const flushjohn_email = process.env.FLUSH_JOHN_EMAIL_ID;
     const flushjohn_website =
-      process.env.FLUSH_JOHN_HOMEPAGE || process.env.WEBSITE_URL;
+      process.env.FLUSH_JOHN_HOMEPAGE || process.env.FLUSH_JOHN_WEBSITE_URL;
     const subject = `${companyName}: Payment Receipt - Sales Order #${salesOrder.salesOrderNo}`;
 
     // Format payment date and method for plain text

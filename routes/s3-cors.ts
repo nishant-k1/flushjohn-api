@@ -66,7 +66,7 @@ router.post("/", async (req, res) => {
     const defaultOrigins = [
       "http://localhost:3001",
       "http://localhost:3000",
-      process.env.WEBSITE_URL || "https://your-production-domain.com",
+      process.env.FLUSH_JOHN_WEBSITE_URL || "https://your-production-domain.com",
     ];
 
     const origins =
@@ -135,7 +135,7 @@ router.post("/setup-dev", async (req, res) => {
               "http://localhost:3000",
               "http://127.0.0.1:3001",
               "http://127.0.0.1:3000",
-              ...(process.env.WEBSITE_URL ? [process.env.WEBSITE_URL] : []),
+              ...(process.env.FLUSH_JOHN_WEBSITE_URL ? [process.env.FLUSH_JOHN_WEBSITE_URL] : []),
             ],
             ExposeHeaders: ["ETag", "x-amz-version-id"],
             MaxAgeSeconds: 86400, // 24 hours for better caching
