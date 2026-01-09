@@ -61,17 +61,58 @@ const transformedLeadData = async (leadData) => {
   };
 };
 
+// CRITICAL FIX: Rate limiting for socket events
+const socketEventCounts = new Map<string, { count: number; resetAt: number }>();
+const SOCKET_RATE_LIMIT = 30; // Max 30 events per window
+const SOCKET_RATE_WINDOW = 60 * 1000; // 1 minute window
+
+const checkSocketRateLimit = (socketId: string, eventName: string): boolean => {
+  const key = `${socketId}:${eventName}`;
+  const now = Date.now();
+  const record = socketEventCounts.get(key);
+
+  if (!record || record.resetAt < now) {
+    socketEventCounts.set(key, { count: 1, resetAt: now + SOCKET_RATE_WINDOW });
+    return true;
+  }
+
+  if (record.count >= SOCKET_RATE_LIMIT) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+};
+
+// Cleanup old rate limit records
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of socketEventCounts.entries()) {
+    if (record.resetAt < now) {
+      socketEventCounts.delete(key);
+    }
+  }
+}, 5 * 60 * 1000); // Cleanup every 5 minutes
+
 export function leadSocketHandler(leadsNamespace, socket) {
   socket.on("createLead", async (leadData) => {
     try {
+      // CRITICAL FIX: Rate limiting for socket events
+      if (!checkSocketRateLimit(socket.id, "createLead")) {
+        socket.emit("error", {
+          message: "Too many requests. Please wait before trying again.",
+          error: "RATE_LIMIT_EXCEEDED",
+          event: "createLead",
+        });
+        return;
+      }
+
       console.log("📥 Received createLead socket event");
       const createdAt = getCurrentDateTime();
-      const latestLead = await Leads.findOne({}, "leadNo").sort({
-        leadNo: -1,
-      });
-      const latestLeadNo = latestLead ? latestLead.leadNo : 999;
-      const newLeadNo = latestLeadNo + 1;
-      const leadNo = newLeadNo;
+      
+      // CRITICAL FIX: Use atomic lead number generation to prevent race conditions
+      const { generateLeadNumber } = await import("../services/leadsService.js");
+      const leadNo = await generateLeadNumber();
 
       const webLead = await transformedLeadData({
         ...leadData,
@@ -108,6 +149,15 @@ export function leadSocketHandler(leadsNamespace, socket) {
    */
   socket.on("getLeads", async () => {
     try {
+      // CRITICAL FIX: Rate limiting for socket events
+      if (!checkSocketRateLimit(socket.id, "getLeads")) {
+        socket.emit("error", {
+          message: "Too many requests. Please wait before trying again.",
+          error: "RATE_LIMIT_EXCEEDED",
+          event: "getLeads",
+        });
+        return;
+      }
       // OPTIMIZATION: Add limit to prevent fetching entire collection
       const leadsList = await Leads.find().sort({ _id: -1 }).limit(100).lean();
       socket.emit("leadList", leadsList);
@@ -127,6 +177,15 @@ export function leadSocketHandler(leadsNamespace, socket) {
    */
   socket.on("getLead", async (leadId) => {
     try {
+      // CRITICAL FIX: Rate limiting for socket events
+      if (!checkSocketRateLimit(socket.id, "getLead")) {
+        socket.emit("error", {
+          message: "Too many requests. Please wait before trying again.",
+          error: "RATE_LIMIT_EXCEEDED",
+          event: "getLead",
+        });
+        return;
+      }
       // Validate leadId format (MongoDB ObjectId)
       if (!leadId || typeof leadId !== "string" || !/^[0-9a-fA-F]{24}$/.test(leadId)) {
         socket.emit("error", {
@@ -163,6 +222,15 @@ export function leadSocketHandler(leadsNamespace, socket) {
    */
   socket.on("updateLead", async ({ _id, data }) => {
     try {
+      // CRITICAL FIX: Rate limiting for socket events
+      if (!checkSocketRateLimit(socket.id, "updateLead")) {
+        socket.emit("error", {
+          message: "Too many requests. Please wait before trying again.",
+          error: "RATE_LIMIT_EXCEEDED",
+          event: "updateLead",
+        });
+        return;
+      }
       // Validate input structure
       if (!_id || typeof _id !== "string") {
         socket.emit("error", {
@@ -222,6 +290,15 @@ export function leadSocketHandler(leadsNamespace, socket) {
    */
   socket.on("deleteLead", async (leadId) => {
     try {
+      // CRITICAL FIX: Rate limiting for socket events
+      if (!checkSocketRateLimit(socket.id, "deleteLead")) {
+        socket.emit("error", {
+          message: "Too many requests. Please wait before trying again.",
+          error: "RATE_LIMIT_EXCEEDED",
+          event: "deleteLead",
+        });
+        return;
+      }
       // Validate leadId format (MongoDB ObjectId)
       if (!leadId || typeof leadId !== "string" || !/^[0-9a-fA-F]{24}$/.test(leadId)) {
         socket.emit("error", {

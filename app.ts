@@ -268,7 +268,8 @@ app.post(
       console.log("📥 Received public lead submission");
       const leadData = req.body;
 
-      // Basic validation
+      // CRITICAL FIX: Enhanced validation for public lead endpoint
+      // Basic required fields validation
       if (!leadData.email || !leadData.fName || !leadData.phone) {
         res.status(400).json({
           success: false,
@@ -277,6 +278,86 @@ app.post(
           error: "VALIDATION_ERROR",
         });
         return;
+      }
+
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (typeof leadData.email !== "string" || !emailRegex.test(leadData.email.trim())) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid email format",
+          error: "VALIDATION_ERROR",
+        });
+        return;
+      }
+
+      // Phone format validation (basic - allows various formats)
+      const phoneRegex = /^[\d\s\-\(\)\+\.]{10,20}$/;
+      if (typeof leadData.phone !== "string" || !phoneRegex.test(leadData.phone.trim())) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid phone format. Phone must contain 10-20 digits and valid characters",
+          error: "VALIDATION_ERROR",
+        });
+        return;
+      }
+
+      // Validate product structure if products are provided
+      if (leadData.products !== undefined) {
+        if (!Array.isArray(leadData.products)) {
+          res.status(400).json({
+            success: false,
+            message: "Products must be an array",
+            error: "VALIDATION_ERROR",
+          });
+          return;
+        }
+
+        // Validate each product structure
+        for (let i = 0; i < leadData.products.length; i++) {
+          const product = leadData.products[i];
+          if (typeof product !== "object" || product === null) {
+            res.status(400).json({
+              success: false,
+              message: `Product at index ${i} must be an object`,
+              error: "VALIDATION_ERROR",
+            });
+            return;
+          }
+
+          // Validate product fields if present
+          if (product.quantity !== undefined && (typeof product.quantity !== "number" || product.quantity < 0)) {
+            res.status(400).json({
+              success: false,
+              message: `Product at index ${i}: quantity must be a non-negative number`,
+              error: "VALIDATION_ERROR",
+            });
+            return;
+          }
+
+          if (product.rate !== undefined && (typeof product.rate !== "number" || product.rate < 0)) {
+            res.status(400).json({
+              success: false,
+              message: `Product at index ${i}: rate must be a non-negative number`,
+              error: "VALIDATION_ERROR",
+            });
+            return;
+          }
+        }
+      }
+
+      // Sanitize string inputs (trim and limit length)
+      if (leadData.fName && typeof leadData.fName === "string") {
+        leadData.fName = leadData.fName.trim().substring(0, 100);
+      }
+      if (leadData.lName && typeof leadData.lName === "string") {
+        leadData.lName = leadData.lName.trim().substring(0, 100);
+      }
+      if (leadData.email && typeof leadData.email === "string") {
+        leadData.email = leadData.email.trim().substring(0, 255);
+      }
+      if (leadData.phone && typeof leadData.phone === "string") {
+        leadData.phone = leadData.phone.trim().substring(0, 20);
       }
 
       // Use the service to create the lead
@@ -379,16 +460,31 @@ dbConnect()
     process.exit(1);
   });
 
+// CRITICAL FIX: Proper error handling for cron job initialization
 try {
   initializeCronJobs();
-} catch {
-  // Failed to initialize cron jobs
+  console.log("✅ Cron jobs initialized successfully");
+} catch (error: any) {
+  console.error("❌ Failed to initialize cron jobs:", {
+    error: error.message || String(error),
+    stack: error.stack,
+    name: error.name,
+  });
+  // Don't exit - server can still run without cron jobs
+  // But log the error so administrators are aware
 }
 
 try {
   initializeInvoiceLinkCronJob();
-} catch {
-  // Failed to initialize invoice link cron job
+  console.log("✅ Invoice link cron job initialized successfully");
+} catch (error: any) {
+  console.error("❌ Failed to initialize invoice link cron job:", {
+    error: error.message || String(error),
+    stack: error.stack,
+    name: error.name,
+  });
+  // Don't exit - server can still run without cron jobs
+  // But log the error so administrators are aware
 }
 
 // OPTIMIZATION: Pre-warm browser pool on server startup for faster first PDF
