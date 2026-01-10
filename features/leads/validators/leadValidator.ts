@@ -82,8 +82,18 @@ export const validateCreateLead = [
   body("leadStatus")
     .optional()
     .trim()
-    .isIn(["New", "Contacted", "Qualified", "Lost", "None"])
-    .withMessage("Please select a valid lead status"),
+    .custom((value, { req }) => {
+      if (!value) return true; // Optional field, skip if empty
+      // Normalize to Title Case for consistent validation
+      const normalized = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      const validValues = ["None", "Won", "Lost"];
+      if (validValues.includes(normalized)) {
+        // Update the request body with normalized value for consistent storage
+        req.body.leadStatus = normalized;
+        return true;
+      }
+      throw new Error("Please select a valid lead status");
+    }),
 
   body("assignedTo")
     .optional()
@@ -143,8 +153,18 @@ export const validateUpdateLead = [
   body("leadStatus")
     .optional()
     .trim()
-    .isIn(["New", "Contacted", "Qualified", "Lost", "None"])
-    .withMessage("Please select a valid lead status"),
+    .custom((value, { req }) => {
+      if (!value) return true; // Optional field, skip if empty
+      // Normalize to Title Case for consistent validation
+      const normalized = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      const validValues = ["None", "Won", "Lost"];
+      if (validValues.includes(normalized)) {
+        // Update the request body with normalized value for consistent storage
+        req.body.leadStatus = normalized;
+        return true;
+      }
+      throw new Error("Please select a valid lead status");
+    }),
 ];
 
 /**
