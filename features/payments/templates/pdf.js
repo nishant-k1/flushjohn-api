@@ -1,6 +1,6 @@
 // @ts-nocheck
 import styles from "../../quotes/templates/styles.js";
-import { logoDataUris } from "../../../constants.js";
+import { getLogoDataUris } from "../../../utils/pdfAssets.js";
 import {
   safeValue,
   safeCurrency,
@@ -119,7 +119,7 @@ const htmlTemplate = (receiptData) => {
       <body>
         <div class="section-1">
           <div class="section-1-left">
-            <img src="${logoDataUris.flushjohn}" alt="logo" class="logo" />
+            <img src="${getLogoDataUris().flushjohn}" alt="logo" class="logo" />
           </div>
           <div class="section-1-right">
             <span class="payment-status-badge">✓ Payment Successful</span>

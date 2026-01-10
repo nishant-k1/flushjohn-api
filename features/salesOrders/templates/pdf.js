@@ -1,6 +1,6 @@
 // @ts-nocheck
 import styles from "./styles.js";
-import { logoDataUris } from "../../../constants.js";
+import { getLogoDataUris } from "../../../utils/pdfAssets.js";
 import {
   safeValue,
   safeCurrency,
@@ -112,7 +112,7 @@ const htmlTemplate = (salesOrderData) => {
       <body>
         <div class="section-1">
           <div class="section-1-left">
-            <img src="${logoDataUris.flushjohn}" alt="logo" class="logo" />
+            <img src="${getLogoDataUris().flushjohn}" alt="logo" class="logo" />
           </div>
           <div class="section-1-right">
             <span class="document-badge">Sales Order</span>

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import styles from "./styles.js";
-import { logoDataUris } from "../../../constants.js";
+import { getLogoDataUris } from "../../../utils/pdfAssets.js";
 import {
   safeValue,
   safeGet,
@@ -88,7 +88,7 @@ const htmlTemplate = (jobOrderData) => {
         <div class="section-1">
           <div class="section-1-left">
             <div>
-              <img src="${logoDataUris.quengenesis}" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />
+              <img src="${getLogoDataUris().quengenesis}" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />
               <div style="margin-top: 0.5rem;">
                 <h4>${cName}</h4>
                 ${

@@ -1,0 +1,104 @@
+/**
+ * PDF Assets Utility
+ * Loads and caches logo files as base64 data URIs for PDF generation
+ * 
+ * Note: Logos are embedded as base64 data URIs because PDF generators (Playwright/Puppeteer)
+ * can't always access localhost URLs or external assets reliably.
+ */
+
+import { readFileSync, existsSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Cache loaded logos to avoid re-reading files on every PDF generation
+let cachedLogos: {
+  flushjohn: string;
+  quengenesis: string;
+} | null = null;
+
+/**
+ * Load logo files and convert to base64 data URIs
+ * Caches result after first load
+ */
+function loadLogos(): { flushjohn: string; quengenesis: string } {
+  // Return cached logos if already loaded
+  if (cachedLogos) {
+    return cachedLogos;
+  }
+
+  // When compiled to dist/utils/pdfAssets.js, __dirname will be dist/utils
+  // So we need to go up one level to dist/, then into public/
+  const flushjohnLogoPath = join(
+    __dirname,
+    "..",
+    "public",
+    "logos",
+    "flush_john_logo_black.svg"
+  );
+  const quengenesisLogoPath = join(
+    __dirname,
+    "..",
+    "public",
+    "logos",
+    "logo_quengenesis.svg"
+  );
+
+  let flushjohnLogoBase64 = "";
+  let quengenesisLogoBase64 = "";
+
+  try {
+    // Check if files exist before reading
+    if (!existsSync(flushjohnLogoPath)) {
+      throw new Error(
+        `FlushJohn logo not found at: ${flushjohnLogoPath}\n__dirname: ${__dirname}`
+      );
+    }
+    if (!existsSync(quengenesisLogoPath)) {
+      throw new Error(
+        `Quengenesis logo not found at: ${quengenesisLogoPath}\n__dirname: ${__dirname}`
+      );
+    }
+
+    const flushjohnLogoSvg = readFileSync(flushjohnLogoPath, "utf-8");
+    const quengenesisLogoSvg = readFileSync(quengenesisLogoPath, "utf-8");
+
+    flushjohnLogoBase64 = `data:image/svg+xml;base64,${Buffer.from(
+      flushjohnLogoSvg
+    ).toString("base64")}`;
+    quengenesisLogoBase64 = `data:image/svg+xml;base64,${Buffer.from(
+      quengenesisLogoSvg
+    ).toString("base64")}`;
+
+    console.log("✅ Successfully loaded logo files for PDF generation");
+  } catch (error: any) {
+    console.error(
+      "❌ Failed to load logo files for PDF generation:",
+      error.message
+    );
+    console.error("Attempted paths:", {
+      flushjohn: flushjohnLogoPath,
+      quengenesis: quengenesisLogoPath,
+      __dirname,
+    });
+    // Logos will be empty strings, PDFs may not show logos but won't crash
+  }
+
+  // Cache the result
+  cachedLogos = {
+    flushjohn: flushjohnLogoBase64,
+    quengenesis: quengenesisLogoBase64,
+  };
+
+  return cachedLogos;
+}
+
+/**
+ * Get logo data URIs for PDF generation
+ * Lazy-loads logos on first access and caches them
+ */
+export function getLogoDataUris(): { flushjohn: string; quengenesis: string } {
+  return loadLogos();
+}
