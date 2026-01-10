@@ -421,6 +421,12 @@ router.post(
         _id: id,
         vendorName: recipientName, // Use representative name with vendor name fallback
         ccEmail: ccEmail, // Add CC email if different
+        // Add authenticated user information for email signature (CRM username)
+        // req.user is populated from database by authenticateToken middleware
+        user: {
+          fName: req.user.fName,
+          lName: req.user.lName,
+        },
         // Keep lead object for backward compatibility
         lead: jobOrderObj.lead,
       };

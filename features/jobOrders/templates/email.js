@@ -3,7 +3,9 @@ import { getQuenGenesisEmailSignature } from "../../common/constants/emailSignat
 import { safeDate } from "../../../utils/safeValue.js";
 
 const template = (vendorData) => {
-  const email_signature = getQuenGenesisEmailSignature();
+  // Extract user information from vendorData if available
+  const user = vendorData.user || null;
+  const email_signature = getQuenGenesisEmailSignature(user);
 
   const deliveryDate = safeDate(vendorData.deliveryDate, {
     year: "numeric",

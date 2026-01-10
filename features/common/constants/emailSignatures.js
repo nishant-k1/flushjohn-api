@@ -36,15 +36,23 @@ export const getFlushJohnEmailSignature = () => {
 };
 
 // QuenGenesis Email Signature
-export const getQuenGenesisEmailSignature = () => {
+export const getQuenGenesisEmailSignature = (user = null) => {
   if (process.env.QUENGENESIS_EMAIL_SIGNATURE) {
     return process.env.QUENGENESIS_EMAIL_SIGNATURE;
+  }
+
+  // Use CRM username if available, otherwise fall back to "Quengenesis Team"
+  let senderName = "Quengenesis Team";
+  if (user && user.fName && user.lName) {
+    senderName = `${user.fName} ${user.lName}`;
+  } else if (user && user.fName) {
+    senderName = user.fName;
   }
 
   // Build signature from environment variables
   const parts = [
     "Best regards,",
-    "Quengenesis Team",
+    senderName,
     "",
     process.env.QUENGENESIS_COMPANY_NAME,
   ];
