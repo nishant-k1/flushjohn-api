@@ -462,19 +462,8 @@ router.post(
             `⏱️ [SalesOrder ${id}] Database update completed (background): ${dbTime}ms`
           );
           
-          // Link sales order to customer if customer exists (in background)
-          try {
-            await salesOrdersService.linkSalesOrderToCustomer(
-              updatedSalesOrder,
-              updatedSalesOrder.lead?.toString() || null
-            );
-          } catch (linkError: any) {
-            console.error(
-              `⚠️ [SalesOrder ${id}] Background customer linking failed (non-critical):`,
-              linkError.message || String(linkError)
-            );
-            // Don't retry customer linking - it's non-critical
-          }
+          // Note: Customer creation/linking is now done only when payment is fully received
+          // This ensures leads only become customers after payment success
         } catch (dbError: any) {
           if (retries > 0 && dbError.name !== "ValidationError" && dbError.name !== "NotFoundError") {
             // Retry transient errors (network, timeout, etc.)

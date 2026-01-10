@@ -117,13 +117,6 @@ const htmlTemplate = (salesOrderData) => {
           <div class="section-1-right">
             <span class="document-badge">Sales Order</span>
             <h1>Sales Order # ${safeValue(salesOrderData.salesOrderNo)}</h1>
-            ${
-              salesOrderData.customerNo
-                ? `<h3>Customer No. # ${safeValue(
-                    salesOrderData.customerNo
-                  )}</h3>`
-                : ""
-            }
             <h3>Date: ${createdAt}</h3>
           </div>
         </div>

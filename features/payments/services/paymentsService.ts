@@ -83,6 +83,9 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
     paymentStatus = "Partially Paid";
   }
 
+  // Get previous payment status to detect status change
+  const previousPaymentStatus = salesOrder.paymentStatus || "Unpaid";
+
   // Update sales order
   const updatedSalesOrder = await salesOrdersRepository.updateById(
     salesOrderId,
@@ -93,6 +96,38 @@ export const updateSalesOrderPaymentTotals = async (salesOrderId) => {
       paymentStatus,
     }
   );
+
+  // Convert lead to customer when payment is fully received (status changes to "Paid")
+  // Only create/link customer if:
+  // 1. Payment status is now "Paid" (fully paid and not refunded)
+  // 2. Previous status was not "Paid" (to avoid duplicate creation)
+  // 3. Sales order has a lead reference
+  if (
+    paymentStatus === "Paid" &&
+    previousPaymentStatus !== "Paid" &&
+    salesOrder.lead
+  ) {
+    try {
+      // Refetch sales order to ensure we have the latest data including lead reference
+      const salesOrderWithLead = await salesOrdersRepository.findById(
+        salesOrderId
+      );
+      if (salesOrderWithLead && salesOrderWithLead.lead) {
+        const { createOrLinkCustomerFromSalesOrder } =
+          await import("../../salesOrders/services/salesOrdersService.js");
+        await createOrLinkCustomerFromSalesOrder(salesOrderWithLead);
+        console.log(
+          `✅ Lead converted to customer after payment success for Sales Order ${salesOrderId}`
+        );
+      }
+    } catch (customerError: any) {
+      // Log error but don't fail the payment update - customer creation is non-critical
+      console.error(
+        `❌ Error creating/linking customer after payment success (non-critical):`,
+        customerError.message || String(customerError)
+      );
+    }
+  }
 
   // Emit socket event for sales order update
   try {

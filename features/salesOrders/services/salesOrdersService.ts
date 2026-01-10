@@ -158,17 +158,9 @@ export const createSalesOrder = async (salesOrderData) => {
       // This ensures balanceDue is correctly set even when no payments exist yet
       await updateSalesOrderPaymentTotals(createdSalesOrder._id);
 
-      // Note: Customer creation/linking is done outside transaction as it's non-critical
-      // and we don't want to fail the sales order creation if it fails
+      // Note: Customer creation/linking is now done only when payment is fully received
+      // This ensures leads only become customers after payment success
       session.endSession().catch(() => {}); // End session in background
-      
-      // Create or link customer when sales order is created (non-blocking)
-      createOrLinkCustomerFromSalesOrder(createdSalesOrder).catch((error: any) => {
-        console.error(
-          "Error creating/linking customer on SalesOrder creation (non-critical):",
-          error.message || String(error)
-        );
-      });
 
       // Fetch updated sales order to return with correct totals
       const updatedSalesOrder = await salesOrdersRepository.findById(
