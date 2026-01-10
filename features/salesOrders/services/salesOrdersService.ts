@@ -1087,7 +1087,7 @@ export const createOrLinkCustomerFromSalesOrder = async (salesOrder) => {
     city: lead.city,
     state: lead.state,
     zip: lead.zip,
-    country: lead.country || "USA",
+    country: lead.country, // NO fallback - use database data only
   };
 
   const Customers = (await import("../../customers/models/Customers.js"))

@@ -28,12 +28,15 @@ export const createLeadNotification = async (lead) => {
       lead.lastName || lead.lName || ""
     }`.trim();
 
+    // Use database data only - no fallbacks
     let notificationMessage;
     if (lead.companyName && lead.companyName.trim() !== "") {
       notificationMessage = `${fullName} - ${lead.companyName}`;
     } else {
-      const usageType = lead.usageType || "General Inquiry";
-      notificationMessage = `${fullName} - ${usageType}`;
+      const usageType = lead.usageType || "";
+      notificationMessage = usageType
+        ? `${fullName} - ${usageType}`
+        : fullName || "New Lead";
     }
 
     // Create notifications for all active users

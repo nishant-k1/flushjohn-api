@@ -98,7 +98,7 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-router.put("/:id", async function (req, res) {
+router.patch("/:id", async function (req, res) {
   try {
     const { id } = req.params;
 

@@ -32,10 +32,11 @@ const template = (paymentData) => {
     minute: "2-digit",
   });
 
+  // Use database data only - no fallbacks
   const customerName =
     salesOrder?.lead?.fName && salesOrder?.lead?.lName
       ? `${salesOrder.lead.fName} ${salesOrder.lead.lName}`
-      : salesOrder?.lead?.fName || "Customer";
+      : salesOrder?.lead?.fName || salesOrder?.lead?.cName || "";
 
   const companyName = salesOrder?.lead?.cName || "";
 

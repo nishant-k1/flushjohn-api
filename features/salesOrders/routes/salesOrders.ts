@@ -156,7 +156,7 @@ router.post("/:id/cancel", async function (req, res) {
   }
 });
 
-router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
+router.patch("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const { id } = req.params;
     
@@ -269,11 +269,33 @@ router.post(
 
       const salesOrder = await salesOrdersService.getSalesOrderById(id);
 
+      // Use ONLY database data for PDF generation (industry standard)
+      const salesOrderObj = salesOrder.toObject
+        ? salesOrder.toObject()
+        : salesOrder;
+
+      // Flatten lead fields for PDF template (template expects fName, lName, email at top level)
+      // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on sales order
+      const leadData = salesOrderObj.lead || {};
+
       const pdfData = {
-        ...req.body,
+        ...salesOrderObj, // Use ONLY database data
+        // Flatten lead fields to top level for PDF template (NO fallbacks - use database data only)
+        fName: leadData.fName,
+        lName: leadData.lName,
+        cName: leadData.cName,
+        email: leadData.email,
+        phone: leadData.phone,
+        fax: leadData.fax,
+        streetAddress: leadData.streetAddress,
+        city: leadData.city,
+        state: leadData.state,
+        zip: leadData.zip,
+        country: leadData.country,
+        usageType: leadData.usageType,
         _id: id,
-        salesOrderNo: req.body.salesOrderNo || salesOrder.salesOrderNo,
-        createdAt: req.body.createdAt || salesOrder.createdAt,
+        // Keep lead object for backward compatibility
+        lead: salesOrderObj.lead,
       };
 
       const { generateSalesOrderPDF } =
@@ -332,40 +354,37 @@ router.post(
 
       const salesOrder = await salesOrdersService.getSalesOrderById(id);
 
-      // Flatten lead fields for email template (template expects fName, lName, email at top level)
-      const leadData = salesOrder.lead || {};
+      // Use ONLY database data for email generation (industry standard)
       const salesOrderObj = salesOrder.toObject
         ? salesOrder.toObject()
         : salesOrder;
 
+      // Flatten lead fields for email template (template expects fName, lName, email at top level)
+      // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on sales order
+      const leadData = salesOrderObj.lead || {};
+
       const emailData = {
-        ...salesOrderObj, // Start with sales order data from DB
-        // Flatten lead fields to top level for email template
-        fName: req.body.fName || leadData.fName || salesOrderObj.fName,
-        lName: req.body.lName || leadData.lName || salesOrderObj.lName,
-        cName: req.body.cName || leadData.cName || salesOrderObj.cName,
-        email: req.body.email || leadData.email || salesOrderObj.email,
-        phone: req.body.phone || leadData.phone || salesOrderObj.phone,
-        fax: req.body.fax || leadData.fax || salesOrderObj.fax,
-        streetAddress:
-          req.body.streetAddress ||
-          leadData.streetAddress ||
-          salesOrderObj.streetAddress,
-        city: req.body.city || leadData.city || salesOrderObj.city,
-        state: req.body.state || leadData.state || salesOrderObj.state,
-        zip: req.body.zip || leadData.zip || salesOrderObj.zip,
-        country: req.body.country || leadData.country || salesOrderObj.country,
-        usageType:
-          req.body.usageType || leadData.usageType || salesOrderObj.usageType,
-        ...req.body, // Override with request body data
+        ...salesOrderObj, // Use ONLY database data
+        // Flatten lead fields to top level for email template (NO fallbacks - use database data only)
+        fName: leadData.fName,
+        lName: leadData.lName,
+        cName: leadData.cName,
+        email: leadData.email,
+        phone: leadData.phone,
+        fax: leadData.fax,
+        streetAddress: leadData.streetAddress,
+        city: leadData.city,
+        state: leadData.state,
+        zip: leadData.zip,
+        country: leadData.country,
+        usageType: leadData.usageType,
         _id: id,
-        salesOrderNo: req.body.salesOrderNo || salesOrderObj.salesOrderNo,
-        createdAt: req.body.createdAt || salesOrderObj.createdAt,
         // Keep lead object for backward compatibility
         lead: salesOrderObj.lead,
       };
 
       // Generate payment link if requested (paymentLinkUrl in request body)
+      // Note: Payment link generation is still allowed from request body as it's a runtime action
       let paymentLinkUrl = req.body.paymentLinkUrl || null;
       if (!paymentLinkUrl && req.body.includePaymentLink) {
         try {

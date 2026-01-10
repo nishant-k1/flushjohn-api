@@ -202,7 +202,7 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
+router.patch("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const { id } = req.params;
 
@@ -313,21 +313,33 @@ router.post(
         });
       }
 
-      if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Request body is required for PDF generation",
-          error: "EMPTY_REQUEST_BODY",
-        });
-      }
-
       const quote = await quotesService.getQuoteById(id);
 
+      // Use ONLY database data for PDF generation (industry standard)
+      const quoteObj = quote.toObject ? quote.toObject() : quote;
+
+      // Flatten lead fields for PDF template (template expects fName, lName, email at top level)
+      // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on quote
+      const leadData = quoteObj.lead || {};
+
       const pdfData = {
-        ...req.body,
+        ...quoteObj, // Use ONLY database data
+        // Flatten lead fields to top level for PDF template (NO fallbacks - use database data only)
+        fName: leadData.fName,
+        lName: leadData.lName,
+        cName: leadData.cName,
+        email: leadData.email,
+        phone: leadData.phone,
+        fax: leadData.fax,
+        streetAddress: leadData.streetAddress,
+        city: leadData.city,
+        state: leadData.state,
+        zip: leadData.zip,
+        country: leadData.country,
+        usageType: leadData.usageType,
         _id: id,
-        quoteNo: req.body.quoteNo || quote.quoteNo,
-        createdAt: req.body.createdAt || quote.createdAt,
+        // Keep lead object for backward compatibility
+        lead: quoteObj.lead,
       };
 
       const { generateQuotePDF } =
@@ -396,21 +408,33 @@ router.post(
         });
       }
 
-      if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Request body is required for email sending",
-          error: "EMPTY_REQUEST_BODY",
-        });
-      }
-
       const quote = await quotesService.getQuoteById(id);
 
+      // Use ONLY database data for email generation (industry standard)
+      const quoteObj = quote.toObject ? quote.toObject() : quote;
+
+      // Flatten lead fields for email template (template expects fName, lName, email at top level)
+      // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on quote
+      const leadData = quoteObj.lead || {};
+
       const emailData = {
-        ...req.body,
+        ...quoteObj, // Use ONLY database data
+        // Flatten lead fields to top level for email template (NO fallbacks - use database data only)
+        fName: leadData.fName,
+        lName: leadData.lName,
+        cName: leadData.cName,
+        email: leadData.email,
+        phone: leadData.phone,
+        fax: leadData.fax,
+        streetAddress: leadData.streetAddress,
+        city: leadData.city,
+        state: leadData.state,
+        zip: leadData.zip,
+        country: leadData.country,
+        usageType: leadData.usageType,
         _id: id,
-        quoteNo: req.body.quoteNo || quote.quoteNo,
-        createdAt: req.body.createdAt || quote.createdAt,
+        // Keep lead object for backward compatibility
+        lead: quoteObj.lead,
       };
 
       const { generateQuotePDF } =

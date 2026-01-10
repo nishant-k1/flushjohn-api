@@ -44,10 +44,26 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
     }
 
     // Prepare receipt data with flattened customer information
+    // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on sales order
     const salesOrderObj = salesOrder.toObject
       ? salesOrder.toObject()
       : salesOrder;
+
+    // Validate required sales order fields
+    if (!salesOrderObj.salesOrderNo) {
+      throw new Error("Sales order number is required for receipt generation");
+    }
+    if (!salesOrderObj.createdAt) {
+      throw new Error("Sales order creation date is required for receipt generation");
+    }
+    if (!salesOrderObj.products || !Array.isArray(salesOrderObj.products)) {
+      throw new Error("Sales order products are required for receipt generation");
+    }
+
     const lead = salesOrderObj.lead || {};
+    if (!lead) {
+      throw new Error("Lead information is required for receipt generation");
+    }
 
     const receiptData = {
       // Payment information
@@ -57,23 +73,23 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
       cardLast4: payment.cardLast4,
       cardBrand: payment.cardBrand,
 
-      // Customer information (flattened from lead)
-      fName: lead.fName || salesOrderObj.fName || "",
-      lName: lead.lName || salesOrderObj.lName || "",
-      cName: lead.cName || salesOrderObj.cName || "",
-      email: lead.email || salesOrderObj.email || "",
-      phone: lead.phone || salesOrderObj.phone || "",
-      streetAddress: lead.streetAddress || salesOrderObj.streetAddress || "",
-      city: lead.city || salesOrderObj.city || "",
-      state: lead.state || salesOrderObj.state || "",
-      zip: lead.zip || salesOrderObj.zip || "",
+      // Customer information (flattened from lead) - NO fallbacks, use database data only
+      fName: lead.fName,
+      lName: lead.lName,
+      cName: lead.cName,
+      email: lead.email,
+      phone: lead.phone,
+      streetAddress: lead.streetAddress,
+      city: lead.city,
+      state: lead.state,
+      zip: lead.zip,
 
-      // Sales order information
-      salesOrderNo: salesOrderObj.salesOrderNo || "",
-      salesOrderCreatedAt: salesOrderObj.createdAt || "",
+      // Sales order information - NO fallbacks, use database data only
+      salesOrderNo: salesOrderObj.salesOrderNo,
+      salesOrderCreatedAt: salesOrderObj.createdAt,
 
-      // Products (for itemized receipt)
-      products: salesOrderObj.products || [],
+      // Products (for itemized receipt) - NO fallbacks, use database data only
+      products: salesOrderObj.products,
 
       // Keep full salesOrder for email template compatibility
       salesOrder: salesOrderObj,
@@ -115,10 +131,15 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
     const flushjohn_email = process.env.FLUSH_JOHN_EMAIL_ID;
     const flushjohn_website =
       process.env.FLUSH_JOHN_HOMEPAGE || process.env.FLUSH_JOHN_WEBSITE_URL;
-    const subject = `${companyName}: Payment Receipt - Sales Order #${salesOrder.salesOrderNo}`;
+    const subject = `${companyName}: Payment Receipt - Sales Order #${salesOrderObj.salesOrderNo}`;
+
+    // Validate payment date
+    if (!payment.createdAt) {
+      throw new Error("Payment creation date is required for receipt generation");
+    }
 
     // Format payment date and method for plain text
-    const paymentDate = safeDate(payment.createdAt || new Date(), {
+    const paymentDate = safeDate(payment.createdAt, {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -148,29 +169,36 @@ export const sendSalesReceiptEmail = async (payment, salesOrder = null) => {
     }
 
     // Generate plain text version for better email client compatibility
-    const plainTextContent = `
-Payment Receipt - Sales Order #${salesOrder.salesOrderNo}
+    // Use customer name from database (no fallbacks)
+    const customerName = receiptData.fName
+      ? `${receiptData.fName}${receiptData.lName ? ` ${receiptData.lName}` : ""}`
+      : receiptData.cName || "";
 
-Hi ${receiptData.fName || "Customer"},
+    const plainTextContent = `
+Payment Receipt - Sales Order #${salesOrderObj.salesOrderNo}
+
+Hi ${customerName},
 
 Your payment of ${safeCurrency(payment.amount)} has been successfully processed.
 
 Payment Details:
-- Sales Order #: ${salesOrder.salesOrderNo}
+- Sales Order #: ${salesOrderObj.salesOrderNo}
 - Payment Date: ${paymentDate}
 - Payment Method: ${paymentMethodDisplay}
 - Amount Paid: ${safeCurrency(payment.amount)}
 
 ${
-  salesOrder?.products?.length > 0
+  salesOrderObj.products && salesOrderObj.products.length > 0
     ? `
 Order Items:
-${salesOrder.products
+${salesOrderObj.products
   .map((p: any) => {
-    const quantity = p.quantity || 0;
-    const rate = p.rate || 0;
+    // Use database data only - no fallbacks
+    const quantity = p.quantity ?? 0;
+    const rate = p.rate ?? 0;
     const total = calculateProductAmount(quantity, rate);
-    return `- ${p.item || "N/A"} (Quantity: ${quantity}) - $${total}`;
+    const itemName = p.item || p.productName || "";
+    return `- ${itemName} (Quantity: ${quantity}) - $${total}`;
   })
   .join("\n")}
  `
@@ -229,9 +257,7 @@ ${flushjohn_website ? `Website: ${flushjohn_website}` : ""}
     // Attach PDF if generated successfully
     if (pdfBuffer) {
       emailOptions.attachments.push({
-        filename: `Payment_Receipt_${
-          salesOrder.salesOrderNo || payment._id
-        }.pdf`,
+        filename: `Payment_Receipt_${salesOrderObj.salesOrderNo}.pdf`,
         content: pdfBuffer,
         contentType: "application/pdf",
       });

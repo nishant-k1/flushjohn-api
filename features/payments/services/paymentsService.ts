@@ -167,16 +167,30 @@ export const createSalesOrderPaymentLink = async (salesOrderId, returnUrl) => {
   }
 
   // Get customer email from lead
-  let customerEmail = "";
-  let customerName = "";
-  if (salesOrder.lead) {
-    customerEmail = salesOrder.lead.email || "";
-    customerName = `${salesOrder.lead.fName || ""} ${
-      salesOrder.lead.lName || ""
-    }`.trim();
-    if (salesOrder.lead.cName) {
-      customerName = salesOrder.lead.cName;
-    }
+  // Validate lead exists and has required fields
+  if (!salesOrder.lead) {
+    throw new Error("Lead information is required for payment link creation");
+  }
+
+  // Use database data only - no fallbacks
+  if (!salesOrder.lead.email) {
+    throw new Error("Lead email is required for payment link creation");
+  }
+
+  const customerEmail = salesOrder.lead.email;
+  // Use company name if available, otherwise use full name
+  // Validate that at least one name field exists
+  let customerName: string;
+  if (salesOrder.lead.cName) {
+    customerName = salesOrder.lead.cName;
+  } else if (salesOrder.lead.fName && salesOrder.lead.lName) {
+    customerName = `${salesOrder.lead.fName} ${salesOrder.lead.lName}`;
+  } else if (salesOrder.lead.fName) {
+    customerName = salesOrder.lead.fName;
+  } else if (salesOrder.lead.lName) {
+    customerName = salesOrder.lead.lName;
+  } else {
+    throw new Error("Lead name (company name, first name, or last name) is required for payment link creation");
   }
 
   // Create new payment link
@@ -280,21 +294,30 @@ export const chargeSalesOrder = async (
   // Get or create Stripe customer
   let stripeCustomerId = customerId || salesOrder.stripeCustomerId;
   if (!stripeCustomerId) {
-    // Get customer email from lead
-    let customerEmail = "";
-    let customerName = "";
-    if (salesOrder.lead) {
-      customerEmail = salesOrder.lead.email || "";
-      customerName = `${salesOrder.lead.fName || ""} ${
-        salesOrder.lead.lName || ""
-      }`.trim();
-      if (salesOrder.lead.cName) {
-        customerName = salesOrder.lead.cName;
-      }
+    // Validate lead exists and has required fields
+    if (!salesOrder.lead) {
+      throw new Error("Lead information is required for payment processing");
     }
 
-    if (!customerEmail) {
-      throw new Error("Customer email is required");
+    // Use database data only - no fallbacks
+    if (!salesOrder.lead.email) {
+      throw new Error("Lead email is required for payment processing");
+    }
+
+    const customerEmail = salesOrder.lead.email;
+    // Use company name if available, otherwise use full name
+    // Validate that at least one name field exists
+    let customerName: string;
+    if (salesOrder.lead.cName) {
+      customerName = salesOrder.lead.cName;
+    } else if (salesOrder.lead.fName && salesOrder.lead.lName) {
+      customerName = `${salesOrder.lead.fName} ${salesOrder.lead.lName}`;
+    } else if (salesOrder.lead.fName) {
+      customerName = salesOrder.lead.fName;
+    } else if (salesOrder.lead.lName) {
+      customerName = salesOrder.lead.lName;
+    } else {
+      throw new Error("Lead name (company name, first name, or last name) is required for payment processing");
     }
 
     const stripeCustomer = await createOrGetStripeCustomer(
@@ -667,21 +690,30 @@ export const savePaymentMethod = async (
   // Get or create Stripe customer
   let stripeCustomerId = customerId || salesOrder.stripeCustomerId;
   if (!stripeCustomerId) {
-    // Get customer email from lead
-    let customerEmail = "";
-    let customerName = "";
-    if (salesOrder.lead) {
-      customerEmail = salesOrder.lead.email || "";
-      customerName = `${salesOrder.lead.fName || ""} ${
-        salesOrder.lead.lName || ""
-      }`.trim();
-      if (salesOrder.lead.cName) {
-        customerName = salesOrder.lead.cName;
-      }
+    // Validate lead exists and has required fields
+    if (!salesOrder.lead) {
+      throw new Error("Lead information is required for payment processing");
     }
 
-    if (!customerEmail) {
-      throw new Error("Customer email is required");
+    // Use database data only - no fallbacks
+    if (!salesOrder.lead.email) {
+      throw new Error("Lead email is required for payment processing");
+    }
+
+    const customerEmail = salesOrder.lead.email;
+    // Use company name if available, otherwise use full name
+    // Validate that at least one name field exists
+    let customerName: string;
+    if (salesOrder.lead.cName) {
+      customerName = salesOrder.lead.cName;
+    } else if (salesOrder.lead.fName && salesOrder.lead.lName) {
+      customerName = `${salesOrder.lead.fName} ${salesOrder.lead.lName}`;
+    } else if (salesOrder.lead.fName) {
+      customerName = salesOrder.lead.fName;
+    } else if (salesOrder.lead.lName) {
+      customerName = salesOrder.lead.lName;
+    } else {
+      throw new Error("Lead name (company name, first name, or last name) is required for payment processing");
     }
 
     const stripeCustomer = await createOrGetStripeCustomer(

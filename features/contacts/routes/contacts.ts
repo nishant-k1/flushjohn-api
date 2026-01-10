@@ -136,7 +136,7 @@ router.get(
   }
 );
 
-router.put(
+router.patch(
   "/:id",
   authenticateToken,
   canUpdate(CONTACTS_RESOURCE),

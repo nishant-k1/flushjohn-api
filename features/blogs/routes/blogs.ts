@@ -130,7 +130,7 @@ router.get("/:id", async function (req, res) {
   }
 } as AsyncRouteHandler);
 
-router.put("/:id", async function (req, res) {
+router.patch("/:id", async function (req, res) {
   try {
     const { id } = req.params;
 

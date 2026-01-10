@@ -124,7 +124,7 @@ router.get("/:id", async function (req, res) {
   }
 });
 
-router.put("/:id", validateAndRecalculateProducts, async function (req, res) {
+router.patch("/:id", validateAndRecalculateProducts, async function (req, res) {
   try {
     const { id } = req.params;
 
@@ -228,11 +228,31 @@ router.post(
 
       const jobOrder = await jobOrdersService.getJobOrderById(id);
 
+      // Use ONLY database data for PDF generation (industry standard)
+      const jobOrderObj = jobOrder.toObject ? jobOrder.toObject() : jobOrder;
+
+      // Flatten lead fields for PDF template (template expects fName, lName, email at top level)
+      // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on job order
+      const leadData = jobOrderObj.lead || {};
+
       const pdfData = {
-        ...req.body,
+        ...jobOrderObj, // Use ONLY database data
+        // Flatten lead fields to top level for PDF template (NO fallbacks - use database data only)
+        fName: leadData.fName,
+        lName: leadData.lName,
+        cName: leadData.cName,
+        email: leadData.email,
+        phone: leadData.phone,
+        fax: leadData.fax,
+        streetAddress: leadData.streetAddress,
+        city: leadData.city,
+        state: leadData.state,
+        zip: leadData.zip,
+        country: leadData.country,
+        usageType: leadData.usageType,
         _id: id,
-        jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
-        createdAt: req.body.createdAt || jobOrder.createdAt,
+        // Keep lead object for backward compatibility
+        lead: jobOrderObj.lead,
       };
 
       const { generateJobOrderPDF } =
@@ -285,17 +305,24 @@ router.post(
 
       const jobOrder = await jobOrdersService.getJobOrderById(id);
 
-      if (!req.body.vendor || !req.body.vendor._id) {
+      // Use ONLY database data for email generation (industry standard)
+      const jobOrderObj = jobOrder.toObject ? jobOrder.toObject() : jobOrder;
+
+      // Use ONLY database data - vendor must be saved in job order before sending email
+      // Representative selection (selectedRepresentative) comes from request body as it's a runtime action
+      if (!jobOrderObj.vendor || !jobOrderObj.vendor._id) {
         return res.status(400).json({
           success: false,
-          message: "Vendor must be selected before sending job order email",
-          error: "NO_VENDOR_SELECTED",
+          message: "Vendor must be selected and saved in job order before sending email",
+          error: "NO_VENDOR_IN_JOB_ORDER",
         });
       }
 
+      const vendorId = jobOrderObj.vendor._id;
+
       const { getVendorById } =
         await import("../../vendors/services/vendorsService.js");
-      const vendor = await getVendorById(req.body.vendor._id);
+      const vendor = await getVendorById(vendorId);
 
       if (!vendor) {
         return res.status(404).json({
@@ -315,7 +342,9 @@ router.post(
 
       let primaryEmail, ccEmail, recipientName;
 
-      if (req.body.vendor.selectedRepresentative) {
+      // Only selectedRepresentative comes from request body (runtime action)
+      // Vendor data comes from database jobOrderObj.vendor
+      if (req.body.vendor?.selectedRepresentative) {
         const selectedRep = req.body.vendor.selectedRepresentative;
 
         if (selectedRep.type === "representative") {
@@ -333,14 +362,30 @@ router.post(
         recipientName = vendor.name;
       }
 
+      // Flatten lead fields for email template (template expects fName, lName, email at top level)
+      // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on job order
+      const leadData = jobOrderObj.lead || {};
+
       const emailData = {
-        ...req.body,
+        ...jobOrderObj, // Use ONLY database data
+        // Flatten lead fields to top level for email template (NO fallbacks - use database data only)
+        fName: leadData.fName,
+        lName: leadData.lName,
+        cName: leadData.cName,
+        email: primaryEmail, // Use vendor email for job order email (overrides lead email - this is intentional for routing)
+        phone: leadData.phone,
+        fax: leadData.fax,
+        streetAddress: leadData.streetAddress,
+        city: leadData.city,
+        state: leadData.state,
+        zip: leadData.zip,
+        country: leadData.country,
+        usageType: leadData.usageType,
         _id: id,
-        jobOrderNo: req.body.jobOrderNo || jobOrder.jobOrderNo,
-        createdAt: req.body.createdAt || jobOrder.createdAt,
         vendorName: recipientName, // Use representative name with vendor name fallback
-        email: primaryEmail, // Use determined primary email
         ccEmail: ccEmail, // Add CC email if different
+        // Keep lead object for backward compatibility
+        lead: jobOrderObj.lead,
       };
 
       const { generateJobOrderPDF } =

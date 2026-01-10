@@ -182,7 +182,7 @@ router.get(
   }
 );
 
-router.put(
+router.patch(
   "/:id",
   authenticateToken,
   canUpdate(RESOURCES.LEADS),
@@ -256,7 +256,7 @@ router.put(
   }
 );
 
-router.put(
+router.patch(
   "/update/:id",
   authenticateToken,
   validateAndRecalculateProducts,

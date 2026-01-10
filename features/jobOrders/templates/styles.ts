@@ -81,10 +81,32 @@ const styles = `html,
   .section-1-right{
     display: grid;
     row-gap: 4px;
+    align-items: flex-end;
+    text-align: right;
   }
 
   .section-1-right h1{
     font-size: x-large;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+
+  .document-badge{
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: #635443;
+    color: #ffffff;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .section-1-right h3{
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #666666;
   }
   
   .section-2{

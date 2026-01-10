@@ -50,7 +50,7 @@ router.get("/:userId", (async (req, res) => {
   }
 }) as AsyncRouteHandler);
 
-router.put("/:userId", (async (req, res) => {
+router.patch("/:userId", (async (req, res) => {
   try {
     const { fName, lName, email, role, isActive } = req.body;
 

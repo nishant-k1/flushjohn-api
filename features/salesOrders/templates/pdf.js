@@ -80,10 +80,10 @@ const htmlTemplate = (salesOrderData) => {
   const total = parseFloat(calculateOrderTotal(products));
 
   // Payment terms - can be customized via environment or default
-  // If payment link exists, default to 24-hour payment terms, otherwise use Net 30
+  // Default to 24-hour payment terms
   const defaultPaymentTerms = salesOrderData.paymentLinkUrl
     ? "Payment due within 24 hours via payment link"
-    : "Net 30 - Payment due within 30 days of invoice date";
+    : "Payment due within 24 hours of invoice date";
 
   const paymentTerms =
     salesOrderData.paymentTerms ||
