@@ -418,13 +418,38 @@ router.post(
       // CRITICAL FIX: Improved background database update with retry logic
       // Update database in background (non-blocking) - respond immediately
       // This allows the API to return faster while DB update happens asynchronously
-      // Note: Only update emailStatus and vendorAcceptanceStatus - use database data, not emailData payload
+      // Note: Update emailStatus, vendorAcceptanceStatus, and vendorHistory using database data
       const dbUpdateStartTime = Date.now();
       const updateWithRetry = async (retries = 3): Promise<void> => {
         try {
+          // Get existing vendorHistory from database to update it
+          const existingVendorHistory = (jobOrderObj.vendorHistory || []) as any[];
+          const vendorHistoryEntry = {
+            vendorId: vendorId.toString(),
+            vendorName: vendor.name,
+            emailStatus: "Sent",
+            acceptanceStatus: "Accepted",
+          };
+
+          // Check if vendor already exists in history
+          const existingVendorIndex = existingVendorHistory.findIndex(
+            (v: any) => v.vendorId === vendorId.toString()
+          );
+
+          let updatedVendorHistory;
+          if (existingVendorIndex >= 0) {
+            // Update existing entry
+            updatedVendorHistory = [...existingVendorHistory];
+            updatedVendorHistory[existingVendorIndex] = vendorHistoryEntry;
+          } else {
+            // Add new entry
+            updatedVendorHistory = [...existingVendorHistory, vendorHistoryEntry];
+          }
+
           const updatedJobOrder = await jobOrdersService.updateJobOrder(id, {
             emailStatus: "Sent",
             vendorAcceptanceStatus: "Accepted",
+            vendorHistory: updatedVendorHistory,
           });
           const dbTime = Date.now() - dbUpdateStartTime;
           console.log(
