@@ -45,22 +45,20 @@ const styles = `html,
     object-fit: contain !important;
   }
   .section-1{
-    border-top: 1px solid black
-    padding-bottom: 24px;
+    border-top: 1px solid black;
+    padding-bottom: 2rem;
     display: grid;
-    align-items: start;
+    align-items: flex-start;
     justify-content: space-between;
-    grid-template-columns: repeat(2, max-content);
+    grid-template-columns: auto 1fr;
+    gap: 2rem;
+    margin-bottom: 1rem;
   }
 
   .section-1-left {
-    display: grid;
-    align-items: start;
-    row-gap: 24px;
-  }
-  .section-1-left div {
-    display: grid;
-    row-gap: 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
   }
   strong {
     font-weight: 900;
@@ -79,9 +77,10 @@ const styles = `html,
     object-fit: contain !important;
   }
   .section-1-right{
-    display: grid;
-    row-gap: 4px;
+    display: flex;
+    flex-direction: column;
     align-items: flex-end;
+    gap: 0.5rem;
     text-align: right;
   }
 
@@ -101,6 +100,8 @@ const styles = `html,
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    width: fit-content;
+    justify-self: end;
   }
 
   .section-1-right h3{
@@ -113,10 +114,21 @@ const styles = `html,
     display: grid;
     justify-content: space-between;
     align-items: start;
-    grid-template-columns: repeat(2, max-content);
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    margin: 1.5rem 0;
   }
   .section-2 h3{
-    font-size: medium;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-2 p{
+    font-size: 0.875rem;
+    color: #555555;
+    margin-bottom: 0.25rem;
   }
 
   h4{
@@ -125,16 +137,17 @@ const styles = `html,
   }
 
   .section-2-left{
-    display: grid;
-    row-gap: 1rem;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    align-items: flex-start;
   }
 
   .section-2-right{
-    display: grid;
-    row-gap: 1rem;
-    align-items: start;
-    grid-template-rows: repeat(2, min-content);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    align-items: flex-start;
   }
 
   .section-3 {
