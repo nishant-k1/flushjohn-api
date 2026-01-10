@@ -44,7 +44,7 @@ export const getQuenGenesisEmailSignature = () => {
   // Build signature from environment variables
   const parts = [
     "Best regards,",
-    "QuenGenesis Team",
+    "Quengenesis Team",
     "",
     process.env.QUENGENESIS_COMPANY_NAME,
   ];

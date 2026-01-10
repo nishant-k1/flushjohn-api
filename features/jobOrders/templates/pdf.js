@@ -55,9 +55,23 @@ const htmlTemplate = (jobOrderData) => {
   const phone = process.env.QUENGENESIS_PHONE;
   const phone_link = process.env.QUENGENESIS_PHONE_LINK;
 
-  const createdAt = safeDate(jobOrderData.createdAt);
-  const deliveryDate = safeDate(jobOrderData.deliveryDate);
-  const pickupDate = safeDate(jobOrderData.pickupDate);
+  const createdAt = safeDate(jobOrderData.createdAt, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const deliveryDate = safeDate(jobOrderData.deliveryDate, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const pickupDate = safeDate(jobOrderData.pickupDate, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   // Calculate total from all products (tax is already included as a product)
   // Tax is calculated on client side and stored as a product in the array
@@ -74,9 +88,7 @@ const htmlTemplate = (jobOrderData) => {
         <div class="section-1">
           <div class="section-1-left">
             <div>
-              <img src="${
-                logoDataUris.quengenesis
-              }" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />
+              <img src="${logoDataUris.quengenesis}" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />
               <div style="margin-top: 0.5rem;">
                 <h4>${cName}</h4>
                 ${
@@ -89,7 +101,6 @@ const htmlTemplate = (jobOrderData) => {
               </div>
             </div>
           </div>
-
           <div class="section-1-right">
             <span class="document-badge">Job Order</span>
             <h1>Job Order # ${safeValue(jobOrderData.jobOrderNo)}</h1>
@@ -209,36 +220,36 @@ const htmlTemplate = (jobOrderData) => {
             </div>
           </div>
         </div>
-    
-      <div class='section-3'>
-        <ul class='items-heading'>
-          <li>
-            <h3>ITEMS</h3>
-          </li>
-          <li>
-            <h3>DESCRIPTION</h3>
-          </li>
-          <li>
-            <h3>QTY</h3>
-          </li>
-          <li>
-            <h3>RATE</h3>
-          </li>
-          <li>
-            <h3>TOTAL</h3>
-          </li>
-        </ul>
+      
+        <div class='section-3'>
+          <ul class='items-heading'>
+            <li>
+              <h3>ITEMS</h3>
+            </li>
+            <li>
+              <h3>DESCRIPTION</h3>
+            </li>
+            <li>
+              <h3>QTY</h3>
+            </li>
+            <li>
+              <h3>RATE</h3>
+            </li>
+            <li>
+              <h3>TOTAL</h3>
+            </li>
+          </ul>
           ${itemRows(jobOrderData.products || [])}
           
           <div class='total-amount-container'>
             <h4>Total Amount: ${safeCurrency(total)}</h4>
           </div>
-      </div>
+        </div>
+      
       <hr/>
-      <div>
-       <h3 style="margin-bottom: 1rem;">By accepting this Job Order, the vendor agrees:</h3>
-
-        <div class='section-4'>
+      <div class='section-4'>
+        <div style="grid-column: 1 / -1;">
+          <h3>By accepting this Job Order, the vendor agrees:</h3>
           <ul>
             <li>
               Not to accept work, enter into an agreement, or accept an obligation with any client/customer whose job has been assigned to the vendor via this job order.
@@ -261,11 +272,11 @@ const htmlTemplate = (jobOrderData) => {
         </div>
       </div>
       <footer>
-      <ul>
-        <li><a href=${homepage}>${homepage}</a></li>
-        <li><a href=mailto:${email}>${email}</a></li>
-        <li><a href="tel:${phone_link}">${phone}</a></li>
-      </ul>
+        <ul>
+          <li><a href=${homepage}>${homepage}</a></li>
+          <li><a href=mailto:${email}>${email}</a></li>
+          <li><a href=tel:${phone_link}>${phone}</a></li>
+        </ul>
       </footer>
     </body>
   </html>
