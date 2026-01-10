@@ -1,17 +1,3 @@
-/**
- * Constants file for FlushJohn API
- * Contains logo data URIs for PDF generation
- * All company information should be accessed directly from process.env
- * - Use process.env.FLUSH_JOHN_* for FlushJohn company info
- * - Use process.env.QUENGENESIS_* for QuenGenesis company info
- * - Use process.env.CLOUDFRONT_URL for S3 assets
- * - Use process.env.LOCAL_ASSETS_URL for local assets
- * - Use process.env.API_BASE_URL and process.env.FLUSH_JOHN_WEBSITE_URL for API URLs
- */
-
-// Removed s3assets and localAssetsUrl - use process.env.CLOUDFRONT_URL and process.env.LOCAL_ASSETS_URL directly where needed
-
-// Logo base64 data URIs for PDF generation (Playwright/Puppeteer can't always access localhost URLs)
 // These are embedded directly in the HTML to ensure logos appear in PDFs
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
