@@ -450,11 +450,11 @@ router.post(
       // CRITICAL FIX: Improved background database update with retry logic
       // Update database in background (non-blocking) - respond immediately
       // This allows the API to return faster while DB update happens asynchronously
+      // Note: Only update emailStatus - use database data, not emailData payload
       const dbUpdateStartTime = Date.now();
       const updateWithRetry = async (retries = 3): Promise<void> => {
         try {
           const updatedSalesOrder = await salesOrdersService.updateSalesOrder(id, {
-            ...emailData,
             emailStatus: "Sent",
           });
           const dbTime = Date.now() - dbUpdateStartTime;
