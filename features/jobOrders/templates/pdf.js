@@ -220,34 +220,34 @@ const htmlTemplate = (jobOrderData) => {
             </div>
           </div>
         </div>
-      
-        <div class='section-3'>
-          <ul class='items-heading'>
-            <li>
-              <h3>ITEMS</h3>
-            </li>
-            <li>
-              <h3>DESCRIPTION</h3>
-            </li>
-            <li>
-              <h3>QTY</h3>
-            </li>
-            <li>
-              <h3>RATE</h3>
-            </li>
-            <li>
-              <h3>TOTAL</h3>
-            </li>
-          </ul>
+    
+      <div class='section-3'>
+        <ul class='items-heading'>
+          <li>
+            <h3>ITEMS</h3>
+          </li>
+          <li>
+            <h3>DESCRIPTION</h3>
+          </li>
+          <li>
+            <h3>QTY</h3>
+          </li>
+          <li>
+            <h3>RATE</h3>
+          </li>
+          <li>
+            <h3>TOTAL</h3>
+          </li>
+        </ul>
           ${itemRows(jobOrderData.products || [])}
           
           <div class='total-amount-container'>
             <h4>Total Amount: ${safeCurrency(total)}</h4>
           </div>
-        </div>
+      </div>
       
       <hr/>
-      <div class='section-4'>
+        <div class='section-4'>
         <div style="grid-column: 1 / -1;">
           <h3>By accepting this Job Order, the vendor agrees:</h3>
           <ul>
@@ -272,11 +272,11 @@ const htmlTemplate = (jobOrderData) => {
         </div>
       </div>
       <footer>
-        <ul>
-          <li><a href=${homepage}>${homepage}</a></li>
-          <li><a href=mailto:${email}>${email}</a></li>
+      <ul>
+        <li><a href=${homepage}>${homepage}</a></li>
+        <li><a href=mailto:${email}>${email}</a></li>
           <li><a href=tel:${phone_link}>${phone}</a></li>
-        </ul>
+      </ul>
       </footer>
     </body>
   </html>

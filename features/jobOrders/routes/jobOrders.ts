@@ -24,7 +24,7 @@ router.post("/", validateAndRecalculateProducts, async function (req, res) {
       return res.status(409).json({
         success: false,
         error: error.message,
-        message: "A job order already exists for this sales order",
+        message: error.message, // Use the detailed error message from service
         data: {
           existingJobOrderId: error.existingJobOrderId,
           jobOrderNo: error.jobOrderNo,
@@ -172,6 +172,43 @@ router.patch("/:id", validateAndRecalculateProducts, async function (req, res) {
       error: "INTERNAL_SERVER_ERROR",
       ...(process.env.NODE_ENV === "development" && { details: error.message }),
     });
+  }
+});
+
+router.post("/:id/cancel", async function (req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!jobOrdersService.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid job order ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    const cancelledJobOrder = await jobOrdersService.cancelJobOrder(id);
+    res.status(200).json({
+      success: true,
+      message: "Job Order cancelled successfully",
+      data: cancelledJobOrder,
+    });
+  } catch (error) {
+    if (error.name === "NotFoundError") {
+      return res.status(404).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    if (error.name === "AlreadyCancelledError") {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -418,38 +455,13 @@ router.post(
       // CRITICAL FIX: Improved background database update with retry logic
       // Update database in background (non-blocking) - respond immediately
       // This allows the API to return faster while DB update happens asynchronously
-      // Note: Update emailStatus, vendorAcceptanceStatus, and vendorHistory using database data
+      // Note: Update emailStatus and vendorAcceptanceStatus using database data
       const dbUpdateStartTime = Date.now();
       const updateWithRetry = async (retries = 3): Promise<void> => {
         try {
-          // Get existing vendorHistory from database to update it
-          const existingVendorHistory = (jobOrderObj.vendorHistory || []) as any[];
-          const vendorHistoryEntry = {
-            vendorId: vendorId.toString(),
-            vendorName: vendor.name,
-            emailStatus: "Sent",
-            acceptanceStatus: "Accepted",
-          };
-
-          // Check if vendor already exists in history
-          const existingVendorIndex = existingVendorHistory.findIndex(
-            (v: any) => v.vendorId === vendorId.toString()
-          );
-
-          let updatedVendorHistory;
-          if (existingVendorIndex >= 0) {
-            // Update existing entry
-            updatedVendorHistory = [...existingVendorHistory];
-            updatedVendorHistory[existingVendorIndex] = vendorHistoryEntry;
-          } else {
-            // Add new entry
-            updatedVendorHistory = [...existingVendorHistory, vendorHistoryEntry];
-          }
-
           const updatedJobOrder = await jobOrdersService.updateJobOrder(id, {
             emailStatus: "Sent",
             vendorAcceptanceStatus: "Accepted",
-            vendorHistory: updatedVendorHistory,
           });
           const dbTime = Date.now() - dbUpdateStartTime;
           console.log(

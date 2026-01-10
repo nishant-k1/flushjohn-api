@@ -34,12 +34,12 @@ export const findById = async (id, lean = true) => {
     .findById(id)
     .populate("lead")
     .populate("salesOrder");
-  
+
   // ✅ PERFORMANCE: Use .lean() for read-only queries (20-30% faster, less memory)
   if (lean) {
     query = query.lean();
   }
-  
+
   return await query;
 };
 

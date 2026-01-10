@@ -151,8 +151,11 @@ export const createJobOrder = async (jobOrderData) => {
     salesOrderNo: jobOrderData.salesOrderNo,
   });
 
-  if (existingJobOrder) {
-    const error = new Error("A job order already exists for this sales order");
+  // Only prevent duplicate if there's an active (non-cancelled) job order
+  if (existingJobOrder && existingJobOrder.status !== "cancelled") {
+    const error = new Error(
+      "A job order already exists for this sales order. Please cancel the existing job order first before creating a new one."
+    );
     error.name = "DuplicateError";
     (error as any).existingJobOrderId = existingJobOrder._id;
     (error as any).jobOrderNo = existingJobOrder.jobOrderNo;
@@ -526,7 +529,6 @@ export const updateJobOrder = async (id, updateData) => {
     billingCycles: updateData.billingCycles,
     vendor: updateData.vendor,
     vendorAcceptanceStatus: updateData.vendorAcceptanceStatus,
-    vendorHistory: updateData.vendorHistory,
   };
 
   // Remove undefined fields from jobOrderFields
@@ -556,6 +558,30 @@ export const updateJobOrder = async (id, updateData) => {
     updatedJobOrder || jobOrder,
     updatedJobOrder?.lead
   );
+};
+
+export const cancelJobOrder = async (id) => {
+  const existingJobOrder = await jobOrdersRepository.findById(id);
+
+  if (!existingJobOrder) {
+    const error = new Error("Job Order not found");
+    error.name = "NotFoundError";
+    throw error;
+  }
+
+  // Check if already cancelled
+  if (existingJobOrder.status === "cancelled") {
+    const error = new Error("Job Order is already cancelled");
+    error.name = "AlreadyCancelledError";
+    throw error;
+  }
+
+  // Update job order status to cancelled
+  const updatedJobOrder = await jobOrdersRepository.updateById(id, {
+    status: "cancelled",
+  });
+
+  return updatedJobOrder;
 };
 
 export const deleteJobOrder = async (id) => {

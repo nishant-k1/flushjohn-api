@@ -44,6 +44,12 @@ const JobOrdersSchema = new mongoose.Schema({
   },
 
   // Job order specific fields
+  status: {
+    type: String,
+    enum: ["active", "cancelled"],
+    default: "active",
+    index: true,
+  },
   emailStatus: {
     type: String,
     default: "Pending",
@@ -52,10 +58,6 @@ const JobOrdersSchema = new mongoose.Schema({
     type: String,
     default: "Pending",
     enum: ["Pending", "Accepted", "Denied"],
-  },
-  vendorHistory: {
-    type: Array,
-    default: [],
   },
   // ⚠️ REMOVED: Contact fields - Use lead reference instead
   // fName, lName, cName, email, phone, fax, address fields, usageType
@@ -147,6 +149,7 @@ const JobOrdersSchema = new mongoose.Schema({
 // Add indexes for faster queries
 JobOrdersSchema.index({ createdAt: -1 }); // Sort by date
 // salesOrder, lead, customer: index: true already creates indexes automatically
+// status: index: true already creates index automatically
 JobOrdersSchema.index({ emailStatus: 1 }); // Filter by email status
 JobOrdersSchema.index({ vendorAcceptanceStatus: 1 }); // Filter by vendor status
 JobOrdersSchema.index({ jobOrderNo: 1 }); // Find by job order number

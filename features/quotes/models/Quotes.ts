@@ -31,6 +31,12 @@ const QuotesSchema = new mongoose.Schema(
     // ⚠️ REMOVED: leadId - Duplicate of lead ObjectId reference
 
     // Quote specific fields
+    status: {
+      type: String,
+      enum: ["active", "cancelled"],
+      default: "active",
+      index: true,
+    },
     emailStatus: {
       type: String,
       default: "Pending",

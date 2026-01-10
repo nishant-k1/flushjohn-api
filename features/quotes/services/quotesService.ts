@@ -870,6 +870,46 @@ export const updateQuote = async (id, updateData) => {
   return formatQuoteResponse(updatedQuote || quote, updatedQuote?.lead);
 };
 
+export const cancelQuote = async (id) => {
+  const existingQuote = await quotesRepository.findById(id);
+
+  if (!existingQuote) {
+    const error = new Error("Quote not found");
+    error.name = "NotFoundError";
+    throw error;
+  }
+
+  // Check if already cancelled
+  if (existingQuote.status === "cancelled") {
+    const error = new Error("Quote is already cancelled");
+    error.name = "AlreadyCancelledError";
+    throw error;
+  }
+
+  // Check if quote has been converted to a sales order
+  const SalesOrder = (await import("../../salesOrders/models/SalesOrders.js"))
+    .default;
+
+  const salesOrdersCount = await (SalesOrder as any).countDocuments({
+    $or: [{ quote: id }, { quoteNo: existingQuote.quoteNo }],
+  });
+
+  if (salesOrdersCount > 0) {
+    const error = new Error(
+      "Cannot cancel quote. This quote has been converted to a sales order."
+    );
+    error.name = "QuoteConvertedError";
+    throw error;
+  }
+
+  // Update quote status to cancelled
+  const updatedQuote = await quotesRepository.updateById(id, {
+    status: "cancelled",
+  });
+
+  return updatedQuote;
+};
+
 export const deleteQuote = async (id) => {
   const existingQuote = await quotesRepository.findById(id);
 

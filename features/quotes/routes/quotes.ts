@@ -253,6 +253,50 @@ router.patch("/:id", validateAndRecalculateProducts, async function (req, res) {
   }
 });
 
+router.post("/:id/cancel", async function (req, res) {
+  try {
+    const { id } = req.params;
+
+    if (!quotesService.isValidObjectId(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid quote ID format",
+        error: "INVALID_ID_FORMAT",
+      });
+    }
+
+    const cancelledQuote = await quotesService.cancelQuote(id);
+    res.status(200).json({
+      success: true,
+      message: "Quote cancelled successfully",
+      data: cancelledQuote,
+    });
+  } catch (error) {
+    if (error.name === "NotFoundError") {
+      return res.status(404).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    if (error.name === "AlreadyCancelledError") {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    if (error.name === "QuoteConvertedError") {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.delete("/:id", async function (req, res) {
   try {
     const { id } = req.params;
