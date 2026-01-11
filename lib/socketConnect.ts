@@ -18,7 +18,7 @@ const verifySocketToken = async (
 ): Promise<void> => {
   try {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-    
+
     if (!token || typeof token !== "string") {
       return next(new Error("Authentication token required"));
     }
@@ -48,7 +48,7 @@ const verifySocketToken = async (
     // Attach user info to socket for authorization checks
     (socket as any).user = user;
     (socket as any).userId = decoded.userId;
-    
+
     next();
   } catch (error: any) {
     if (error.name === "JsonWebTokenError") {
@@ -71,7 +71,7 @@ const getAllowedOrigins = (): string[] => {
       .map((origin) => origin.trim())
       .filter(Boolean);
   }
-  
+
   // Fallback to default origins if ORIGINS env var not set
   return [
     "http://localhost:8080",
@@ -103,9 +103,10 @@ export default function socketConnect(server: HttpServer): SocketIOServer {
     }
 
     // Allow any flushjohn.com domain (including subdomains) if configured
-    const allowSubdomains = process.env.ALLOW_SUBDOMAINS === "true" || 
-                           process.env.NODE_ENV === "development";
-    
+    const allowSubdomains =
+      process.env.ALLOW_SUBDOMAINS === "true" ||
+      process.env.NODE_ENV === "development";
+
     if (allowSubdomains) {
       try {
         const url = new URL(origin);
@@ -136,22 +137,26 @@ export default function socketConnect(server: HttpServer): SocketIOServer {
     connectTimeout: 45000,
   });
   instrument(io, { auth: false });
-  
+
   // Socket namespace for leads - with authentication
   const leadsNamespace = io.of("/leads");
-  
+
   // Apply authentication middleware
   leadsNamespace.use(verifySocketToken);
-  
+
   leadsNamespace.on("connection", async (socket: Socket) => {
     const userId = (socket as any).userId || "anonymous";
     const userEmail = (socket as any).user?.email || "unknown";
-    console.log(`✅ Client connected to /leads namespace - User: ${userEmail}, Socket ID: ${socket.id}`);
-    
+    console.log(
+      `✅ Client connected to /leads namespace - User: ${userEmail}, Socket ID: ${socket.id}`
+    );
+
     socket.on("disconnect", (reason) => {
-      console.log(`❌ Client disconnected from /leads - User: ${userEmail}, Reason: ${reason}`);
+      console.log(
+        `❌ Client disconnected from /leads - User: ${userEmail}, Reason: ${reason}`
+      );
     });
-    
+
     leadSocketHandler(leadsNamespace, socket);
   });
 

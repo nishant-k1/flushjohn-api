@@ -487,12 +487,40 @@ app.post(
   }
 );
 
+// Representatives endpoint - accessible by all authenticated users (mounted before admin-only routes)
+app.get("/users/representatives", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const User = (await import("./features/auth/models/User.js")).default;
+    const users = await User.find(
+      { isActive: true },
+      { fName: 1, lName: 1, _id: 1 }
+    ).sort({ fName: 1, lName: 1 });
+
+    const representatives = users.map((user: any) => ({
+      value: `${user.fName} ${user.lName}`.trim(),
+      label: `${user.fName} ${user.lName}`.trim(),
+      _id: user._id,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: representatives,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch representatives",
+    });
+  }
+});
+
+// Other user routes - only admins can manage users
 app.use(
   "/users",
   authenticateToken,
   authorizeRoles("admin"),
   usersRouter as any
-); // Only admins can manage users
+);
 // Other lead routes (GET, PUT, DELETE) require authentication
 app.use("/leads", authenticateToken, leadsRouter as any);
 app.use("/blogs", blogsRouter as any); // Keep public for marketing

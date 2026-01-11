@@ -1,6 +1,5 @@
 import express from "express";
 import User from "../models/User.js";
-import { authenticateToken } from "../middleware/auth.js";
 import { AsyncRouteHandler, MongooseFilter } from "../../../types/common.js";
 
 const router: any = express.Router();
