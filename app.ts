@@ -280,7 +280,6 @@ app.post(
   publicLimiter,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      console.log("📥 Received public lead submission");
       const leadData = req.body;
 
       // CRITICAL FIX: Enhanced validation for public lead endpoint
@@ -398,20 +397,12 @@ app.post(
       // Emit socket events ONLY after notifications are saved to database
       if (global.leadsNamespace) {
         try {
-          const connectedClients = await global.leadsNamespace.fetchSockets();
-          console.log(
-            `📡 Connected clients to /leads namespace: ${connectedClients.length}`
-          );
-
           // Emit lead created event with lead data
           const leadPayload = {
             lead: (lead as any).toObject ? (lead as any).toObject() : lead,
             action: "add",
           };
           global.leadsNamespace.emit("leadCreated", leadPayload);
-          console.log(
-            `📢 Emitted leadCreated event for lead ${(lead as any)._id} to ${connectedClients.length} clients`
-          );
 
           // Emit notification events with saved notification data
           if (notifications.length > 0) {
@@ -422,22 +413,8 @@ app.post(
                   : notification,
                 action: "add",
               };
-              console.log(
-                `🔔 Emitting notificationCreated for notification ${notification._id}:`,
-                {
-                  notificationId: notification._id,
-                  leadId: notification.leadId,
-                  userId: notification.userId,
-                  title: notification.title,
-                }
-              );
               global.leadsNamespace.emit("notificationCreated", notifPayload);
             });
-            console.log(
-              `📢 Emitted ${notifications.length} notificationCreated events to ${connectedClients.length} clients`
-            );
-          } else {
-            console.log(`⚠️ No notifications to emit (array is empty)`);
           }
         } catch (emitError) {
           console.error("❌ Error emitting socket events:", emitError);

@@ -107,7 +107,6 @@ export function leadSocketHandler(leadsNamespace, socket) {
         return;
       }
 
-      console.log("📥 Received createLead socket event");
       const createdAt = getCurrentDateTime();
       
       // CRITICAL FIX: Use atomic lead number generation to prevent race conditions
@@ -129,13 +128,11 @@ export function leadSocketHandler(leadsNamespace, socket) {
       // Create notifications and get saved data - MUST await before emitting events
       const { createLeadNotification } = await import("../../notifications/services/notificationHelpers.js");
       const savedNotifications = await createLeadNotification(lead);
-      console.log(`✅ Created ${savedNotifications.length} notifications for lead ${lead._id}`);
 
       // Emit lead created event ONLY after notifications are saved
       const leadPayload = { lead: lead.toObject(), action: "add" };
       leadsNamespace.emit("leadCreated", leadPayload);
       socket.emit("leadCreated", leadPayload);
-      console.log(`📢 Emitted leadCreated event for lead ${lead._id}`);
 
       // Emit notification events with saved notification data
       if (savedNotifications.length > 0) {
@@ -147,7 +144,6 @@ export function leadSocketHandler(leadsNamespace, socket) {
           leadsNamespace.emit("notificationCreated", notifPayload);
           socket.emit("notificationCreated", notifPayload);
         });
-        console.log(`📢 Emitted ${savedNotifications.length} notificationCreated events`);
       }
     } catch (error) {
       console.error("❌ Error creating lead via socket:", error);

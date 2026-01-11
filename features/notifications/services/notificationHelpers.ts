@@ -12,8 +12,6 @@ export const createLeadNotification = async (lead) => {
       return [];
     }
 
-    console.log(`🔔 Creating notifications for lead ${lead._id}...`);
-
     // Get all active users
     const users = await (User as any)
       .find({ isActive: true })
@@ -21,11 +19,8 @@ export const createLeadNotification = async (lead) => {
       .lean();
 
     if (!users || users.length === 0) {
-      console.log("⚠️ No active users found for notification creation");
       return [];
     }
-
-    console.log(`👥 Found ${users.length} active users for notifications`);
 
     // Build notification message
     const fullName = `${lead.firstName || lead.fName || ""} ${
@@ -42,8 +37,6 @@ export const createLeadNotification = async (lead) => {
         ? `${fullName} - ${usageType}`
         : fullName || "New Lead";
     }
-
-    console.log(`📝 Notification message: "${notificationMessage}"`);
 
     // Create notifications for all active users and wait for them to be saved
     const notificationPromises = users.map((user) =>
@@ -66,10 +59,6 @@ export const createLeadNotification = async (lead) => {
     );
 
     const savedNotifications = await Promise.all(notificationPromises);
-    console.log(
-      `✅ Successfully created and saved ${savedNotifications.length} notifications for lead ${lead._id}`
-    );
-    
     return savedNotifications;
   } catch (error) {
     console.error("❌ Error creating lead notifications:", error);

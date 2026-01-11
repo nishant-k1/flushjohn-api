@@ -145,16 +145,8 @@ export default function socketConnect(server: HttpServer): SocketIOServer {
   leadsNamespace.use(verifySocketToken);
 
   leadsNamespace.on("connection", async (socket: Socket) => {
-    const userId = (socket as any).userId || "anonymous";
-    const userEmail = (socket as any).user?.email || "unknown";
-    console.log(
-      `✅ Client connected to /leads namespace - User: ${userEmail}, Socket ID: ${socket.id}`
-    );
-
-    socket.on("disconnect", (reason) => {
-      console.log(
-        `❌ Client disconnected from /leads - User: ${userEmail}, Reason: ${reason}`
-      );
+    socket.on("disconnect", () => {
+      // Client disconnected
     });
 
     leadSocketHandler(leadsNamespace, socket);

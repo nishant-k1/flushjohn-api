@@ -1094,19 +1094,13 @@ export const cancelPaymentLink = async (paymentId) => {
  * Handle Stripe webhook event
  */
 export const handleStripeWebhook = async (event) => {
-  console.log(`📥 Processing Stripe webhook: ${event.type} (ID: ${event.id})`);
-
   switch (event.type) {
     case "checkout.session.completed": {
       // Handle payment link payments
       const session = event.data.object;
-      console.log(
-        `  📋 Checkout session: ${session.id}, payment_status: ${session.payment_status}`
-      );
 
       // Only process if payment_status is "paid"
       if (session.payment_status !== "paid") {
-        console.log(`  ⏭️  Skipping: payment_status is not "paid"`);
         break;
       }
 
@@ -1163,19 +1157,11 @@ export const handleStripeWebhook = async (event) => {
       }
 
       if (!payment) {
-        console.log(
-          `  ⚠️  Payment not found for checkout session ${session.id}`
-        );
         break;
       }
 
-      console.log(
-        `  ✅ Found payment: ${payment._id}, current status: ${payment.status}`
-      );
-
       // Only process if payment is not already succeeded (prevent duplicate processing)
       if (payment.status === "succeeded") {
-        console.log(`  ⏭️  Skipping: payment already succeeded`);
         break;
       }
 
@@ -1271,11 +1257,7 @@ export const handleStripeWebhook = async (event) => {
           updatedPayment,
           salesOrder
         );
-        if (receiptSent) {
-          console.log(`  ✅ Receipt email sent successfully`);
-        } else {
-          console.log(`  ⚠️  Receipt email not sent (may already be sent)`);
-        }
+        // Receipt email sent (or already sent)
       } catch (emailError) {
         console.error("❌ Error sending receipt email:", emailError);
         // Emit error event for frontend notification
@@ -1298,7 +1280,6 @@ export const handleStripeWebhook = async (event) => {
 
     case "payment_intent.succeeded": {
       const paymentIntent = event.data.object;
-      console.log(`  💳 Payment intent: ${paymentIntent.id}`);
 
       const payment = await paymentsRepository.findByStripePaymentIntentId(
         paymentIntent.id
@@ -1311,7 +1292,6 @@ export const handleStripeWebhook = async (event) => {
 
         // Only process if payment is not already succeeded (prevent duplicate processing)
         if (payment.status === "succeeded") {
-          console.log(`  ⏭️  Skipping: payment already succeeded`);
           break;
         }
 
@@ -1391,11 +1371,7 @@ export const handleStripeWebhook = async (event) => {
             updatedPayment,
             salesOrder
           );
-          if (receiptSent) {
-            console.log(`  ✅ Receipt email sent successfully`);
-          } else {
-            console.log(`  ⚠️  Receipt email not sent (may already be sent)`);
-          }
+          // Receipt email sent (or already sent)
         } catch (receiptError) {
           // Log error and emit error event for frontend notification
           console.error("❌ Failed to send receipt email:", receiptError);
