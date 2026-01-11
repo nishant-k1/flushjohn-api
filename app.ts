@@ -491,7 +491,7 @@ app.post(
 app.get("/users/representatives", authenticateToken, async (req: Request, res: Response) => {
   try {
     const User = (await import("./features/auth/models/User.js")).default;
-    const users = await User.find(
+    const users = await (User as any).find(
       { isActive: true },
       { fName: 1, lName: 1, _id: 1 }
     ).sort({ fName: 1, lName: 1 });
