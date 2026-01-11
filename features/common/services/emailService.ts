@@ -267,8 +267,13 @@ export const sendEmailWithS3PDF = async (
       throw new Error("PDF buffer or S3 URL must be provided");
     }
 
+    // Quote company name if it contains comma or special characters
+    const quotedCompanyName = companyName?.includes(",") 
+      ? `"${companyName}"` 
+      : companyName;
+    
     const emailOptions = {
-      from: `${companyName}<${emailConfig.user}>`,
+      from: `${quotedCompanyName} <${emailConfig.user}>`,
       to: documentData.email,
       subject: subject,
       text: emailContent,
