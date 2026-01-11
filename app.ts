@@ -28,6 +28,7 @@ import fileUploadRouter from "./routes/file-upload.js";
 import pdfAccessRouter from "./routes/pdfAccess.js";
 import s3CorsRouter from "./routes/s3-cors.js";
 import contactRouter from "./routes/contact.js";
+import businessInfoRouter from "./routes/business-info.js";
 import blogAutomationRouter from "./features/blogs/routes/blog-automation.js";
 
 import leadsRouter from "./features/leads/routes/leads.js";
@@ -264,6 +265,7 @@ app.use("/", indexRouter as any);
 app.use("/auth", authRouter as any);
 // ✅ PERFORMANCE: Add rate limiting to public and expensive endpoints
 app.use("/contact", publicLimiter, contactRouter as any);
+app.use("/business-info", businessInfoRouter as any); // Public endpoint - no auth required
 app.use(
   "/file-upload",
   authenticateToken,
@@ -373,23 +375,37 @@ app.post(
         leadData.phone = leadData.phone.trim().substring(0, 20);
       }
 
-      // Use the service to create the lead
+      // Use the service to create the lead (returns lead + saved notifications)
       const { createLead } =
         await import("./features/leads/services/leadsService.js");
-      const lead = await createLead(leadData);
+      const result = await createLead(leadData);
+      const lead = result.lead;
+      const notifications = result.notifications || [];
 
-      // Emit socket event if namespace is available
-      // OPTIMIZATION: Emit only the new lead instead of fetching all leads
+      // Emit socket events ONLY after notifications are saved to database
       if (global.leadsNamespace) {
         try {
-          const payload = {
+          // Emit lead created event with lead data
+          const leadPayload = {
             lead: (lead as any).toObject ? (lead as any).toObject() : lead,
             action: "add",
           };
-          global.leadsNamespace.emit("leadCreated", payload);
-          console.log("📢 Emitted leadCreated event to socket clients");
+          global.leadsNamespace.emit("leadCreated", leadPayload);
+          console.log(`📢 Emitted leadCreated event for lead ${(lead as any)._id}`);
+
+          // Emit notification events with saved notification data
+          if (notifications.length > 0) {
+            notifications.forEach((notification: any) => {
+              const notifPayload = {
+                notification: notification.toObject ? notification.toObject() : notification,
+                action: "add",
+              };
+              global.leadsNamespace.emit("notificationCreated", notifPayload);
+            });
+            console.log(`📢 Emitted ${notifications.length} notificationCreated events`);
+          }
         } catch (emitError) {
-          console.error("❌ Error emitting leadCreated event:", emitError);
+          console.error("❌ Error emitting socket events:", emitError);
         }
       }
 

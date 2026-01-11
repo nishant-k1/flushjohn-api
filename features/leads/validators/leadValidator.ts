@@ -35,17 +35,36 @@ export const validateCreateLead = [
     .notEmpty()
     .withMessage("Phone number is required")
     .custom((value) => {
-      // Normalize: remove all non-digit characters
-      const digits = value.replace(/\D/g, "");
-      // Validate: must have 10 digits, or 11 digits starting with 1
+      // Accept international phone numbers in E.164 format (+[country code][number])
+      // Example: +919002785699, +12423432432, +442071234567
+      
+      // Remove all whitespace for validation
+      const normalized = value.replace(/\s/g, "");
+      
+      // Check if it starts with + (E.164 format)
+      if (normalized.startsWith("+")) {
+        // Extract digits only (remove +, spaces, dashes, parentheses)
+        const digits = normalized.replace(/\D/g, "");
+        // Valid international number should have 7-15 digits (ITU-T E.164 standard)
+        if (digits.length >= 7 && digits.length <= 15) {
+          return true;
+        }
+        throw new Error(
+          "Phone number must be in international format with 7-15 digits (e.g., +919002785699)"
+        );
+      }
+      
+      // Fallback: Accept US phone numbers without + prefix
+      const digits = normalized.replace(/\D/g, "");
       if (
         digits.length === 10 ||
         (digits.length === 11 && digits.startsWith("1"))
       ) {
         return true;
       }
+      
       throw new Error(
-        "Phone number must be 10 digits (or 11 digits starting with 1)"
+        "Phone number must be in international format starting with + (e.g., +919002785699) or a valid US phone number (10 digits)"
       );
     }),
 

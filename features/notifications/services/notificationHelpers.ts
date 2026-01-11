@@ -8,9 +8,11 @@ import User from "../../auth/models/User.js";
 export const createLeadNotification = async (lead) => {
   try {
     if (!lead || !lead._id) {
-      console.warn("Invalid lead data for notification creation");
-      return;
+      console.warn("⚠️ Invalid lead data for notification creation");
+      return [];
     }
+
+    console.log(`🔔 Creating notifications for lead ${lead._id}...`);
 
     // Get all active users
     const users = await (User as any)
@@ -19,9 +21,11 @@ export const createLeadNotification = async (lead) => {
       .lean();
 
     if (!users || users.length === 0) {
-      console.log("No active users found for notification creation");
-      return;
+      console.log("⚠️ No active users found for notification creation");
+      return [];
     }
+
+    console.log(`👥 Found ${users.length} active users for notifications`);
 
     // Build notification message
     const fullName = `${lead.firstName || lead.fName || ""} ${
@@ -39,7 +43,9 @@ export const createLeadNotification = async (lead) => {
         : fullName || "New Lead";
     }
 
-    // Create notifications for all active users
+    console.log(`📝 Notification message: "${notificationMessage}"`);
+
+    // Create notifications for all active users and wait for them to be saved
     const notificationPromises = users.map((user) =>
       notificationsService.createOrUpdateNotification(user._id, lead._id, {
         type: "new_lead",
@@ -59,12 +65,14 @@ export const createLeadNotification = async (lead) => {
       })
     );
 
-    await Promise.all(notificationPromises);
+    const savedNotifications = await Promise.all(notificationPromises);
     console.log(
-      `✅ Created notifications for ${users.length} users for lead ${lead._id}`
+      `✅ Successfully created and saved ${savedNotifications.length} notifications for lead ${lead._id}`
     );
+    
+    return savedNotifications;
   } catch (error) {
     console.error("❌ Error creating lead notifications:", error);
-    // Don't throw - notification creation should not block lead creation
+    return [];
   }
 };

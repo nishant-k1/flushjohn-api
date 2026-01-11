@@ -93,13 +93,17 @@ export const generateLeadNumber = async () => {
   try {
     // Use MongoDB's findOneAndUpdate with upsert for atomic increment
     const mongoose = await import("mongoose");
-    const Counter = mongoose.default.models.Counter || 
-      mongoose.default.model("Counter", new mongoose.default.Schema({
-        _id: { type: String, required: true },
-        seq: { type: Number, default: 0 }
-      }));
+    const Counter: any =
+      (mongoose.default.models as any).Counter ||
+      mongoose.default.model(
+        "Counter",
+        new mongoose.default.Schema({
+          _id: { type: String, required: true },
+          seq: { type: Number, default: 0 },
+        })
+      );
 
-    const result = await (Counter as any).findOneAndUpdate(
+    const result = await Counter.findOneAndUpdate(
       { _id: "leadNo" },
       { $inc: { seq: 1 } },
       { upsert: true, new: true }
@@ -110,21 +114,24 @@ export const generateLeadNumber = async () => {
       const latestLead = await leadsRepository.findOne({}, "leadNo");
       const latestLeadNo = latestLead ? latestLead.leadNo : 999;
       const initialValue = latestLeadNo + 1;
-      
+
       // Set the counter to the correct value
-      await (Counter as any).findOneAndUpdate(
+      await Counter.findOneAndUpdate(
         { _id: "leadNo" },
         { $set: { seq: initialValue } },
         { upsert: true }
       );
-      
+
       return initialValue;
     }
 
     return result.seq;
   } catch (error: any) {
     // Fallback to non-atomic method if counter fails
-    console.error("❌ Error using atomic lead number generation, falling back:", error.message);
+    console.error(
+      "❌ Error using atomic lead number generation, falling back:",
+      error.message
+    );
     const latestLead = await leadsRepository.findOne({}, "leadNo");
     const latestLeadNo = latestLead ? latestLead.leadNo : 999;
     return latestLeadNo + 1;
@@ -172,7 +179,7 @@ export const createLead = async (leadData) => {
   const leadNo = await generateLeadNumber();
   const preparedData = prepareLeadData({ ...leadData, createdAt, leadNo });
   const lead = await leadsRepository.create(preparedData);
-  
+
   // Send alerts in background (non-blocking)
   sendLeadAlerts(lead, leadNo).catch((alertError: any) => {
     console.error("❌ Error in sendLeadAlerts background task:", {
@@ -181,16 +188,10 @@ export const createLead = async (leadData) => {
     });
   });
 
-  // Create notifications for all active users (non-blocking)
-  createLeadNotification(lead).catch((error: any) => {
-    console.error("❌ Error creating notifications:", {
-      leadId: lead._id,
-      error: error.message || String(error),
-      stack: error.stack,
-    });
-  });
+  // Create notifications and get saved data - MUST await before emitting socket events
+  const savedNotifications = await createLeadNotification(lead);
 
-  return lead;
+  return { lead, notifications: savedNotifications };
 };
 
 /**
@@ -371,16 +372,18 @@ export const getAllLeads = async ({
     // CRITICAL FIX: Input sanitization - validate search string length and complexity
     const MAX_SEARCH_LENGTH = 200; // Prevent extremely long search strings
     if (typeof search !== "string" || search.length > MAX_SEARCH_LENGTH) {
-      throw new Error(`Search string must be a string and less than ${MAX_SEARCH_LENGTH} characters`);
+      throw new Error(
+        `Search string must be a string and less than ${MAX_SEARCH_LENGTH} characters`
+      );
     }
-    
+
     // Prevent potential DoS via complex regex patterns
     // Limit consecutive special characters that could cause regex issues
     const complexPatternRegex = /[.*+?^${}()|[\]\\]{10,}/;
     if (complexPatternRegex.test(search)) {
       throw new Error("Search string contains too many special characters");
     }
-    
+
     const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const searchConditions = [
       { fName: { $regex: escapedSearch, $options: "i" } },

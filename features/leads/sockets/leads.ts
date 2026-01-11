@@ -124,16 +124,31 @@ export function leadSocketHandler(leadsNamespace, socket) {
       // Send alerts in background (non-blocking)
       alertService.sendLeadAlerts(lead).catch((alertError: any) => {
         console.error("❌ Error sending lead alerts:", alertError);
-        // Log but don't fail the lead creation
       });
 
-      // OPTIMIZATION: Emit only the new lead instead of fetching all leads
-      // This is 80%+ faster for large lead databases
-      // Frontend will prepend to existing list
-      const payload = { lead: lead.toObject(), action: "add" };
-      leadsNamespace.emit("leadCreated", payload);
-      socket.emit("leadCreated", payload);
-      console.log("📢 Emitted leadCreated socket event for new lead");
+      // Create notifications and get saved data - MUST await before emitting events
+      const { createLeadNotification } = await import("../../notifications/services/notificationHelpers.js");
+      const savedNotifications = await createLeadNotification(lead);
+      console.log(`✅ Created ${savedNotifications.length} notifications for lead ${lead._id}`);
+
+      // Emit lead created event ONLY after notifications are saved
+      const leadPayload = { lead: lead.toObject(), action: "add" };
+      leadsNamespace.emit("leadCreated", leadPayload);
+      socket.emit("leadCreated", leadPayload);
+      console.log(`📢 Emitted leadCreated event for lead ${lead._id}`);
+
+      // Emit notification events with saved notification data
+      if (savedNotifications.length > 0) {
+        savedNotifications.forEach((notification: any) => {
+          const notifPayload = {
+            notification: notification.toObject ? notification.toObject() : notification,
+            action: "add",
+          };
+          leadsNamespace.emit("notificationCreated", notifPayload);
+          socket.emit("notificationCreated", notifPayload);
+        });
+        console.log(`📢 Emitted ${savedNotifications.length} notificationCreated events`);
+      }
     } catch (error) {
       console.error("❌ Error creating lead via socket:", error);
       socket.emit("leadCreationError", {
