@@ -128,19 +128,28 @@ export default function socketConnect(server: HttpServer): SocketIOServer {
       origin: validateOrigin as any,
       credentials: true,
     },
+    // Keep connection alive settings
+    pingTimeout: 60000, // 60 seconds before considering disconnected
+    pingInterval: 25000, // Send ping every 25 seconds
+    transports: ["websocket", "polling"], // Allow both transports
+    allowUpgrades: true,
+    connectTimeout: 45000,
   });
   instrument(io, { auth: false });
   
-  // CRITICAL FIX: Add authentication middleware to socket namespaces
+  // Socket namespace for leads - with authentication
   const leadsNamespace = io.of("/leads");
+  
+  // Apply authentication middleware
   leadsNamespace.use(verifySocketToken);
+  
   leadsNamespace.on("connection", async (socket: Socket) => {
-    const userId = (socket as any).userId;
+    const userId = (socket as any).userId || "anonymous";
     const userEmail = (socket as any).user?.email || "unknown";
-    console.log(`✅ Client connected to /leads namespace - User: ${userEmail} (${userId})`);
+    console.log(`✅ Client connected to /leads namespace - User: ${userEmail}, Socket ID: ${socket.id}`);
     
     socket.on("disconnect", (reason) => {
-      console.log(`❌ Client disconnected from /leads namespace - User: ${userEmail}, Reason: ${reason}`);
+      console.log(`❌ Client disconnected from /leads - User: ${userEmail}, Reason: ${reason}`);
     });
     
     leadSocketHandler(leadsNamespace, socket);

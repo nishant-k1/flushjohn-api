@@ -102,6 +102,7 @@ router.post("/", authLimiter, (async (req, res) => {
           token: token, // Include token for desktop apps
           csrfToken: csrfToken, // Include CSRF token in response body for clients using fetch
           user: {
+            _id: user._id, // MongoDB ObjectId - used for socket notifications
             userId: user.userId,
             fName: user.fName,
             lName: user.lName,
@@ -261,6 +262,7 @@ router.get("/verify", (async (req, res) => {
       message: "Token is valid",
       csrfToken: csrfToken, // Include CSRF token in response body for clients using fetch
       user: {
+        _id: user._id, // MongoDB ObjectId - used for socket notifications
         userId: user.userId,
         fName: user.fName,
         lName: user.lName,

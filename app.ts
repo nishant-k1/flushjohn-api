@@ -297,7 +297,10 @@ app.post(
 
       // Email format validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (typeof leadData.email !== "string" || !emailRegex.test(leadData.email.trim())) {
+      if (
+        typeof leadData.email !== "string" ||
+        !emailRegex.test(leadData.email.trim())
+      ) {
         res.status(400).json({
           success: false,
           message: "Invalid email format",
@@ -308,10 +311,14 @@ app.post(
 
       // Phone format validation (basic - allows various formats)
       const phoneRegex = /^[\d\s\-\(\)\+\.]{10,20}$/;
-      if (typeof leadData.phone !== "string" || !phoneRegex.test(leadData.phone.trim())) {
+      if (
+        typeof leadData.phone !== "string" ||
+        !phoneRegex.test(leadData.phone.trim())
+      ) {
         res.status(400).json({
           success: false,
-          message: "Invalid phone format. Phone must contain 10-20 digits and valid characters",
+          message:
+            "Invalid phone format. Phone must contain 10-20 digits and valid characters",
           error: "VALIDATION_ERROR",
         });
         return;
@@ -341,7 +348,10 @@ app.post(
           }
 
           // Validate product fields if present
-          if (product.quantity !== undefined && (typeof product.quantity !== "number" || product.quantity < 0)) {
+          if (
+            product.quantity !== undefined &&
+            (typeof product.quantity !== "number" || product.quantity < 0)
+          ) {
             res.status(400).json({
               success: false,
               message: `Product at index ${i}: quantity must be a non-negative number`,
@@ -350,7 +360,10 @@ app.post(
             return;
           }
 
-          if (product.rate !== undefined && (typeof product.rate !== "number" || product.rate < 0)) {
+          if (
+            product.rate !== undefined &&
+            (typeof product.rate !== "number" || product.rate < 0)
+          ) {
             res.status(400).json({
               success: false,
               message: `Product at index ${i}: rate must be a non-negative number`,
@@ -386,32 +399,43 @@ app.post(
       if (global.leadsNamespace) {
         try {
           const connectedClients = await global.leadsNamespace.fetchSockets();
-          console.log(`📡 Connected clients to /leads namespace: ${connectedClients.length}`);
-          
+          console.log(
+            `📡 Connected clients to /leads namespace: ${connectedClients.length}`
+          );
+
           // Emit lead created event with lead data
           const leadPayload = {
             lead: (lead as any).toObject ? (lead as any).toObject() : lead,
             action: "add",
           };
           global.leadsNamespace.emit("leadCreated", leadPayload);
-          console.log(`📢 Emitted leadCreated event for lead ${(lead as any)._id} to ${connectedClients.length} clients`);
+          console.log(
+            `📢 Emitted leadCreated event for lead ${(lead as any)._id} to ${connectedClients.length} clients`
+          );
 
           // Emit notification events with saved notification data
           if (notifications.length > 0) {
             notifications.forEach((notification: any) => {
               const notifPayload = {
-                notification: notification.toObject ? notification.toObject() : notification,
+                notification: notification.toObject
+                  ? notification.toObject()
+                  : notification,
                 action: "add",
               };
-              console.log(`🔔 Emitting notificationCreated for notification ${notification._id}:`, {
-                notificationId: notification._id,
-                leadId: notification.leadId,
-                userId: notification.userId,
-                title: notification.title,
-              });
+              console.log(
+                `🔔 Emitting notificationCreated for notification ${notification._id}:`,
+                {
+                  notificationId: notification._id,
+                  leadId: notification.leadId,
+                  userId: notification.userId,
+                  title: notification.title,
+                }
+              );
               global.leadsNamespace.emit("notificationCreated", notifPayload);
             });
-            console.log(`📢 Emitted ${notifications.length} notificationCreated events to ${connectedClients.length} clients`);
+            console.log(
+              `📢 Emitted ${notifications.length} notificationCreated events to ${connectedClients.length} clients`
+            );
           } else {
             console.log(`⚠️ No notifications to emit (array is empty)`);
           }
@@ -462,6 +486,7 @@ app.post(
     }
   }
 );
+
 app.use(
   "/users",
   authenticateToken,
@@ -535,7 +560,10 @@ try {
     await import("./features/fileManagement/services/pdfService.js");
   // Pre-warm in background (non-blocking)
   preWarmBrowserPool().catch((error) => {
-    console.warn("⚠️ Browser pool pre-warming failed (non-critical):", error.message);
+    console.warn(
+      "⚠️ Browser pool pre-warming failed (non-critical):",
+      error.message
+    );
   });
 } catch {
   // Failed to pre-warm browser pool (non-critical)
