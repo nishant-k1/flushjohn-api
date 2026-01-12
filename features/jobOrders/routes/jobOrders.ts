@@ -329,8 +329,8 @@ router.post(
   "/:id/email",
   validateAndRecalculateProducts,
   async function (req, res) {
+    const { id } = req.params;
     try {
-      const { id } = req.params;
 
       if (!jobOrdersService.isValidObjectId(id)) {
         return res.status(400).json({
