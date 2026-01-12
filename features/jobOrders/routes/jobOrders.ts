@@ -538,12 +538,65 @@ router.post(
         });
       }
 
+      if (error.name === "ValidationError") {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          error: "VALIDATION_ERROR",
+          details: error.errors
+            ? Object.values(error.errors).map((err: any) => err.message)
+            : [(error as any).message],
+        });
+      }
+
+      // Enhanced error logging with more context
+      const errorMessage = (error as any).message || String(error);
+      const errorCode = (error as any).code;
+      const errorResponse = (error as any).response;
+      const errorResponseCode = (error as any).responseCode;
+
+      console.error("❌ Job order email sending error:", {
+        jobOrderId: id,
+        error: errorMessage,
+        code: errorCode,
+        responseCode: errorResponseCode,
+        response: errorResponse,
+        name: error.name,
+        stack: error.stack,
+      });
+
+      // Provide more specific error messages based on error type
+      let userFriendlyMessage = "Failed to send email";
+      let errorType = "INTERNAL_SERVER_ERROR";
+
+      // Check for common error patterns
+      if (errorMessage?.includes("Email authentication failed") || errorCode === "EAUTH" || errorResponseCode === 535) {
+        userFriendlyMessage = "Email authentication failed. Please check email service configuration.";
+        errorType = "EMAIL_AUTH_ERROR";
+      } else if (errorMessage?.includes("Email server not found") || errorCode === "ENOTFOUND") {
+        userFriendlyMessage = "Email server connection failed. Please check network configuration.";
+        errorType = "EMAIL_CONNECTION_ERROR";
+      } else if (errorMessage?.includes("PDF generation failed")) {
+        userFriendlyMessage = "Failed to generate PDF document.";
+        errorType = "PDF_GENERATION_ERROR";
+      } else if (errorMessage?.includes("S3") || errorMessage?.includes("AWS")) {
+        userFriendlyMessage = "Failed to upload PDF to storage. Please check storage configuration.";
+        errorType = "STORAGE_ERROR";
+      } else if (errorMessage?.includes("email") && errorMessage?.includes("required") || errorMessage?.includes("missing")) {
+        userFriendlyMessage = "Required email configuration is missing.";
+        errorType = "CONFIGURATION_ERROR";
+      }
+
       res.status(500).json({
         success: false,
-        message: "Failed to send email",
-        error: "INTERNAL_SERVER_ERROR",
-        ...(process.env.NODE_ENV === "development" && {
-          details: error.message,
+        message: userFriendlyMessage,
+        error: errorType,
+        // Include error message in production for better debugging (but not stack trace)
+        ...(process.env.NODE_ENV === "development" ? {
+          details: errorMessage,
+          stack: error.stack,
+        } : {
+          details: errorMessage, // Include message even in production to help diagnose
         }),
       });
     }
