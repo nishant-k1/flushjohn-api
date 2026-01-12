@@ -5,13 +5,13 @@
  */
 
 // FlushJohn Email Signature
-export const getFlushJohnEmailSignature = () => {
+export const getFlushJohnEmailSignature = (): string => {
   if (process.env.FLUSH_JOHN_EMAIL_SIGNATURE) {
     return process.env.FLUSH_JOHN_EMAIL_SIGNATURE;
   }
 
   // Build signature from environment variables
-  const parts = [
+  const parts: (string | undefined)[] = [
     "Best regards,",
     "Flush John Team",
     "",
@@ -32,11 +32,11 @@ export const getFlushJohnEmailSignature = () => {
     parts.push(process.env.FLUSH_JOHN_ADDRESS);
   }
 
-  return parts.join("\n");
+  return parts.filter((part): part is string => part !== undefined).join("\n");
 };
 
 // QuenGenesis Email Signature
-export const getQuenGenesisEmailSignature = (user = null) => {
+export const getQuenGenesisEmailSignature = (user: any = null): string => {
   if (process.env.QUENGENESIS_EMAIL_SIGNATURE) {
     return process.env.QUENGENESIS_EMAIL_SIGNATURE;
   }
@@ -50,7 +50,7 @@ export const getQuenGenesisEmailSignature = (user = null) => {
   }
 
   // Build signature from environment variables
-  const parts = [
+  const parts: (string | undefined)[] = [
     "Best regards,",
     senderName,
     "",
@@ -70,5 +70,5 @@ export const getQuenGenesisEmailSignature = (user = null) => {
     parts.push(process.env.QUENGENESIS_ADDRESS);
   }
 
-  return parts.join("\n");
+  return parts.filter((part): part is string => part !== undefined).join("\n");
 };
