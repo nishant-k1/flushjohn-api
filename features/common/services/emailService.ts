@@ -220,6 +220,26 @@ export const sendEmailWithS3PDF = async (
         throw new Error(`Unknown document type: ${documentType}`);
     }
 
+    // Validate email configuration
+    if (!emailConfig.user || !emailConfig.pass) {
+      const missingVar = !emailConfig.user 
+        ? (documentType === "jobOrder" ? "QUENGENESIS_EMAIL_ID" : "FLUSH_JOHN_EMAIL_ID")
+        : (documentType === "jobOrder" ? "QUENGENESIS_EMAIL_PASSWORD" : "FLUSH_JOHN_EMAIL_PASSWORD");
+      throw new Error(`Missing required environment variable: ${missingVar}`);
+    }
+
+    if (!companyName) {
+      const missingVar = documentType === "jobOrder" 
+        ? "QUENGENESIS_COMPANY_NAME" 
+        : "FLUSH_JOHN_COMPANY_NAME";
+      throw new Error(`Missing required environment variable: ${missingVar}`);
+    }
+
+    // Validate recipient email
+    if (!documentData.email) {
+      throw new Error("Recipient email address is required");
+    }
+
     // Get pooled transporter (reuses existing connection)
     const transporter = await getPooledTransporter(emailConfig);
 

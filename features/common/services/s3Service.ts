@@ -39,10 +39,27 @@ const getBucketName = () => {
  */
 export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
   try {
+    // Validate AWS configuration
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+      throw new Error("Missing AWS credentials. Please check AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.");
+    }
+
+    if (!process.env.AWS_S3_BUCKET_NAME) {
+      throw new Error("Missing AWS_S3_BUCKET_NAME environment variable.");
+    }
+
+    if (!process.env.AWS_REGION) {
+      throw new Error("Missing AWS_REGION environment variable.");
+    }
+
     const fileName = `${documentType}-${documentId}.pdf`;
     const key = `pdfs/${fileName}`;
     const bucketName = getBucketName();
     const s3Client = getS3Client();
+
+    if (!bucketName) {
+      throw new Error("AWS_S3_BUCKET_NAME is not configured.");
+    }
 
     const uploadParams = {
       Bucket: bucketName,
@@ -59,7 +76,16 @@ export const uploadPDFToS3 = async (pdfBuffer, documentType, documentId) => {
     try {
       await s3Client.send(command);
     } catch (uploadError) {
-      throw uploadError;
+      // Enhance S3 upload errors with more context
+      const errorMessage = uploadError.message || String(uploadError);
+      if (uploadError.name === "InvalidAccessKeyId" || uploadError.name === "SignatureDoesNotMatch") {
+        throw new Error(`AWS authentication failed: ${errorMessage}. Please check AWS credentials.`);
+      } else if (uploadError.name === "NoSuchBucket") {
+        throw new Error(`S3 bucket not found: ${bucketName}. Please check AWS_S3_BUCKET_NAME.`);
+      } else if (uploadError.name === "AccessDenied") {
+        throw new Error(`Access denied to S3 bucket: ${bucketName}. Please check IAM permissions.`);
+      }
+      throw new Error(`S3 upload failed: ${errorMessage}`);
     }
 
     const cloudFrontUrl = process.env.CLOUDFRONT_URL;
