@@ -193,6 +193,11 @@ export const csrfProtection = (
     generateCsrfToken(req, res);
   }
 
+  // Skip CSRF for health check endpoints (always public)
+  if (req.path.startsWith("/health")) {
+    return next();
+  }
+
   // Validate token for state-changing requests
   if (isStateChanging) {
     // Skip CSRF validation for webhook endpoints and public endpoints
