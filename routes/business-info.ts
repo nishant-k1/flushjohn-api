@@ -3,6 +3,16 @@ import { Router, Request, Response } from "express";
 const router: any = Router();
 
 /**
+ * Get environment variable dynamically by prefix
+ * @param prefix - Environment variable prefix (e.g., "FLUSH_JOHN", "SITEWAY_SERVICES")
+ * @param varName - Variable name without prefix (e.g., "EMAIL_ID")
+ * @returns Environment variable value or undefined
+ */
+function getEnvVar(prefix: string, varName: string): string | undefined {
+  return process.env[`${prefix}_${varName}`];
+}
+
+/**
  * Business Information API Endpoint
  *
  * Provides comprehensive, structured business information in a format
@@ -13,9 +23,10 @@ const router: any = Router();
  */
 router.get("/", async (req: Request, res: Response) => {
   try {
+    // Get environment variables directly from .env using dynamic prefix
     const websiteURL = process.env.NEXT_PUBLIC_FLUSH_JOHN_WEBSITE_URL || process.env.FLUSH_JOHN_WEBSITE_URL || "";
-    const phone_number = process.env.NEXT_PUBLIC_FLUSH_JOHN_PHONE || process.env.FLUSH_JOHN_PHONE || "";
-    const contact_email = process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID || process.env.FLUSH_JOHN_EMAIL_ID || "";
+    const phone_number = process.env.NEXT_PUBLIC_FLUSH_JOHN_PHONE || getEnvVar("FLUSH_JOHN", "PHONE") || "";
+    const contact_email = process.env.NEXT_PUBLIC_FLUSH_JOHN_EMAIL_ID || getEnvVar("FLUSH_JOHN", "EMAIL_ID") || "";
 
     // Service cities data (simplified)
     const citiesData = [
@@ -81,7 +92,7 @@ router.get("/", async (req: Request, res: Response) => {
     const businessInfo = {
       company: {
         name: "FlushJohn",
-        legalName: "Quengenesis, LLC",
+        legalName: getEnvVar("SITEWAY_SERVICES", "COMPANY_NAME") || "Siteway Services",
         established: "2020",
         website: websiteURL,
         description:

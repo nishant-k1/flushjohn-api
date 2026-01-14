@@ -16,14 +16,14 @@ const __dirname = dirname(__filename);
 // Cache loaded logos to avoid re-reading files on every PDF generation
 let cachedLogos: {
   flushjohn: string;
-  quengenesis: string;
+  sitewayServices: string;
 } | null = null;
 
 /**
  * Load logo files and convert to base64 data URIs
  * Caches result after first load
  */
-function loadLogos(): { flushjohn: string; quengenesis: string } {
+function loadLogos(): { flushjohn: string; sitewayServices: string } {
   // Return cached logos if already loaded
   if (cachedLogos) {
     return cachedLogos;
@@ -38,16 +38,16 @@ function loadLogos(): { flushjohn: string; quengenesis: string } {
     "logos",
     "flush_john_logo_black.svg"
   );
-  const quengenesisLogoPath = join(
+  const sitewayServicesLogoPath = join(
     __dirname,
     "..",
     "public",
     "logos",
-    "logo_quengenesis.svg"
+    "siteway_logo_light_theme.png"
   );
 
   let flushjohnLogoBase64 = "";
-  let quengenesisLogoBase64 = "";
+  let sitewayServicesLogoBase64 = "";
 
   try {
     // Check if files exist before reading
@@ -56,21 +56,19 @@ function loadLogos(): { flushjohn: string; quengenesis: string } {
         `FlushJohn logo not found at: ${flushjohnLogoPath}\n__dirname: ${__dirname}`
       );
     }
-    if (!existsSync(quengenesisLogoPath)) {
+    if (!existsSync(sitewayServicesLogoPath)) {
       throw new Error(
-        `Quengenesis logo not found at: ${quengenesisLogoPath}\n__dirname: ${__dirname}`
+        `Siteway Services logo not found at: ${sitewayServicesLogoPath}\n__dirname: ${__dirname}`
       );
     }
 
     const flushjohnLogoSvg = readFileSync(flushjohnLogoPath, "utf-8");
-    const quengenesisLogoSvg = readFileSync(quengenesisLogoPath, "utf-8");
+    const sitewayServicesLogoBuffer = readFileSync(sitewayServicesLogoPath);
 
     flushjohnLogoBase64 = `data:image/svg+xml;base64,${Buffer.from(
       flushjohnLogoSvg
     ).toString("base64")}`;
-    quengenesisLogoBase64 = `data:image/svg+xml;base64,${Buffer.from(
-      quengenesisLogoSvg
-    ).toString("base64")}`;
+    sitewayServicesLogoBase64 = `data:image/png;base64,${sitewayServicesLogoBuffer.toString("base64")}`;
 
     console.log("✅ Successfully loaded logo files for PDF generation");
   } catch (error: any) {
@@ -80,7 +78,7 @@ function loadLogos(): { flushjohn: string; quengenesis: string } {
     );
     console.error("Attempted paths:", {
       flushjohn: flushjohnLogoPath,
-      quengenesis: quengenesisLogoPath,
+      sitewayServices: sitewayServicesLogoPath,
       __dirname,
     });
     // Logos will be empty strings, PDFs may not show logos but won't crash
@@ -89,7 +87,7 @@ function loadLogos(): { flushjohn: string; quengenesis: string } {
   // Cache the result
   cachedLogos = {
     flushjohn: flushjohnLogoBase64,
-    quengenesis: quengenesisLogoBase64,
+    sitewayServices: sitewayServicesLogoBase64,
   };
 
   return cachedLogos;
@@ -99,6 +97,6 @@ function loadLogos(): { flushjohn: string; quengenesis: string } {
  * Get logo data URIs for PDF generation
  * Lazy-loads logos on first access and caches them
  */
-export function getLogoDataUris(): { flushjohn: string; quengenesis: string } {
+export function getLogoDataUris(): { flushjohn: string; sitewayServices: string } {
   return loadLogos();
 }

@@ -1,11 +1,11 @@
 // @ts-nocheck
-import { getQuenGenesisEmailSignature } from "../../common/constants/emailSignatures.js";
+import { getSitewayServicesEmailSignature } from "../../common/constants/emailSignatures.js";
 import { safeDate } from "../../../utils/safeValue.js";
 
 const template = (vendorData) => {
   // Extract user information from vendorData if available
   const user = vendorData.user || null;
-  const email_signature = getQuenGenesisEmailSignature(user);
+  const email_signature = getSitewayServicesEmailSignature(user);
 
   const deliveryDate = safeDate(vendorData.deliveryDate, {
     year: "numeric",

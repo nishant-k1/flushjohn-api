@@ -13,6 +13,16 @@ import {
   calculateOrderTotal,
 } from "../../../utils/productAmountCalculations.js";
 
+/**
+ * Get environment variable dynamically by prefix
+ * @param prefix - Environment variable prefix (e.g., "FLUSH_JOHN", "SITEWAY_SERVICES")
+ * @param varName - Variable name without prefix (e.g., "EMAIL_ID")
+ * @returns Environment variable value or undefined
+ */
+function getEnvVar(prefix, varName) {
+  return process.env[`${prefix}_${varName}`];
+}
+
 const itemRows = (products) => {
   if (!products || !Array.isArray(products)) {
     return "";
@@ -48,12 +58,14 @@ const itemRows = (products) => {
 
 const htmlTemplate = (jobOrderData) => {
   if (!jobOrderData) return;
-  const cName = process.env.QUENGENESIS_COMPANY_NAME;
-  const address = process.env.QUENGENESIS_ADDRESS;
-  const homepage = process.env.QUENGENESIS_HOMEPAGE;
-  const email = process.env.QUENGENESIS_EMAIL_ID;
-  const phone = process.env.QUENGENESIS_PHONE;
-  const phone_link = process.env.QUENGENESIS_PHONE_LINK;
+  // Get company environment variables directly from .env using dynamic prefix
+  const envPrefix = "SITEWAY_SERVICES";
+  const cName = getEnvVar(envPrefix, "COMPANY_NAME");
+  const address = getEnvVar(envPrefix, "ADDRESS");
+  const homepage = getEnvVar(envPrefix, "HOMEPAGE");
+  const email = getEnvVar(envPrefix, "EMAIL_ID");
+  const phone = getEnvVar(envPrefix, "PHONE");
+  const phone_link = getEnvVar(envPrefix, "PHONE_LINK");
 
   const createdAt = safeDate(jobOrderData.createdAt, {
     year: "numeric",
@@ -88,7 +100,7 @@ const htmlTemplate = (jobOrderData) => {
         <div class="section-1">
           <div class="section-1-left">
             <div>
-              <img src="${getLogoDataUris().quengenesis}" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />
+              <img src="${getLogoDataUris().sitewayServices}" alt="logo" class="logo" style="max-width: 150px !important; width: 150px !important; height: 75px !important; object-fit: contain !important;" />
               <div style="margin-top: 0.5rem;">
                 <h4>${cName}</h4>
                 ${
@@ -266,7 +278,7 @@ const htmlTemplate = (jobOrderData) => {
               </ul>
             </li>
             <li>
-              To maintain the necessary General Liability Insurance, Workers' Compensation Insurance, Disability Insurance, Auto Accident, Auto Theft, Auto Damage, and Property Damage or Loss insurance. The vendor also agrees to be responsible for any claims by Quengenesis LLC customers while the equipment is in use.
+              To maintain the necessary General Liability Insurance, Workers' Compensation Insurance, Disability Insurance, Auto Accident, Auto Theft, Auto Damage, and Property Damage or Loss insurance. The vendor also agrees to be responsible for any claims by Siteway Services customers while the equipment is in use.
             </li>
           </ul>
         </div>

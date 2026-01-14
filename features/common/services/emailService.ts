@@ -7,6 +7,43 @@ import jobOrderEmailTemplate from "../../jobOrders/templates/email.js";
 import { downloadPDFFromS3 } from "./s3Service.js";
 import { minifyHTML } from "../../../utils/htmlMinifier.js";
 
+/**
+ * Get environment variable dynamically by prefix
+ * @param prefix - Environment variable prefix (e.g., "FLUSH_JOHN", "SITEWAY_SERVICES")
+ * @param varName - Variable name without prefix (e.g., "EMAIL_ID")
+ * @returns Environment variable value or undefined
+ */
+function getEnvVar(prefix: string, varName: string): string | undefined {
+  return process.env[`${prefix}_${varName}`];
+}
+
+/**
+ * Get required environment variable dynamically by prefix
+ * @param prefix - Environment variable prefix
+ * @param varName - Variable name without prefix
+ * @returns Environment variable value
+ * @throws Error if variable is not set
+ */
+function getRequiredEnvVar(prefix: string, varName: string): string {
+  const value = getEnvVar(prefix, varName);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${prefix}_${varName}`);
+  }
+  return value;
+}
+
+/**
+ * Get environment variable prefix based on document type
+ * @param documentType - Document type
+ * @returns Environment variable prefix
+ */
+function getEnvPrefixForDocumentType(
+  documentType: "quote" | "salesOrder" | "invoice" | "jobOrder"
+): string {
+  // Job orders use Siteway Services, all others use FlushJohn
+  return documentType === "jobOrder" ? "SITEWAY_SERVICES" : "FLUSH_JOHN";
+}
+
 // ============================================
 // SMTP CONNECTION POOL FOR FASTER EMAIL SENDING
 // ============================================
@@ -171,68 +208,46 @@ export const sendEmailWithS3PDF = async (
   pdfBuffer = null
 ) => {
   try {
-    let emailConfig, emailTemplate, subject, companyName;
+    // Get environment variable prefix based on document type
+    const envPrefix = getEnvPrefixForDocumentType(documentType);
+
+    // Get email configuration dynamically from .env
+    const emailConfig = {
+      user: getRequiredEnvVar(envPrefix, "EMAIL_ID"),
+      pass: getRequiredEnvVar(envPrefix, "EMAIL_PASSWORD"),
+    };
+
+    // Get company name (required) dynamically from .env
+    const companyName = getRequiredEnvVar(envPrefix, "COMPANY_NAME");
+
+    // Select email template and subject based on document type
+    let emailTemplate, subject;
 
     switch (documentType) {
       case "quote":
-        emailConfig = {
-          user: process.env.FLUSH_JOHN_EMAIL_ID,
-          pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
-        };
         emailTemplate = quoteEmailTemplate;
-        subject = `${process.env.FLUSH_JOHN_COMPANY_NAME}: Quote`;
-        companyName = process.env.FLUSH_JOHN_COMPANY_NAME;
+        subject = `${companyName}: Quote`;
         break;
 
       case "salesOrder":
-        emailConfig = {
-          user: process.env.FLUSH_JOHN_EMAIL_ID,
-          pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
-        };
         emailTemplate = salesOrderEmailTemplate;
-        subject = `${process.env.FLUSH_JOHN_COMPANY_NAME}: Sales Order Confirmation`;
-        companyName = process.env.FLUSH_JOHN_COMPANY_NAME;
+        subject = `${companyName}: Sales Order Confirmation`;
         break;
 
       case "invoice":
-        emailConfig = {
-          user: process.env.FLUSH_JOHN_EMAIL_ID,
-          pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
-        };
         emailTemplate = invoiceEmailTemplate;
-        subject = `${process.env.FLUSH_JOHN_COMPANY_NAME}: Invoice #${
+        subject = `${companyName}: Invoice #${
           documentData.salesOrderNo || "N/A"
         }`;
-        companyName = process.env.FLUSH_JOHN_COMPANY_NAME;
         break;
 
       case "jobOrder":
-        emailConfig = {
-          user: process.env.QUENGENESIS_EMAIL_ID,
-          pass: process.env.QUENGENESIS_EMAIL_PASSWORD,
-        };
         emailTemplate = jobOrderEmailTemplate;
-        subject = `${process.env.QUENGENESIS_COMPANY_NAME}: Job Order Confirmation`;
-        companyName = process.env.QUENGENESIS_COMPANY_NAME;
+        subject = `${companyName}: Job Order Confirmation`;
         break;
 
       default:
         throw new Error(`Unknown document type: ${documentType}`);
-    }
-
-    // Validate email configuration
-    if (!emailConfig.user || !emailConfig.pass) {
-      const missingVar = !emailConfig.user 
-        ? (documentType === "jobOrder" ? "QUENGENESIS_EMAIL_ID" : "FLUSH_JOHN_EMAIL_ID")
-        : (documentType === "jobOrder" ? "QUENGENESIS_EMAIL_PASSWORD" : "FLUSH_JOHN_EMAIL_PASSWORD");
-      throw new Error(`Missing required environment variable: ${missingVar}`);
-    }
-
-    if (!companyName) {
-      const missingVar = documentType === "jobOrder" 
-        ? "QUENGENESIS_COMPANY_NAME" 
-        : "FLUSH_JOHN_COMPANY_NAME";
-      throw new Error(`Missing required environment variable: ${missingVar}`);
     }
 
     // Validate recipient email

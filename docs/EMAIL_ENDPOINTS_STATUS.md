@@ -19,7 +19,7 @@ All email templates now correctly import from `emailSignatures.js` (compiled fro
    - ✅ Fixed
 
 4. **Job Order Email** - `features/jobOrders/templates/email.js`
-   - Imports: `getQuenGenesisEmailSignature`
+   - Imports: `getSitewayServicesEmailSignature`
    - ✅ Fixed
 
 5. **Payment Receipt Email** - `features/payments/templates/email.js`
