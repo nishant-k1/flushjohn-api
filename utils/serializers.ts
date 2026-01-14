@@ -296,6 +296,33 @@ export const serializeContactData = (data: any): any => {
     normalized.pickupDate = serializeDate(data.pickupDate);
   }
 
+  // Serialize products array - convert quantity, rate, and amount to numbers
+  if (data.products && Array.isArray(data.products)) {
+    normalized.products = data.products.map((product: any) => {
+      const normalizedProduct: any = { ...product };
+      
+      // Convert quantity to number (handle string inputs from form fields)
+      if (product.quantity !== undefined && product.quantity !== null) {
+        const quantityNum = Number(product.quantity);
+        normalizedProduct.quantity = isNaN(quantityNum) ? 0 : quantityNum;
+      }
+      
+      // Convert rate to number
+      if (product.rate !== undefined && product.rate !== null) {
+        const rateNum = Number(product.rate);
+        normalizedProduct.rate = isNaN(rateNum) ? 0 : rateNum;
+      }
+      
+      // Convert amount to number
+      if (product.amount !== undefined && product.amount !== null) {
+        const amountNum = Number(product.amount);
+        normalizedProduct.amount = isNaN(amountNum) ? 0 : amountNum;
+      }
+      
+      return normalizedProduct;
+    });
+  }
+
   // Normalize datetime fields (if they exist and need time preserved)
   // Note: createdAt and updatedAt are handled by services, not user input
 
