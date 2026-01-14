@@ -136,9 +136,18 @@ export function leadSocketHandler(leadsNamespace, socket) {
 
       // Emit notification events with saved notification data
       if (savedNotifications.length > 0) {
+        const { serializeObjectIds } = await import("../../../utils/objectIdSerializer.js");
         savedNotifications.forEach((notification: any) => {
+          // Convert notification to plain object
+          const notificationObj = notification.toObject
+            ? notification.toObject()
+            : notification;
+          
+          // Serialize all ObjectIds to strings (userId, _id, leadId, etc.)
+          const serializedNotification = serializeObjectIds(notificationObj);
+          
           const notifPayload = {
-            notification: notification.toObject ? notification.toObject() : notification,
+            notification: serializedNotification,
             action: "add",
           };
           leadsNamespace.emit("notificationCreated", notifPayload);
