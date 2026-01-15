@@ -166,14 +166,16 @@ export const sendLeadAlerts = async (lead, leadNo) => {
  * Create a new lead
  */
 export const createLead = async (leadData) => {
-  if (
-    !leadData.usageType ||
-    leadData.usageType.trim() === "" ||
-    leadData.usageType === "None"
-  ) {
-    const error = new Error("Usage type is required");
+  // Usage type is optional for simplified forms (Web Quick Lead, Web Hero Quick Lead)
+  // Only validate if usageType is provided (not undefined/null)
+  // This allows simplified forms to submit without usageType
+  if (leadData.usageType !== undefined && leadData.usageType !== null) {
+    const usageTypeStr = String(leadData.usageType).trim();
+    if (usageTypeStr === "" || usageTypeStr === "None") {
+      const error = new Error("Usage type cannot be empty or 'None' if provided");
     error.name = "ValidationError";
     throw error;
+    }
   }
   const createdAt = getCurrentDateTime();
   const leadNo = await generateLeadNumber();
