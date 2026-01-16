@@ -346,29 +346,42 @@ app.post(
             return;
           }
 
-          // Validate product fields if present
-          if (
-            product.quantity !== undefined &&
-            (typeof product.quantity !== "number" || product.quantity < 0)
-          ) {
-            res.status(400).json({
-              success: false,
-              message: `Product at index ${i}: quantity must be a non-negative number`,
-              error: "VALIDATION_ERROR",
-            });
-            return;
+          // Validate and convert product fields if present
+          // Accept both strings and numbers (defensive - client should send numbers, but handle strings too)
+          if (product.quantity !== undefined && product.quantity !== null) {
+            const quantity = Number(product.quantity);
+            if (isNaN(quantity) || quantity < 0) {
+              res.status(400).json({
+                success: false,
+                message: `Product at index ${i}: quantity must be a non-negative number`,
+                error: "VALIDATION_ERROR",
+              });
+              return;
+            }
+            // Convert to number for consistency
+            product.quantity = quantity;
           }
 
-          if (
-            product.rate !== undefined &&
-            (typeof product.rate !== "number" || product.rate < 0)
-          ) {
-            res.status(400).json({
-              success: false,
-              message: `Product at index ${i}: rate must be a non-negative number`,
-              error: "VALIDATION_ERROR",
-            });
-            return;
+          if (product.rate !== undefined && product.rate !== null) {
+            const rate = Number(product.rate);
+            if (isNaN(rate) || rate < 0) {
+              res.status(400).json({
+                success: false,
+                message: `Product at index ${i}: rate must be a non-negative number`,
+                error: "VALIDATION_ERROR",
+              });
+              return;
+            }
+            // Convert to number for consistency
+            product.rate = rate;
+          }
+
+          // Convert amount if present (for consistency, service layer will recalculate)
+          if (product.amount !== undefined && product.amount !== null) {
+            const amount = Number(product.amount);
+            if (!isNaN(amount) && amount >= 0) {
+              product.amount = amount;
+            }
           }
         }
       }
