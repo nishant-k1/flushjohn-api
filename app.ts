@@ -87,11 +87,22 @@ const port = normalizePort(process.env.PORT || "8080");
 app.set("port", port);
 
 const getAllowedOrigins = (): string[] => {
-  return process.env.ORIGINS
-    ? process.env.ORIGINS.split(",")
-        .map((origin) => origin.trim())
-        .filter(Boolean)
-    : [];
+  if (process.env.ORIGINS) {
+    return process.env.ORIGINS.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+  }
+
+  // Fallback to default origins if ORIGINS env var not set
+  return [
+    "http://localhost:8080",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://www.flushjohn.com",
+    "http://www.flushjohn.com",
+    "https://flushjohn.com",
+    "http://flushjohn.com",
+  ];
 };
 
 const server: Server = createServer(app);
@@ -104,12 +115,45 @@ const corsOptions: cors.CorsOptions = {
   ) => {
     const allowedOrigins = getAllowedOrigins();
 
+    // Allow requests with no origin (e.g., mobile apps, Postman, server-to-server)
     if (!origin) {
+      if (process.env.NODE_ENV === "development") {
+        log("⚠️  CORS: Allowing request with no origin header");
+      }
       return callback(null, true);
     }
 
+    // Check if origin is in allowed list (exact match)
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
+    }
+
+    // Allow subdomains of flushjohn.com if configured (similar to socket connection)
+    const allowSubdomains =
+      process.env.ALLOW_SUBDOMAINS === "true" ||
+      process.env.NODE_ENV === "development";
+
+    if (allowSubdomains) {
+      try {
+        const url = new URL(origin);
+        if (
+          url.hostname.endsWith(".flushjohn.com") ||
+          url.hostname === "flushjohn.com"
+        ) {
+          if (process.env.NODE_ENV === "development") {
+            log(`✅ CORS: Allowing subdomain origin: ${origin}`);
+          }
+          return callback(null, true);
+        }
+      } catch (e) {
+        // Invalid URL - fall through to rejection
+      }
+    }
+
+    // In development, log rejected origins for debugging
+    if (process.env.NODE_ENV === "development") {
+      log(`❌ CORS: Rejected origin: ${origin}`);
+      log(`   Allowed origins: ${allowedOrigins.join(", ")}`);
     }
 
     return callback(new Error("Not allowed by CORS"));

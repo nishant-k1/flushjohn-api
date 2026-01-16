@@ -9,6 +9,7 @@ declare namespace NodeJS {
     AWS_REGION?: string;
     AWS_S3_BUCKET?: string;
     ORIGINS?: string;
+    ALLOW_SUBDOMAINS?: string;
     [key: string]: string | undefined;
   }
 }
