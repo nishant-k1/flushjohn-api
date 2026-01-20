@@ -300,12 +300,18 @@ const getAllSalesOrdersWithAggregation = async ({
           }
 
           if (parsedDate && parsedDate.isValid() && hasYear) {
-            const startOfDay = parsedDate.startOf("day").toDate();
-            const endOfDay = parsedDate.endOf("day").toDate();
-            columnFilterConditions[fieldPath] = {
-              $gte: startOfDay,
-              $lte: endOfDay,
-            };
+            if (key === "createdAt") {
+              const startOfDay = parsedDate.startOf("day").toDate();
+              const endOfDay = parsedDate.endOf("day").toDate();
+              columnFilterConditions[fieldPath] = {
+                $gte: startOfDay,
+                $lte: endOfDay,
+              };
+            } else {
+              // deliveryDate/pickupDate are date-only strings
+              columnFilterConditions[fieldPath] =
+                parsedDate.format("YYYY-MM-DD");
+            }
           } else {
             if (key === "createdAt") {
               const escapedValue = filterValue.replace(
@@ -317,6 +323,7 @@ const getAllSalesOrdersWithAggregation = async ({
                   input: {
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
+                      timezone: "America/New_York",
                       date: `$${fieldPath}`,
                     },
                   },
@@ -442,6 +449,7 @@ const getAllSalesOrdersWithAggregation = async ({
           input: {
             $dateToString: {
               format: "%B %d, %Y, %H:%M",
+              timezone: "America/New_York",
               date: "$createdAt",
             },
           },
@@ -663,6 +671,7 @@ export const getAllSalesOrders = async ({
                     input: {
                       $dateToString: {
                         format: "%B %d, %Y, %H:%M",
+                        timezone: "America/New_York",
                         date: `$${key}`,
                       },
                     },
@@ -693,6 +702,7 @@ export const getAllSalesOrders = async ({
                   input: {
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
+                      timezone: "America/New_York",
                       date: `$${key}`,
                     },
                   },

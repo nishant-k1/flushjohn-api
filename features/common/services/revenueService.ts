@@ -11,6 +11,7 @@ import {
   calculatePercentage,
   calculateOrderRevenue,
 } from "../../../utils/priceCalculations.js";
+import { dayjs } from "../../../lib/dayjs.js";
 
 /**
  * Calculate revenue for a given date range
@@ -37,11 +38,9 @@ export const calculateRevenue = async ({
   othersExpenses = 0,
 }) => {
   try {
-    // Format dates
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // Format dates in US timezone
+    const start = dayjs(startDate).tz("America/New_York").startOf("day");
+    const end = dayjs(endDate).tz("America/New_York").endOf("day");
 
     // Fetch all PAID sales orders in the date range (only calculate revenue for paid orders)
     let allSalesOrders = [];
@@ -54,8 +53,8 @@ export const calculateRevenue = async ({
         limit: 100,
         sortBy: "createdAt",
         sortOrder: "asc",
-        startDate: start.toISOString(),
-        endDate: end.toISOString(),
+        startDate: start.toDate().toISOString(),
+        endDate: end.toDate().toISOString(),
       });
 
       if (salesResult.data && salesResult.data.length > 0) {
@@ -83,8 +82,8 @@ export const calculateRevenue = async ({
         limit: 100,
         sortBy: "createdAt",
         sortOrder: "asc",
-        startDate: start.toISOString(),
-        endDate: end.toISOString(),
+        startDate: start.toDate().toISOString(),
+        endDate: end.toDate().toISOString(),
       });
 
       if (jobResult.data && jobResult.data.length > 0) {
@@ -228,8 +227,8 @@ export const calculateRevenue = async ({
       salesOrderRevenues,
       adsTotal,
       dateRange: {
-        start: start.toISOString(),
-        end: end.toISOString(),
+        start: start.toDate().toISOString(),
+        end: end.toDate().toISOString(),
       },
     };
   } catch (error) {

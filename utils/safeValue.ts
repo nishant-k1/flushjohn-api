@@ -64,7 +64,23 @@ export const safeDate = (
   }
 
   try {
-    const date = new Date(dateValue);
+    let date: Date;
+    if (typeof dateValue === "string") {
+      const trimmed = dateValue.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const [yearStr, monthStr, dayStr] = trimmed.split("-");
+        const year = Number(yearStr);
+        const month = Number(monthStr) - 1;
+        const day = Number(dayStr);
+        // Use UTC noon to avoid timezone offsets when formatting
+        date = new Date(Date.UTC(year, month, day, 12, 0, 0));
+      } else {
+        date = new Date(dateValue);
+      }
+    } else {
+      date = new Date(dateValue);
+    }
+
     if (isNaN(date.getTime())) {
       return "TBD";
     }

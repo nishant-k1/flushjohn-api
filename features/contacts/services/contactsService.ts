@@ -107,6 +107,7 @@ export const getAllContacts = async ({
                 input: {
                   $dateToString: {
                     format: "%B %d, %Y, %H:%M",
+                    timezone: "America/New_York",
                     date: `$${key}`,
                   },
                 },
@@ -157,6 +158,8 @@ export const getAllContacts = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
+            timezone: "America/New_York",
+            timezone: "America/New_York",
                 date: "$createdAt",
               },
             },
@@ -171,6 +174,7 @@ export const getAllContacts = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
+            timezone: "America/New_York",
                 date: "$readAt",
               },
             },
@@ -185,6 +189,7 @@ export const getAllContacts = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
+            timezone: "America/New_York",
                 date: "$repliedAt",
               },
             },

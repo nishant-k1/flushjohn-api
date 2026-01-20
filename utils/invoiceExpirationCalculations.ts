@@ -4,23 +4,22 @@
  * Invoice payment links expire 24 hours after creation
  */
 
+import { dayjs } from "../lib/dayjs.js";
+
 /**
  * Calculate invoice expiration date (24 hours from a given date)
- * @param {Date | string} startDate - The date to calculate expiration from (defaults to now)
+ * @param {Date | string} startDate - The date to calculate expiration from (defaults to now in US timezone)
  * @returns {Date} - The expiration date (24 hours after startDate)
  */
 export const calculateInvoiceExpirationDate = (
   startDate?: Date | string
 ): Date => {
   const baseDate = startDate
-    ? typeof startDate === "string"
-      ? new Date(startDate)
-      : startDate
-    : new Date();
+    ? dayjs(startDate).tz("America/New_York")
+    : dayjs().tz("America/New_York");
 
-  const expirationDate = new Date(baseDate);
-  expirationDate.setHours(expirationDate.getHours() + 24);
-  return expirationDate;
+  const expirationDate = baseDate.add(24, "hour");
+  return expirationDate.toDate();
 };
 
 /**
@@ -50,66 +49,60 @@ export const calculateInvoiceExpirationISO = (
 /**
  * Calculate cutoff time for expired invoices (24 hours ago from now)
  * Used to find invoices that have expired
- * @returns {Date} - The cutoff date (24 hours before now)
+ * @returns {Date} - The cutoff date (24 hours before now in US timezone)
  */
 export const calculateInvoiceExpirationCutoff = (): Date => {
-  const cutoffTime = new Date();
-  cutoffTime.setHours(cutoffTime.getHours() - 24);
-  return cutoffTime;
+  const cutoffTime = dayjs().tz("America/New_York").subtract(24, "hour");
+  return cutoffTime.toDate();
 };
 
 /**
  * Format expiration date for display in emails and PDFs
  * @param {Date | string} expirationDate - The expiration date to format
- * @returns {string} - Formatted expiration date string
+ * @returns {string} - Formatted expiration date string (US timezone)
  */
 export const formatInvoiceExpirationDate = (
   expirationDate: Date | string
 ): string => {
-  const date =
-    typeof expirationDate === "string"
-      ? new Date(expirationDate)
-      : expirationDate;
+  const date = dayjs(expirationDate).tz("America/New_York");
 
-  return date.toLocaleDateString("en-US", {
+  return date.toDate().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "America/New_York",
   });
 };
 
 /**
  * Format expiration date for display in UI (shorter format)
  * @param {Date | string} expirationDate - The expiration date to format
- * @returns {string} - Formatted expiration date string
+ * @returns {string} - Formatted expiration date string (US timezone)
  */
 export const formatInvoiceExpirationDateShort = (
   expirationDate: Date | string
 ): string => {
-  const date =
-    typeof expirationDate === "string"
-      ? new Date(expirationDate)
-      : expirationDate;
+  const date = dayjs(expirationDate).tz("America/New_York");
 
-  return date.toLocaleString("en-US", {
+  return date.toDate().toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
+    timeZone: "America/New_York",
   });
 };
 
 /**
  * Check if an invoice has expired based on creation date
  * @param {Date | string} createdAt - The invoice creation date
- * @returns {boolean} - True if invoice has expired (more than 24 hours old)
+ * @returns {boolean} - True if invoice has expired (more than 24 hours old in US timezone)
  */
 export const isInvoiceExpired = (createdAt: Date | string): boolean => {
-  const creationDate =
-    typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-  const cutoffTime = calculateInvoiceExpirationCutoff();
-  return creationDate <= cutoffTime;
+  const creationDate = dayjs(createdAt).tz("America/New_York");
+  const cutoffTime = dayjs(calculateInvoiceExpirationCutoff()).tz("America/New_York");
+  return creationDate.isSameOrBefore(cutoffTime);
 };

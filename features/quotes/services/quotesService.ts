@@ -223,12 +223,18 @@ const getAllQuotesWithAggregation = async ({
           }
 
           if (parsedDate && parsedDate.isValid() && hasYear) {
-            const startOfDay = parsedDate.startOf("day").toDate();
-            const endOfDay = parsedDate.endOf("day").toDate();
-            columnFilterConditions[fieldPath] = {
-              $gte: startOfDay,
-              $lte: endOfDay,
-            };
+            if (key === "createdAt") {
+              const startOfDay = parsedDate.startOf("day").toDate();
+              const endOfDay = parsedDate.endOf("day").toDate();
+              columnFilterConditions[fieldPath] = {
+                $gte: startOfDay,
+                $lte: endOfDay,
+              };
+            } else {
+              // deliveryDate/pickupDate are date-only strings
+              columnFilterConditions[fieldPath] =
+                parsedDate.format("YYYY-MM-DD");
+            }
           } else {
             // Partial date matching
             if (key === "createdAt") {
@@ -241,6 +247,7 @@ const getAllQuotesWithAggregation = async ({
                   input: {
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
+                      timezone: "America/New_York",
                       date: `$${fieldPath}`,
                     },
                   },
@@ -358,6 +365,7 @@ const getAllQuotesWithAggregation = async ({
           input: {
             $dateToString: {
               format: "%B %d, %Y, %H:%M",
+              timezone: "America/New_York",
               date: "$createdAt",
             },
           },
@@ -558,6 +566,7 @@ export const getAllQuotes = async ({
                     input: {
                       $dateToString: {
                         format: "%B %d, %Y, %H:%M",
+                        timezone: "America/New_York",
                         date: `$${key}`,
                       },
                     },
@@ -588,6 +597,7 @@ export const getAllQuotes = async ({
                   input: {
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
+                      timezone: "America/New_York",
                       date: `$${key}`,
                     },
                   },

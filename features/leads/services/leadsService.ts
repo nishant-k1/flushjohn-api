@@ -297,9 +297,14 @@ export const getAllLeads = async ({
           }
 
           if (parsedDate && parsedDate.isValid() && hasYear) {
-            const startOfDay = parsedDate.startOf("day").toDate();
-            const endOfDay = parsedDate.endOf("day").toDate();
-            query[key] = { $gte: startOfDay, $lte: endOfDay };
+            if (key === "createdAt") {
+              const startOfDay = parsedDate.startOf("day").toDate();
+              const endOfDay = parsedDate.endOf("day").toDate();
+              query[key] = { $gte: startOfDay, $lte: endOfDay };
+            } else {
+              // deliveryDate/pickupDate are date-only strings
+              query[key] = parsedDate.format("YYYY-MM-DD");
+            }
           } else {
             if (key === "createdAt") {
               const escapedValue = filterValue.replace(
@@ -311,6 +316,7 @@ export const getAllLeads = async ({
                   input: {
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
+                      timezone: "America/New_York",
                       date: `$${key}`,
                     },
                   },
@@ -430,6 +436,7 @@ export const getAllLeads = async ({
               {
                 $dateToString: {
                   format: "%B %d, %Y, %H:%M",
+                  timezone: "America/New_York",
                   date: {
                     $convert: {
                       input: "$createdAt",
@@ -458,6 +465,7 @@ export const getAllLeads = async ({
               {
                 $dateToString: {
                   format: "%B %d, %Y",
+                  timezone: "America/New_York",
                   date: {
                     $convert: {
                       input: "$deliveryDate",
@@ -486,6 +494,7 @@ export const getAllLeads = async ({
               {
                 $dateToString: {
                   format: "%B %d, %Y",
+                  timezone: "America/New_York",
                   date: {
                     $convert: {
                       input: "$pickupDate",

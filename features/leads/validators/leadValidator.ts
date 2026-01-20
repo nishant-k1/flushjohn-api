@@ -78,14 +78,14 @@ export const validateCreateLead = [
   body("deliveryDate")
     .notEmpty()
     .withMessage("Delivery date is required")
-    .isISO8601()
-    .withMessage("Please provide a valid delivery date"),
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage("Please provide a valid delivery date (YYYY-MM-DD)"),
 
   body("pickupDate")
     .notEmpty()
     .withMessage("Pickup date is required")
-    .isISO8601()
-    .withMessage("Please provide a valid pickup date"),
+    .matches(/^\d{4}-\d{2}-\d{2}$/)
+    .withMessage("Please provide a valid pickup date (YYYY-MM-DD)"),
 
   body("usageType")
     .trim()

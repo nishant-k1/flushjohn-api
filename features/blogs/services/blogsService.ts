@@ -549,6 +549,7 @@ export const getAllBlogs = async ({
                 input: {
                   $dateToString: {
                     format: "%B %d, %Y, %H:%M",
+                    timezone: "America/New_York",
                     date: `$${key}`,
                   },
                 },
@@ -601,6 +602,7 @@ export const getAllBlogs = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
+                timezone: "America/New_York",
                 date: "$createdAt",
               },
             },
@@ -615,6 +617,7 @@ export const getAllBlogs = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
+                timezone: "America/New_York",
                 date: "$publishedAt",
               },
             },
@@ -629,6 +632,7 @@ export const getAllBlogs = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
+                timezone: "America/New_York",
                 date: "$updatedAt",
               },
             },

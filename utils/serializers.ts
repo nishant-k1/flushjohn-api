@@ -132,20 +132,19 @@ export const formatUsageType = (
 };
 
 /**
- * Normalize date to ISO 8601 format
+ * Normalize date to YYYY-MM-DD format
  *
- * Converts any date format to ISO 8601 string
+ * Converts any date format to YYYY-MM-DD string
  * - Handles Date objects, ISO strings, formatted strings
- * - Returns midnight UTC for consistent date-only values
  * - Returns null for invalid dates
  *
  * Examples:
- * - "2026-01-07" -> "2026-01-07T00:00:00.000Z"
- * - "01/07/2026" -> "2026-01-07T00:00:00.000Z"
- * - new Date() -> "2026-01-07T00:00:00.000Z"
+ * - "2026-01-07" -> "2026-01-07"
+ * - "01/07/2026" -> "2026-01-07"
+ * - new Date() -> "2026-01-07"
  *
  * @param date - Date in any format
- * @returns ISO 8601 string at start of day (midnight UTC) or null if invalid
+ * @returns YYYY-MM-DD string or null if invalid
  */
 export const formatDate = (
   date: string | Date | null | undefined
@@ -153,6 +152,15 @@ export const formatDate = (
   if (!date) return null;
 
   try {
+    if (typeof date === "string") {
+      const trimmed = date.trim();
+      if (!trimmed) return null;
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        return trimmed;
+      }
+    }
+
     const dateObj = new Date(date);
 
     // Check if valid date
@@ -160,12 +168,11 @@ export const formatDate = (
       return null;
     }
 
-    // Set to start of day UTC (midnight)
-    // This ensures date-only fields like deliveryDate/pickupDate are consistent
-    dateObj.setUTCHours(0, 0, 0, 0);
-
-    // Return ISO 8601 format
-    return dateObj.toISOString();
+    // Use local date parts to avoid timezone shifts
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   } catch {
     return null;
   }

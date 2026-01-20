@@ -15,6 +15,7 @@ dotenv.config({ path: join(__dirname, "..", "..", "..", ".env") });
 import cron from "node-cron";
 import * as paymentsRepository from "../repositories/paymentsRepository.js";
 import { cancelPaymentLink } from "./paymentsService.js";
+import { getCurrentDateTime } from "../../../lib/dayjs.js";
 
 const CRON_CONFIG = {
   // Run every hour to check for expired invoice links
@@ -24,9 +25,9 @@ const CRON_CONFIG = {
 let jobStatus = {
   cancelExpiredInvoiceLinks: {
     isRunning: false,
-    lastRun: null,
-    lastSuccess: null,
-    lastError: null,
+    lastRun: null as Date | null,
+    lastSuccess: null as Date | null,
+    lastError: null as { timestamp: Date; message: string; stack?: string } | null,
     totalRuns: 0,
     successfulRuns: 0,
     failedRuns: 0,
@@ -39,7 +40,7 @@ let jobStatus = {
  */
 async function cancelExpiredInvoiceLinksJob() {
   const jobName = "cancelExpiredInvoiceLinks";
-  const startTime = new Date();
+  const startTime = getCurrentDateTime().toDate();
 
   jobStatus[jobName].isRunning = true;
   jobStatus[jobName].lastRun = startTime;
@@ -82,7 +83,7 @@ async function cancelExpiredInvoiceLinksJob() {
     }
 
     jobStatus[jobName].cancelledCount += cancelledCount;
-    jobStatus[jobName].lastSuccess = new Date();
+    jobStatus[jobName].lastSuccess = getCurrentDateTime().toDate();
     jobStatus[jobName].successfulRuns++;
 
     if (cancelledCount > 0 || errorCount > 0) {
@@ -94,7 +95,7 @@ async function cancelExpiredInvoiceLinksJob() {
     }
   } catch (error) {
     jobStatus[jobName].lastError = {
-      timestamp: new Date(),
+      timestamp: getCurrentDateTime().toDate(),
       message: error.message,
       stack: error.stack,
     };

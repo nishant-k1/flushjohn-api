@@ -111,9 +111,14 @@ export const getAllCustomers = async ({
             }
 
             if (parsedDate && parsedDate.isValid() && hasYear) {
-              const startOfDay = parsedDate.startOf("day").toDate();
-              const endOfDay = parsedDate.endOf("day").toDate();
-              query[key] = { $gte: startOfDay, $lte: endOfDay };
+              if (key === "createdAt") {
+                const startOfDay = parsedDate.startOf("day").toDate();
+                const endOfDay = parsedDate.endOf("day").toDate();
+                query[key] = { $gte: startOfDay, $lte: endOfDay };
+              } else {
+                // deliveryDate/pickupDate are date-only strings
+                query[key] = parsedDate.format("YYYY-MM-DD");
+              }
             } else {
               // For createdAt (Date field), use $expr to convert to string for partial matching
               // For deliveryDate/pickupDate (String fields), we can use regex
@@ -127,6 +132,7 @@ export const getAllCustomers = async ({
                     input: {
                       $dateToString: {
                         format: "%B %d, %Y, %H:%M",
+                        timezone: "America/New_York",
                         date: `$${key}`,
                       },
                     },
@@ -156,6 +162,7 @@ export const getAllCustomers = async ({
                   input: {
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
+                      timezone: "America/New_York",
                       date: `$${key}`,
                     },
                   },
@@ -246,6 +253,7 @@ export const getAllCustomers = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
+              timezone: "America/New_York",
                 date: "$createdAt",
               },
             },

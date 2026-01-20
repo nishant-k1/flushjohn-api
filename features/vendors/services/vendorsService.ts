@@ -162,6 +162,7 @@ export const getAllVendors = async ({
                   input: {
                     $dateToString: {
                       format: "%B %d, %Y, %H:%M",
+                        timezone: "America/New_York",
                       date: `$${key}`,
                     },
                   },
@@ -181,6 +182,7 @@ export const getAllVendors = async ({
                 input: {
                   $dateToString: {
                     format: "%B %d, %Y, %H:%M",
+                      timezone: "America/New_York",
                     date: `$${key}`,
                   },
                 },
@@ -267,6 +269,7 @@ export const getAllVendors = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
+              timezone: "America/New_York",
                 date: "$createdAt",
               },
             },
