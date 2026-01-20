@@ -38,8 +38,9 @@ export const formatPhoneNumber = (
     // US number without country code: add +1
     return `+1${digits}`;
   } else if (digits.length === 11 && digits.startsWith("1")) {
-    // US number with country code 1
-    return `+${digits}`;
+    // US number with country code 1: remove leading 1 and add +1
+    // This normalizes 11708447241 -> +17084472417
+    return `+1${digits.slice(1)}`;
   }
 
   // Invalid phone number
