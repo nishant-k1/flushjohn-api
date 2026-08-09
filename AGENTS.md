@@ -132,3 +132,22 @@ Flush John is a **brokerage** for portable restroom rentals:
 - Vendors (primarily Siteway Services) fulfill the actual rental
 - Pricing varies by vendor, region, and unit type — never hardcoded
 - The business model should NOT be revealed to customers on the website
+
+## Upcoming Tasks
+
+### Security (urgent)
+- **Rotate credentials exposed in git history** — commit `8eaabe3` contains `.env` with live secrets. Must rotate: AWS IAM keys, MongoDB password, Stripe live key + webhook secret, OpenAI key, Google Cloud SA key, Telegram bot token, both Zoho email passwords. Use web dashboards for each platform.
+
+### Product (CRM Dashboard)
+- Build a vendor pricing catalog so reps don't need to call vendors for every quote
+- Add inventory/asset management for rental units (quantity, type, condition, location)
+- Add scheduling/calendar view for deliveries and pickups
+- Build a real CRM dashboard: pipeline visualization, revenue trends, upcoming deliveries, AR aging, win/loss conversion rates
+
+### Engineering
+- Decompose the 3103-line `SalesOrdersEdit.tsx` and 2238-line `JobOrdersEdit.tsx`
+- Delete `src/pages/` directory in CRM — dead code, all routes now use `src/features/`
+- Move public lead creation out of `app.ts` (~200 lines) into a proper route file
+- Add `strict: true` to tsconfig and fix type errors incrementally
+- Add job queue (BullMQ) for email sending and PDF generation (currently fire-and-forget, no retry)
+- Extract PDF generation to a separate microservice
