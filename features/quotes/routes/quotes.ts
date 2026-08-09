@@ -502,27 +502,41 @@ router.post(
 
       let pdfUrls;
       const totalStartTime = Date.now();
-      try {
-        const pdfStartTime = Date.now();
-        pdfUrls = await generateQuotePDF(emailData, id);
-        const pdfTime = Date.now() - pdfStartTime;
-        console.log(`⏱️ [Quote ${id}] PDF generation: ${pdfTime}ms`);
 
-        // Fire-and-forget: send email in background, don't block response
-        const emailStartTime = Date.now();
-        sendQuoteEmail(emailData, id, pdfUrls.pdfUrl, pdfUrls.pdfBuffer)
-          .then(() => {
-            console.log(`⏱️ [Quote ${id}] Email sent: ${Date.now() - emailStartTime}ms`);
-          })
-          .catch((emailError) => {
-            console.error(`❌ [Quote ${id}] Email sending failed:`, emailError.message);
-          });
-      } catch (pdfError) {
-        throw pdfError;
+      // Use cached PDF if document hasn't changed since last generation
+      if (quoteObj.lastPdfUrl && quoteObj.lastPdfGeneratedAt && quoteObj.updatedAt <= quoteObj.lastPdfGeneratedAt) {
+        const { downloadPDFFromS3 } = await import("../../common/services/s3Service.js");
+        const pdfBuffer = await downloadPDFFromS3(quoteObj.lastPdfUrl);
+        pdfUrls = { pdfUrl: quoteObj.lastPdfUrl, pdfBuffer };
+        console.log(`⏱️ [Quote ${id}] PDF cache hit (skipped regen)`);
+      } else {
+        try {
+          const pdfStartTime = Date.now();
+          pdfUrls = await generateQuotePDF(emailData, id);
+          const pdfTime = Date.now() - pdfStartTime;
+          console.log(`⏱️ [Quote ${id}] PDF generation: ${pdfTime}ms`);
+
+          // Cache the PDF URL so next request can skip regeneration
+          quotesService.updateQuote(id, {
+            lastPdfUrl: pdfUrls.pdfUrl,
+            lastPdfGeneratedAt: new Date(),
+          }).catch((err) => console.error("Failed to cache PDF URL:", err.message));
+        } catch (pdfError) {
+          throw pdfError;
+        }
       }
 
-      // OPTIMIZATION: Update database in background (non-blocking) - respond immediately
-      // This allows the API to return faster while DB update happens asynchronously
+      // Fire-and-forget: send email in background, don't block response
+      const emailStartTime = Date.now();
+      sendQuoteEmail(emailData, id, pdfUrls.pdfUrl, pdfUrls.pdfBuffer)
+        .then(() => {
+          console.log(`⏱️ [Quote ${id}] Email sent: ${Date.now() - emailStartTime}ms`);
+        })
+        .catch((emailError) => {
+          console.error(`❌ [Quote ${id}] Email sending failed:`, emailError.message);
+        });
+
+      // Update database in background (non-blocking)
       const dbUpdateStartTime = Date.now();
       quotesService
         .updateQuote(id, {

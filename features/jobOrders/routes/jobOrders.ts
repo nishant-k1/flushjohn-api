@@ -452,34 +452,46 @@ router.post(
 
       let pdfUrls;
       const totalStartTime = Date.now();
-      try {
-        const pdfStartTime = Date.now();
-        pdfUrls = await generateJobOrderPDF(emailData, id);
-        const pdfTime = Date.now() - pdfStartTime;
-        console.log(`⏱️ [JobOrder ${id}] PDF generation: ${pdfTime}ms`);
 
-        // Fire-and-forget: send email in background, don't block response
-        const emailStartTime = Date.now();
-        sendJobOrderEmail(
-          emailData,
-          id,
-          pdfUrls.pdfUrl,
-          pdfUrls.pdfBuffer
-        )
-          .then(() => {
-            console.log(`⏱️ [JobOrder ${id}] Email sent: ${Date.now() - emailStartTime}ms`);
-          })
-          .catch((emailError) => {
-            console.error(`❌ [JobOrder ${id}] Email sending failed:`, emailError.message);
-          });
-      } catch (pdfError) {
-        throw pdfError;
+      // Use cached PDF if document hasn't changed since last generation
+      if (jobOrderObj.lastPdfUrl && jobOrderObj.lastPdfGeneratedAt && jobOrderObj.updatedAt <= jobOrderObj.lastPdfGeneratedAt) {
+        const { downloadPDFFromS3 } = await import("../../common/services/s3Service.js");
+        const pdfBuffer = await downloadPDFFromS3(jobOrderObj.lastPdfUrl);
+        pdfUrls = { pdfUrl: jobOrderObj.lastPdfUrl, pdfBuffer };
+        console.log(`⏱️ [JobOrder ${id}] PDF cache hit (skipped regen)`);
+      } else {
+        try {
+          const pdfStartTime = Date.now();
+          pdfUrls = await generateJobOrderPDF(emailData, id);
+          const pdfTime = Date.now() - pdfStartTime;
+          console.log(`⏱️ [JobOrder ${id}] PDF generation: ${pdfTime}ms`);
+
+          // Cache the PDF URL so next request can skip regeneration
+          jobOrdersService.updateJobOrder(id, {
+            lastPdfUrl: pdfUrls.pdfUrl,
+            lastPdfGeneratedAt: new Date(),
+          }).catch((err) => console.error("Failed to cache PDF URL:", err.message));
+        } catch (pdfError) {
+          throw pdfError;
+        }
       }
 
-      // CRITICAL FIX: Improved background database update with retry logic
-      // Update database in background (non-blocking) - respond immediately
-      // This allows the API to return faster while DB update happens asynchronously
-      // Note: Update emailStatus and vendorAcceptanceStatus using database data
+      // Fire-and-forget: send email in background, don't block response
+      const emailStartTime = Date.now();
+      sendJobOrderEmail(
+        emailData,
+        id,
+        pdfUrls.pdfUrl,
+        pdfUrls.pdfBuffer
+      )
+        .then(() => {
+          console.log(`⏱️ [JobOrder ${id}] Email sent: ${Date.now() - emailStartTime}ms`);
+        })
+        .catch((emailError) => {
+          console.error(`❌ [JobOrder ${id}] Email sending failed:`, emailError.message);
+        });
+
+      // Update database in background (non-blocking) with retry
       const dbUpdateStartTime = Date.now();
       const updateWithRetry = async (retries = 3): Promise<void> => {
         try {
