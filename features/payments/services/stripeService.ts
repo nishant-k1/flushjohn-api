@@ -207,7 +207,9 @@ export const createPaymentIntent = async ({
       (paymentIntentData as any).setup_future_usage = "off_session";
     }
 
-    const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentData, {
+      idempotencyKey: `pi_${customerId || 'anon'}_${amountInCents}_${Date.now()}`,
+    });
 
     return paymentIntent;
   } catch (error) {
@@ -358,7 +360,9 @@ export const processRefund = async ({
       (refundData as any).amount = amountToCents(amount);
     }
 
-    const refund = await stripe.refunds.create(refundData);
+    const refund = await stripe.refunds.create(refundData, {
+      idempotencyKey: `rf_${chargeId || paymentIntentId}_${amount}_${Date.now()}`,
+    });
 
     return refund;
   } catch (error) {

@@ -83,7 +83,7 @@ export const getPooledTransporter = async (emailConfig) => {
       port: 465,
       secure: true,
       auth: emailConfig,
-      tls: { rejectUnauthorized: false },
+      tls: {},
       connectionTimeout: 5000, // Reduced from 8000ms for faster failure
       greetingTimeout: 5000, // Reduced from 8000ms for faster failure
       socketTimeout: 10000, // Keep higher for actual sending
@@ -96,7 +96,7 @@ export const getPooledTransporter = async (emailConfig) => {
       port: 587,
       secure: false,
       auth: emailConfig,
-      tls: { rejectUnauthorized: false },
+      tls: {},
       connectionTimeout: 5000, // Reduced from 8000ms for faster failure
       greetingTimeout: 5000, // Reduced from 8000ms for faster failure
       socketTimeout: 10000, // Keep higher for actual sending
@@ -109,7 +109,7 @@ export const getPooledTransporter = async (emailConfig) => {
       port: 465,
       secure: true,
       auth: emailConfig,
-      tls: { rejectUnauthorized: false },
+      tls: {},
       connectionTimeout: 5000, // Reduced from 8000ms for faster failure
       greetingTimeout: 5000, // Reduced from 8000ms for faster failure
       socketTimeout: 10000, // Keep higher for actual sending

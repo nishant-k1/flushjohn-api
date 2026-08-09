@@ -94,7 +94,7 @@ router.post("/", authLimiter, (async (req, res) => {
         );
 
         // Generate CSRF token for the session
-        const csrfToken = generateCsrfToken(req, res);
+        const csrfToken = await generateCsrfToken(req, res);
 
         res.status(200).json({
           success: true,

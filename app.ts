@@ -199,6 +199,48 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Request ID middleware - every request gets a unique ID for tracing
+import crypto from "crypto";
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const requestId = crypto.randomUUID();
+  (req as any).requestId = requestId;
+  res.setHeader("X-Request-ID", requestId);
+  next();
+});
+
+// Audit log middleware
+import { auditMiddleware } from "./middleware/auditLog.js";
+app.use(auditMiddleware);
+
+// Health check endpoint
+app.get("/health", async (_req: Request, res: Response) => {
+  const checks: Record<string, any> = {};
+
+  try {
+    await (await import("mongoose")).default.connection.db.admin().ping();
+    checks.mongodb = "ok";
+  } catch {
+    checks.mongodb = "unreachable";
+  }
+
+  if (process.env.AWS_ACCESS_KEY_ID) {
+    checks.s3 = "configured";
+  }
+
+  if (process.env.STRIPE_SECRET_KEY) {
+    checks.stripe = "configured";
+  }
+
+  checks.timestamp = new Date().toISOString();
+  checks.uptime = process.uptime();
+
+  const allOk = Object.values(checks).every((v) => v === "ok" || v === "configured");
+  res.status(allOk ? 200 : 503).json({
+    success: allOk,
+    checks,
+  });
+});
+
 app.use(logger("dev"));
 
 // Stripe webhook needs raw body - register BEFORE json() middleware affects it
@@ -595,6 +637,32 @@ app.use("/notifications", authenticateToken, notificationsRouter as any);
 app.use("/contacts", authenticateToken, contactsRouter as any);
 app.use("/sales-assist", salesAssistRouter as any);
 app.use("/sales-assist", speechRecognitionRouter as any);
+
+// API v1 routes (also available at root for backward compatibility)
+const apiV1 = express.Router();
+apiV1.use("/auth", authRouter as any);
+apiV1.use("/contact", publicLimiter, contactRouter as any);
+apiV1.use("/business-info", businessInfoRouter as any);
+apiV1.use("/file-upload", authenticateToken, uploadLimiter, fileUploadRouter as any);
+apiV1.use("/pdf", pdfAccessRouter as any);
+apiV1.use("/leads", authenticateToken, leadsRouter as any);
+apiV1.use("/blogs", blogsRouter as any);
+apiV1.use("/vendors", authenticateToken, vendorsRouter as any);
+apiV1.use("/customers", authenticateToken, customersRouter as any);
+apiV1.use("/quotes", authenticateToken, quotesRouter as any);
+apiV1.use("/salesOrders", authenticateToken, salesOrdersRouter as any);
+apiV1.use("/jobOrders", authenticateToken, jobOrdersRouter as any);
+apiV1.use("/payments", authenticateToken, paymentsRouter as any);
+apiV1.use("/users", authenticateToken, authorizeRoles("admin"), usersRouter as any);
+apiV1.use("/blog-automation", authenticateToken, authorizeRoles("admin"), blogAutomationRouter as any);
+apiV1.use("/dashboard", authenticateToken, strictLimiter, dashboardRouter as any);
+apiV1.use("/notes", authenticateToken, notesRouter as any);
+apiV1.use("/notifications", authenticateToken, notificationsRouter as any);
+apiV1.use("/contacts", authenticateToken, contactsRouter as any);
+apiV1.use("/sales-assist", salesAssistRouter as any);
+apiV1.use("/", indexRouter as any);
+apiV1.use("/s3-cors", s3CorsRouter as any);
+app.use("/api/v1", apiV1);
 
 dbConnect()
   .then(() => {

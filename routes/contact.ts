@@ -53,7 +53,7 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
         user: process.env.FLUSH_JOHN_EMAIL_ID,
         pass: process.env.FLUSH_JOHN_EMAIL_PASSWORD,
       },
-      tls: { rejectUnauthorized: false },
+      tls: {},
     });
 
     // Fire-and-forget: send email in background
