@@ -189,6 +189,16 @@ app.options("*", cors(corsOptions));
 // ✅ PERFORMANCE: Add compression middleware (50-80% smaller responses)
 app.use(compression());
 
+// ✅ PERFORMANCE: Add cache-control headers for GET requests
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.method === "GET") {
+    res.set("Cache-Control", "public, max-age=60");
+  } else {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  }
+  next();
+});
+
 app.use(logger("dev"));
 
 // Stripe webhook needs raw body - register BEFORE json() middleware affects it
@@ -444,54 +454,54 @@ app.post(
         leadData.phone = leadData.phone.trim().substring(0, 20);
       }
 
-      // Use the service to create the lead (returns lead + saved notifications)
+      // Use the service to create the lead
       const { createLead } =
         await import("./features/leads/services/leadsService.js");
       const result = await createLead(leadData);
       const lead = result.lead;
-      const notifications = result.notifications || [];
-
-      // Emit socket events ONLY after notifications are saved to database
-      if (global.leadsNamespace) {
-        try {
-          // Emit lead created event with lead data
-          const leadPayload = {
-            lead: (lead as any).toObject ? (lead as any).toObject() : lead,
-            action: "add",
-          };
-          global.leadsNamespace.emit("leadCreated", leadPayload);
-
-          // Emit notification events with saved notification data
-          if (notifications.length > 0) {
-            const { serializeObjectIds } = await import("./utils/objectIdSerializer.js");
-            notifications.forEach((notification: any) => {
-              // Convert notification to plain object
-              const notificationObj = notification.toObject
-                ? notification.toObject()
-                : notification;
-              
-              // Serialize all ObjectIds to strings (userId, _id, leadId, etc.)
-              const serializedNotification = serializeObjectIds(notificationObj);
-              
-              const notifPayload = {
-                notification: serializedNotification,
-                action: "add",
-              };
-              global.leadsNamespace.emit("notificationCreated", notifPayload);
-            });
-          }
-        } catch (emitError) {
-          console.error("❌ Error emitting socket events:", emitError);
-        }
-      } else {
-        console.error("❌ global.leadsNamespace is not available!");
-      }
 
       res.status(201).json({
         success: true,
         message: "Lead created successfully",
         data: lead,
       });
+
+      // Fire-and-forget: emit socket events after response
+      if (global.leadsNamespace) {
+        try {
+          const leadPayload = {
+            lead: (lead as any).toObject ? (lead as any).toObject() : lead,
+            action: "add",
+          };
+          global.leadsNamespace.emit("leadCreated", leadPayload);
+
+          const { createLeadNotification } =
+            await import("./features/notifications/services/notificationHelpers.js");
+          createLeadNotification(lead)
+            .then((notifications) => {
+              if (notifications && notifications.length > 0) {
+                const { serializeObjectIds } = require("./utils/objectIdSerializer.js");
+                notifications.forEach((notification: any) => {
+                  const notificationObj = notification.toObject
+                    ? notification.toObject()
+                    : notification;
+                  const serializedNotification = serializeObjectIds(notificationObj);
+                  global.leadsNamespace.emit("notificationCreated", {
+                    notification: serializedNotification,
+                    action: "add",
+                  });
+                });
+              }
+            })
+            .catch((notifError: any) => {
+              console.error("❌ Error emitting notification socket events:", notifError.message);
+            });
+        } catch (emitError: any) {
+          console.error("❌ Error emitting socket events:", emitError.message);
+        }
+      } else {
+        console.error("❌ global.leadsNamespace is not available!");
+      }
     } catch (error: any) {
       console.error("❌ Error creating lead via public endpoint:", error);
 

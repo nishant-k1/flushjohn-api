@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { productSubSchema } from "../../common/models/productSubSchema.js";
 
 const QuotesSchema = new mongoose.Schema(
   {
@@ -46,7 +47,7 @@ const QuotesSchema = new mongoose.Schema(
     // Access via: quote.lead.fName, quote.lead.email, etc.
 
     products: {
-      type: Array,
+      type: [productSubSchema],
     },
 
     // Dates - Using Date type for proper Mongoose handling
@@ -76,6 +77,10 @@ const QuotesSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+
+    // PDF caching
+    lastPdfUrl: { type: String },
+    lastPdfGeneratedAt: { type: Date },
   },
   {
     timestamps: true, // Auto-manage createdAt and updatedAt

@@ -269,10 +269,16 @@ router.post(
 
       const salesOrder = await salesOrdersService.getSalesOrderById(id);
 
-      // Use ONLY database data for PDF generation (industry standard)
-      const salesOrderObj = salesOrder.toObject
-        ? salesOrder.toObject()
-        : salesOrder;
+      const salesOrderObj = salesOrder.toObject ? salesOrder.toObject() : salesOrder;
+
+      // Return cached PDF if document hasn't changed
+      if (salesOrderObj.lastPdfUrl && salesOrderObj.lastPdfGeneratedAt && salesOrderObj.updatedAt <= salesOrderObj.lastPdfGeneratedAt) {
+        return res.status(200).json({
+          success: true,
+          data: { pdfUrl: salesOrderObj.lastPdfUrl },
+          cached: true,
+        });
+      }
 
       // Flatten lead fields for PDF template (template expects fName, lName, email at top level)
       // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on sales order
@@ -301,6 +307,12 @@ router.post(
       const { generateSalesOrderPDF } =
         await import("../../fileManagement/services/pdfService.js");
       const pdfUrls = await generateSalesOrderPDF(pdfData, id);
+
+      // Cache the PDF URL so next request can skip regeneration
+      salesOrdersService.updateSalesOrder(id, {
+        lastPdfUrl: pdfUrls.pdfUrl,
+        lastPdfGeneratedAt: new Date(),
+      }).catch((err) => console.error("Failed to cache PDF URL:", err.message));
 
       res.status(201).json({
         success: true,
@@ -383,74 +395,65 @@ router.post(
         lead: salesOrderObj.lead,
       };
 
-      // Generate payment link if requested (paymentLinkUrl in request body)
-      // Note: Payment link generation is still allowed from request body as it's a runtime action
+      // Generate payment link and PDF in parallel
       let paymentLinkUrl = req.body.paymentLinkUrl || null;
+      const { generateSalesOrderPDF } =
+        await import("../../fileManagement/services/pdfService.js");
+      const { sendSalesOrderEmail, sendInvoiceEmail } =
+        await import("../../common/services/emailService.js");
+
+      const pdfPromise = generateSalesOrderPDF(emailData, id);
+
+      let stripePromise: Promise<any> | null = null;
       if (!paymentLinkUrl && req.body.includePaymentLink) {
-        try {
-          const paymentsService =
-            await import("../../payments/services/paymentsService.js");
-          const paymentLinkData =
-            await paymentsService.createSalesOrderPaymentLink(id, undefined);
-          paymentLinkUrl = paymentLinkData.url;
-        } catch (paymentLinkError) {
-          // Log error but continue with email without payment link
-          console.error("Failed to create payment link:", paymentLinkError);
-        }
+        stripePromise = (async () => {
+          try {
+            const paymentsService =
+              await import("../../payments/services/paymentsService.js");
+            const paymentLinkData =
+              await paymentsService.createSalesOrderPaymentLink(id, undefined);
+            paymentLinkUrl = paymentLinkData.url;
+          } catch (paymentLinkError) {
+            console.error("Failed to create payment link:", paymentLinkError);
+          }
+        })();
       }
+
+      const [pdfUrls] = await Promise.all([
+        pdfPromise,
+        stripePromise,
+      ].filter(Boolean));
 
       // Set paymentLinkUrl in emailData if it was provided or created
       if (paymentLinkUrl) {
         emailData.paymentLinkUrl = paymentLinkUrl;
       }
 
-      const { generateSalesOrderPDF } =
-        await import("../../fileManagement/services/pdfService.js");
-      const { sendSalesOrderEmail, sendInvoiceEmail } =
-        await import("../../common/services/emailService.js");
-
-      let pdfUrls;
-      const totalStartTime = Date.now();
-      try {
-        const pdfStartTime = Date.now();
-        pdfUrls = await generateSalesOrderPDF(emailData, id);
-        const pdfTime = Date.now() - pdfStartTime;
-        console.log(`⏱️ [SalesOrder ${id}] PDF generation: ${pdfTime}ms`);
-
-        // OPTIMIZATION: Pass PDF buffer directly to avoid re-downloading from S3
-        const emailStartTime = Date.now();
-        // Use invoice template if payment link is provided, otherwise use sales order template
-        if (paymentLinkUrl) {
-          await sendInvoiceEmail(
-            emailData,
-            id,
-            pdfUrls.pdfUrl,
-            paymentLinkUrl,
-            pdfUrls.pdfBuffer
-          );
-        } else {
-          await sendSalesOrderEmail(
-            emailData,
-            id,
-            pdfUrls.pdfUrl,
-            null,
-            pdfUrls.pdfBuffer
-          );
-        }
-        const emailTime = Date.now() - emailStartTime;
-        console.log(`⏱️ [SalesOrder ${id}] Email sending: ${emailTime}ms`);
-      } catch (pdfError) {
-        // Distinguish between PDF generation errors and email sending errors
-        if (pdfError.message?.includes("PDF generation failed")) {
-          throw new Error(`PDF generation failed: ${pdfError.message}`);
-        }
-        throw pdfError;
+      // Fire-and-forget: send email in background, don't block response
+      if (paymentLinkUrl) {
+        sendInvoiceEmail(
+          emailData,
+          id,
+          pdfUrls.pdfUrl,
+          paymentLinkUrl,
+          pdfUrls.pdfBuffer
+        ).catch((emailError) => {
+          console.error(`❌ [SalesOrder ${id}] Invoice email failed:`, emailError.message);
+        });
+      } else {
+        sendSalesOrderEmail(
+          emailData,
+          id,
+          pdfUrls.pdfUrl,
+          null,
+          pdfUrls.pdfBuffer
+        ).catch((emailError) => {
+          console.error(`❌ [SalesOrder ${id}] Sales order email failed:`, emailError.message);
+        });
       }
+      console.log(`⏱️ [SalesOrder ${id}] Email queued`);
 
-      // CRITICAL FIX: Improved background database update with retry logic
-      // Update database in background (non-blocking) - respond immediately
-      // This allows the API to return faster while DB update happens asynchronously
-      // Note: Only update emailStatus - use database data, not emailData payload
+      // Update database in background (non-blocking)
       const dbUpdateStartTime = Date.now();
       const updateWithRetry = async (retries = 3): Promise<void> => {
         try {
@@ -494,9 +497,6 @@ router.post(
           finalError.message || String(finalError)
         );
       });
-
-      const totalTime = Date.now() - totalStartTime;
-      console.log(`⏱️ [SalesOrder ${id}] Total email flow (response sent): ${totalTime}ms`);
 
       res.status(200).json({
         success: true,

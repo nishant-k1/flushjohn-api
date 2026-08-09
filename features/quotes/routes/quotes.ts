@@ -359,8 +359,16 @@ router.post(
 
       const quote = await quotesService.getQuoteById(id);
 
-      // Use ONLY database data for PDF generation (industry standard)
       const quoteObj = quote.toObject ? quote.toObject() : quote;
+
+      // Return cached PDF if document hasn't changed
+      if (quoteObj.lastPdfUrl && quoteObj.lastPdfGeneratedAt && quoteObj.updatedAt <= quoteObj.lastPdfGeneratedAt) {
+        return res.status(200).json({
+          success: true,
+          data: { pdfUrl: quoteObj.lastPdfUrl },
+          cached: true,
+        });
+      }
 
       // Flatten lead fields for PDF template (template expects fName, lName, email at top level)
       // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on quote
@@ -389,6 +397,12 @@ router.post(
       const { generateQuotePDF } =
         await import("../../fileManagement/services/pdfService.js");
       const pdfUrls = await generateQuotePDF(pdfData, id);
+
+      // Cache the PDF URL so next request can skip regeneration
+      quotesService.updateQuote(id, {
+        lastPdfUrl: pdfUrls.pdfUrl,
+        lastPdfGeneratedAt: new Date(),
+      }).catch((err) => console.error("Failed to cache PDF URL:", err.message));
 
       res.status(201).json({
         success: true,
@@ -494,11 +508,15 @@ router.post(
         const pdfTime = Date.now() - pdfStartTime;
         console.log(`⏱️ [Quote ${id}] PDF generation: ${pdfTime}ms`);
 
-        // OPTIMIZATION: Pass PDF buffer directly to avoid re-downloading from S3
+        // Fire-and-forget: send email in background, don't block response
         const emailStartTime = Date.now();
-        await sendQuoteEmail(emailData, id, pdfUrls.pdfUrl, pdfUrls.pdfBuffer);
-        const emailTime = Date.now() - emailStartTime;
-        console.log(`⏱️ [Quote ${id}] Email sending: ${emailTime}ms`);
+        sendQuoteEmail(emailData, id, pdfUrls.pdfUrl, pdfUrls.pdfBuffer)
+          .then(() => {
+            console.log(`⏱️ [Quote ${id}] Email sent: ${Date.now() - emailStartTime}ms`);
+          })
+          .catch((emailError) => {
+            console.error(`❌ [Quote ${id}] Email sending failed:`, emailError.message);
+          });
       } catch (pdfError) {
         throw pdfError;
       }

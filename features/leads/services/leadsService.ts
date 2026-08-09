@@ -190,10 +190,15 @@ export const createLead = async (leadData) => {
     });
   });
 
-  // Create notifications and get saved data - MUST await before emitting socket events
-  const savedNotifications = await createLeadNotification(lead);
+  // Fire-and-forget: create notification in background
+  createLeadNotification(lead).catch((notifError: any) => {
+    console.error("❌ Error creating lead notification:", {
+      leadId: lead._id,
+      error: notifError.message || String(notifError),
+    });
+  });
 
-  return { lead, notifications: savedNotifications };
+  return { lead };
 };
 
 /**

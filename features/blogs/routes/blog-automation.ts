@@ -118,38 +118,29 @@ router.post("/trigger", async (req, res) => {
  * Manually trigger blog generation (for testing)
  */
 router.post("/generate-blog", async (req, res) => {
-  try {
-    const { contentType } = req.body; // 'construction', 'city', 'problemSolving', or null
-    // Use randomization for manual generation to avoid duplicates
-    const result = await runAutomatedBlogGeneration(contentType, true);
+  const { contentType } = req.body;
 
-    if (result.success) {
-      res.json({
-        success: true,
-        message: "Blog post generated and published successfully",
-        data: {
-          blogPost: result.blogPost,
-          duration: result.duration,
-          timestamp: result.timestamp,
-          contentType: contentType || "default",
-        },
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: "Blog generation failed",
-        error: result.error,
-        duration: result.duration,
-        timestamp: result.timestamp,
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate blog post",
-      error: error.message,
+  // Return immediately; process blog generation in background
+  res.json({
+    success: true,
+    message: "Blog generation started",
+    data: {
+      contentType: contentType || "default",
+      timestamp: new Date().toISOString(),
+    },
+  });
+
+  runAutomatedBlogGeneration(contentType, true)
+    .then((result) => {
+      if (result.success) {
+        console.log(`✅ Blog auto-generated: ${result.blogPost?.title} (${result.duration}ms)`);
+      } else {
+        console.error(`❌ Blog generation failed:`, result.error);
+      }
+    })
+    .catch((error) => {
+      console.error(`❌ Blog generation crashed:`, error.message);
     });
-  }
 });
 
 /**

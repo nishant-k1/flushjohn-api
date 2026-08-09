@@ -13,13 +13,23 @@ export const findAll = async ({
   sort = {},
   skip = 0,
   limit = 10,
+  projection = null,
+}: {
+  query?: any;
+  sort?: any;
+  skip?: number;
+  limit?: number;
+  projection?: string | null;
 }) => {
-  return await (Blogs as any)
+  const findQuery = (Blogs as any)
     .find(query)
     .sort(sort)
     .skip(skip)
-    .limit(limit)
-    .lean();
+    .limit(limit);
+  if (projection) {
+    findQuery.select(projection);
+  }
+  return await findQuery.lean();
 };
 
 export const count = async (query = {}) => {

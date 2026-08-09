@@ -64,16 +64,14 @@ router.post("/", async function (req, res) {
       console.log(`✅ [${requestId}] Webhook event processed successfully`);
     } catch (processingError: any) {
       console.error(
-        `❌ [${requestId}] Webhook processing error:`,
+        `❌ [${requestId}] Webhook processing error (acknowledged):`,
         processingError
       );
 
-      // Try to extract sales order ID from event to emit error
       try {
         const { emitPaymentError } =
           await import("../../salesOrders/sockets/salesOrders.js");
 
-        // Try to find sales order ID from event data
         let salesOrderId = null;
         if (
           event.type === "checkout.session.completed" &&
@@ -84,7 +82,6 @@ router.post("/", async function (req, res) {
           event.type === "payment_intent.succeeded" ||
           event.type === "payment_intent.payment_failed"
         ) {
-          // Try to find payment by payment intent ID
           const { findByStripePaymentIntentId } =
             await import("../repositories/paymentsRepository.js");
           const payment = await findByStripePaymentIntentId(
@@ -115,20 +112,16 @@ router.post("/", async function (req, res) {
       } catch (emitError) {
         console.error("Failed to emit webhook error event:", emitError);
       }
-
-      // Re-throw to return error response
-      throw processingError;
     }
 
-    res.json({ received: true, requestId, eventType: event.type });
+  res.json({ received: true, requestId, eventType: event.type });
   } catch (error: any) {
-    console.error(`❌ [${requestId}] Webhook error:`, error);
-    res.status(500).json({
-      success: false,
-      message: "Webhook processing failed",
-      error: "WEBHOOK_ERROR",
+    console.error(`❌ [${requestId}] Webhook signature/validation error:`, error.message);
+    res.status(400).json({
+      received: false,
+      message: "Webhook validation failed",
+      error: "WEBHOOK_VALIDATION_ERROR",
       requestId,
-      ...(process.env.NODE_ENV === "development" && { details: error.message }),
     });
   }
 });

@@ -348,6 +348,7 @@ export async function getAutomationStats() {
       sortBy: "publishedAt",
       sortOrder: "desc",
       status: "published",
+      fields: "_id automated automationDate title publishedAt",
     });
 
     const recentAutomatedPosts =

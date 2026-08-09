@@ -37,20 +37,21 @@ export const calculateRevenue = async ({
   linkedInAdsSpending = 0,
   othersExpenses = 0,
 }) => {
+  const MAX_PAGES = 50;
+  const PAGE_LIMIT = 100;
+
   try {
-    // Format dates in US timezone
     const start = dayjs(startDate).tz("America/New_York").startOf("day");
     const end = dayjs(endDate).tz("America/New_York").endOf("day");
 
-    // Fetch all PAID sales orders in the date range (only calculate revenue for paid orders)
     let allSalesOrders = [];
     let salesPage = 1;
     let hasMoreSales = true;
 
-    while (hasMoreSales) {
+    while (hasMoreSales && salesPage <= MAX_PAGES) {
       const salesResult = await salesOrdersService.getAllSalesOrders({
         page: salesPage,
-        limit: 100,
+        limit: PAGE_LIMIT,
         sortBy: "createdAt",
         sortOrder: "asc",
         startDate: start.toDate().toISOString(),
@@ -58,7 +59,6 @@ export const calculateRevenue = async ({
       });
 
       if (salesResult.data && salesResult.data.length > 0) {
-        // Filter to only include sales orders with paymentStatus === "Paid"
         const paidSalesOrders = salesResult.data.filter(
           (order) => order.paymentStatus === "Paid"
         );
@@ -71,15 +71,18 @@ export const calculateRevenue = async ({
       }
     }
 
-    // Fetch all job orders with emailStatus === "Sent" in the date range
+    if (salesPage > MAX_PAGES) {
+      console.warn(`⚠️ Revenue calculation capped at ${MAX_PAGES * PAGE_LIMIT} sales orders`);
+    }
+
     let allJobOrders = [];
     let jobPage = 1;
     let hasMoreJobs = true;
 
-    while (hasMoreJobs) {
+    while (hasMoreJobs && jobPage <= MAX_PAGES) {
       const jobResult = await jobOrdersService.getAllJobOrders({
         page: jobPage,
-        limit: 100,
+        limit: PAGE_LIMIT,
         sortBy: "createdAt",
         sortOrder: "asc",
         startDate: start.toDate().toISOString(),

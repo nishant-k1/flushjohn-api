@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { productSubSchema } from "../../common/models/productSubSchema.js";
 
 const SalesOrdersSchema = new mongoose.Schema({
   createdAt: {
@@ -51,13 +52,13 @@ const SalesOrdersSchema = new mongoose.Schema({
   // fName, lName, cName, email, phone, fax, address fields, usageType
   // Access via: salesOrder.lead.fName, salesOrder.lead.email, etc.
   products: {
-    type: Array,
+    type: [productSubSchema],
   },
   deliveryDate: {
-    type: String,
+    type: Date,
   },
   pickupDate: {
-    type: String,
+    type: Date,
   },
   contactPersonName: {
     type: String,
@@ -162,6 +163,10 @@ const SalesOrdersSchema = new mongoose.Schema({
     type: String,
     index: true,
   },
+
+  // PDF caching
+  lastPdfUrl: { type: String },
+  lastPdfGeneratedAt: { type: Date },
 });
 
 // Add indexes for faster queries

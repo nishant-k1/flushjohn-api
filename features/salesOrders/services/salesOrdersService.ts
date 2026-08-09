@@ -505,40 +505,29 @@ const getAllSalesOrdersWithAggregation = async ({
     }
   }
 
-  // Step 6: Count total documents (before pagination)
-  const countPipeline = [...pipeline, { $count: "total" }];
-
-  // Step 7: Sort
+  // Step 6: Sort
   const sortField = sortBy === "createdAt" ? "createdAt" : sortBy;
   pipeline.push({ $sort: { [sortField]: sortOrder === "desc" ? -1 : 1 } });
 
-  // Step 8: Pagination
-  pipeline.push({ $skip: skip }, { $limit: limit });
-
-  // Step 9: Reshape result to match original structure
+  // Step 7: $facet — single pipeline for data + count
   pipeline.push({
-    $addFields: {
-      lead: "$leadData",
+    $facet: {
+      data: [
+        { $skip: skip },
+        { $limit: limit },
+        { $addFields: { lead: "$leadData" } },
+        { $project: { leadData: 0 } },
+      ],
+      total: [{ $count: "total" }],
     },
   });
 
-  pipeline.push({
-    $project: {
-      leadData: 0,
-    },
-  });
+  const [result] = await (SalesOrders as any).aggregate(pipeline);
 
-  // Execute both pipelines
-  const [results, countResult] = await Promise.all([
-    (SalesOrders as any).aggregate(pipeline),
-    (SalesOrders as any).aggregate(countPipeline),
-  ]);
-
-  // Use nullish coalescing to preserve 0 values
-  const total = countResult[0]?.total ?? 0;
+  const total = result?.total?.[0]?.total ?? 0;
 
   return {
-    data: results,
+    data: result?.data || [],
     pagination: {
       page,
       limit,

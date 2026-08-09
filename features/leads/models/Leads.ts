@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import { productSubSchema } from "../../common/models/productSubSchema.js";
 
 const LeadsSchema = new Schema(
   {
@@ -50,7 +51,7 @@ const LeadsSchema = new Schema(
       trim: true,
     },
     products: {
-      type: Array,
+      type: [productSubSchema],
     },
 
     // Contact Information - with normalization

@@ -265,8 +265,16 @@ router.post(
 
       const jobOrder = await jobOrdersService.getJobOrderById(id);
 
-      // Use ONLY database data for PDF generation (industry standard)
       const jobOrderObj = jobOrder.toObject ? jobOrder.toObject() : jobOrder;
+
+      // Return cached PDF if document hasn't changed
+      if (jobOrderObj.lastPdfUrl && jobOrderObj.lastPdfGeneratedAt && jobOrderObj.updatedAt <= jobOrderObj.lastPdfGeneratedAt) {
+        return res.status(200).json({
+          success: true,
+          data: { pdfUrl: jobOrderObj.lastPdfUrl },
+          cached: true,
+        });
+      }
 
       // Flatten lead fields for PDF template (template expects fName, lName, email at top level)
       // Note: Contact fields (fName, lName, etc.) ONLY exist in lead object, not on job order
@@ -295,6 +303,12 @@ router.post(
       const { generateJobOrderPDF } =
         await import("../../fileManagement/services/pdfService.js");
       const pdfUrls = await generateJobOrderPDF(pdfData, id);
+
+      // Cache the PDF URL so next request can skip regeneration
+      jobOrdersService.updateJobOrder(id, {
+        lastPdfUrl: pdfUrls.pdfUrl,
+        lastPdfGeneratedAt: new Date(),
+      }).catch((err) => console.error("Failed to cache PDF URL:", err.message));
 
       res.status(201).json({
         success: true,
@@ -444,16 +458,20 @@ router.post(
         const pdfTime = Date.now() - pdfStartTime;
         console.log(`⏱️ [JobOrder ${id}] PDF generation: ${pdfTime}ms`);
 
-        // OPTIMIZATION: Pass PDF buffer directly to avoid re-downloading from S3
+        // Fire-and-forget: send email in background, don't block response
         const emailStartTime = Date.now();
-        await sendJobOrderEmail(
+        sendJobOrderEmail(
           emailData,
           id,
           pdfUrls.pdfUrl,
           pdfUrls.pdfBuffer
-        );
-        const emailTime = Date.now() - emailStartTime;
-        console.log(`⏱️ [JobOrder ${id}] Email sending: ${emailTime}ms`);
+        )
+          .then(() => {
+            console.log(`⏱️ [JobOrder ${id}] Email sent: ${Date.now() - emailStartTime}ms`);
+          })
+          .catch((emailError) => {
+            console.error(`❌ [JobOrder ${id}] Email sending failed:`, emailError.message);
+          });
       } catch (pdfError) {
         throw pdfError;
       }

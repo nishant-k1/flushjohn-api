@@ -343,41 +343,30 @@ const getAllJobOrdersWithAggregation = async ({
     }
   }
 
-  // Step 5: Count total documents (before pagination)
-  const countPipeline = [...pipeline, { $count: "total" }];
-
-  // Step 6: Sort
+  // Step 5: Sort
   const sortField = sortBy === "createdAt" ? "createdAt" : sortBy;
   pipeline.push({ $sort: { [sortField]: sortOrder === "desc" ? -1 : 1 } });
 
-  // Step 7: Pagination
-  pipeline.push({ $skip: skip }, { $limit: limit });
-
-  // Step 8: Reshape result to match original structure
+  // Step 6: $facet — single pipeline for data + count
   pipeline.push({
-    $addFields: {
-      lead: "$leadData",
+    $facet: {
+      data: [
+        { $skip: skip },
+        { $limit: limit },
+        { $addFields: { lead: "$leadData" } },
+        { $project: { leadData: 0 } },
+      ],
+      total: [{ $count: "total" }],
     },
   });
 
-  pipeline.push({
-    $project: {
-      leadData: 0,
-    },
-  });
+  const [result] = await (JobOrders as any).aggregate(pipeline);
 
-  // Execute both pipelines
-  const [results, countResult] = await Promise.all([
-    (JobOrders as any).aggregate(pipeline),
-    (JobOrders as any).aggregate(countPipeline),
-  ]);
-
-  // Use nullish coalescing to preserve 0 values
-  const total = countResult[0]?.total ?? 0;
+  const total = result?.total?.[0]?.total ?? 0;
   const totalPages = calculateTotalPages(total, limit);
 
   return {
-    data: results,
+    data: result?.data || [],
     pagination: {
       currentPage: page,
       totalPages,

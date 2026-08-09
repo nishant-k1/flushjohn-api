@@ -56,7 +56,8 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       tls: { rejectUnauthorized: false },
     });
 
-    await transporter.sendMail({
+    // Fire-and-forget: send email in background
+    transporter.sendMail({
       from: `Flush John<${process.env.FLUSH_JOHN_EMAIL_ID}>`,
       to: `Flush John<${process.env.FLUSH_JOHN_EMAIL_ID}>`,
       subject: "Flush John: Contact Message",
@@ -73,6 +74,8 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
         <p><strong>Message:</strong></p>
         <p>${emailData.message.replace(/\n/g, "<br>")}</p>
       `,
+    }).catch((emailErr) => {
+      console.error("❌ Failed to send contact email:", emailErr.message);
     });
 
     res.status(200).json({
@@ -81,10 +84,10 @@ router.post("/", async (req: Request, res: Response, next: NextFunction) => {
       message: "Contact message sent successfully",
     });
   } catch (err: any) {
-    console.error("Error sending contact email:", err);
+    console.error("Error processing contact form:", err);
     res.status(500).json({
       success: false,
-      error: "Failed to send email",
+      error: "Failed to process contact form",
       message: err.message || "Internal server error",
     });
   }

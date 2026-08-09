@@ -158,8 +158,7 @@ export const getAllContacts = async ({
             input: {
               $dateToString: {
                 format: "%B %d, %Y, %H:%M",
-            timezone: "America/New_York",
-            timezone: "America/New_York",
+                timezone: "America/New_York",
                 date: "$createdAt",
               },
             },

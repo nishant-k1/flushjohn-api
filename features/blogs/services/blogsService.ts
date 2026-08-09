@@ -458,6 +458,7 @@ export const getAllBlogs = async ({
   slug = null,
   search = "",
   status = null,
+  fields = null,
   ...columnFilters
 }) => {
   const skip = calculateSkip(page, limit);
@@ -671,7 +672,7 @@ export const getAllBlogs = async ({
   const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
 
   const [blogs, total] = await Promise.all([
-    blogsRepository.findAll({ query: query as any, sort, skip, limit }),
+    blogsRepository.findAll({ query: query as any, sort, skip, limit, projection: fields }),
     blogsRepository.count(query as any),
   ]);
 

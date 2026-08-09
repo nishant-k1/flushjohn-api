@@ -6,36 +6,48 @@ import {
 import { getCurrentDateTime, dayjs } from "../../../lib/dayjs.js";
 
 export const generateQuoteNumber = async () => {
-  const maxRetries = 5;
-  let attempts = 0;
+  try {
+    const mongoose = await import("mongoose");
+    const Counter: any =
+      (mongoose.default.models as any).Counter ||
+      mongoose.default.model(
+        "Counter",
+        new mongoose.default.Schema({
+          _id: { type: String, required: true },
+          seq: { type: Number, default: 0 },
+        })
+      );
 
-  while (attempts < maxRetries) {
-    try {
+    const result = await Counter.findOneAndUpdate(
+      { _id: "quoteNo" },
+      { $inc: { seq: 1 } },
+      { upsert: true, new: true }
+    );
+
+    if (!result || result.seq === 0) {
       const latestQuote = await quotesRepository.findOne({}, "quoteNo");
       const latestQuoteNo = latestQuote ? latestQuote.quoteNo : 999;
-      const newQuoteNo = latestQuoteNo + 1;
+      const initialValue = latestQuoteNo + 1;
 
-      // Verify uniqueness by checking if this number exists
-      const existingQuote = await quotesRepository.findOne({
-        quoteNo: newQuoteNo,
-      });
-      if (!existingQuote) {
-        return newQuoteNo;
-      }
+      await Counter.findOneAndUpdate(
+        { _id: "quoteNo" },
+        { $set: { seq: initialValue } },
+        { upsert: true }
+      );
 
-      // If duplicate found, wait a bit and retry
-      attempts++;
-      await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
-    } catch {
-      attempts++;
-      if (attempts >= maxRetries) {
-        throw new Error("Failed to generate unique quote number after retries");
-      }
-      await new Promise((resolve) => setTimeout(resolve, 50 * attempts));
+      return initialValue;
     }
-  }
 
-  throw new Error("Failed to generate unique quote number");
+    return result.seq;
+  } catch (error: any) {
+    console.error(
+      "Error using atomic quote number generation, falling back:",
+      error.message
+    );
+    const latestQuote = await quotesRepository.findOne({}, "quoteNo");
+    const latestQuoteNo = latestQuote ? latestQuote.quoteNo : 999;
+    return latestQuoteNo + 1;
+  }
 };
 
 const formatQuoteResponse = (quote, lead) => {
@@ -409,40 +421,29 @@ const getAllQuotesWithAggregation = async ({
     }
   }
 
-  // Step 6: Count total documents (before pagination)
-  const countPipeline = [...pipeline, { $count: "total" }];
-
-  // Step 7: Sort
+  // Step 6: Sort
   const sortField = sortBy === "createdAt" ? "createdAt" : sortBy;
   pipeline.push({ $sort: { [sortField]: sortOrder === "desc" ? -1 : 1 } });
 
-  // Step 8: Pagination
-  pipeline.push({ $skip: skip }, { $limit: limit });
-
-  // Step 9: Reshape result to match original structure
+  // Step 7: $facet — single pipeline for data + count
   pipeline.push({
-    $addFields: {
-      lead: "$leadData",
+    $facet: {
+      data: [
+        { $skip: skip },
+        { $limit: limit },
+        { $addFields: { lead: "$leadData" } },
+        { $project: { leadData: 0 } },
+      ],
+      total: [{ $count: "total" }],
     },
   });
 
-  pipeline.push({
-    $project: {
-      leadData: 0, // Remove temporary leadData field
-    },
-  });
+  const [result] = await (Quotes as any).aggregate(pipeline);
 
-  // Execute both pipelines
-  const [results, countResult] = await Promise.all([
-    (Quotes as any).aggregate(pipeline),
-    (Quotes as any).aggregate(countPipeline),
-  ]);
-
-  // Use nullish coalescing to preserve 0 values
-  const total = countResult[0]?.total ?? 0;
+  const total = result?.total?.[0]?.total ?? 0;
 
   return {
-    data: results,
+    data: result?.data || [],
     pagination: {
       page,
       limit,

@@ -813,24 +813,24 @@ const sendReceiptAndMarkSent = async (payment, salesOrder) => {
 
   try {
     const { sendSalesReceiptEmail } = await import("./sendReceiptEmail.js");
-    const success = await sendSalesReceiptEmail(payment, salesOrder);
-
-    if (success) {
-      // Mark receipt as sent
-      await paymentsRepository.updateById(payment._id, {
-        receiptSent: true,
-        receiptSentAt: getCurrentDateTime(),
+    // Fire-and-forget: send email in background, mark as sent immediately
+    sendSalesReceiptEmail(payment, salesOrder)
+      .then(() => {
+        console.log(`✅ Payment receipt email sent for payment ${payment._id}`);
+      })
+      .catch((emailError) => {
+        console.warn(`⚠️ Payment receipt email failed for payment ${payment._id}:`, emailError.message);
       });
-      console.log(
-        `✅ Payment receipt email sent successfully for payment ${payment._id}`
-      );
-      return true;
-    } else {
-      console.warn(
-        `⚠️ Payment receipt email failed to send for payment ${payment._id}`
-      );
-      return false;
-    }
+
+    // Mark receipt as sent (don't wait for email to finish)
+    await paymentsRepository.updateById(payment._id, {
+      receiptSent: true,
+      receiptSentAt: getCurrentDateTime(),
+    });
+    console.log(
+      `📧 Payment receipt queued for payment ${payment._id}`
+    );
+    return true;
   } catch (error) {
     console.error(
       `❌ Error sending receipt email for payment ${payment._id}:`,
