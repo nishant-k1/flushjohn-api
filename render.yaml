@@ -1,0 +1,80 @@
+services:
+  - type: web
+    name: flushjohn-api
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: node ./dist/app.js
+    plan: starter
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8080"
+      - key: MONGO_DB_URI
+        sync: false
+      - key: ORIGINS
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        value: us-east-1
+      - key: AWS_S3_BUCKET_NAME
+        value: flushjohn-assets
+      - key: CLOUDFRONT_URL
+        value: https://cdn.flushjohn.com
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: PAYMENT_SUCCESS_URL
+        value: https://flushjohn.com/payment/success
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FLUSH_JOHN_COMPANY_NAME
+        value: Flush John
+      - key: FLUSH_JOHN_WEBSITE_URL
+        value: https://www.flushjohn.com
+      - key: FLUSH_JOHN_EMAIL_ID
+        value: support@flushjohn.com
+      - key: FLUSH_JOHN_EMAIL_PASSWORD
+        sync: false
+      - key: FLUSH_JOHN_PHONE
+        value: (877) 790-7062
+      - key: FLUSH_JOHN_TAGLINE
+        value: Portable Restroom Rentals
+      - key: FLUSH_JOHN_ADDRESS
+        value: 8 The Green STE R Dover, DE 19901
+      - key: SITEWAY_SERVICES_EMAIL_ID
+        value: orders@sitewayservices.com
+      - key: SITEWAY_SERVICES_EMAIL_PASSWORD
+        sync: false
+      - key: SITEWAY_SERVICES_COMPANY_NAME
+        value: Siteway Services
+      - key: SITEWAY_SERVICES_PHONE
+        value: (302) 645-2521
+      - key: SITEWAY_SERVICES_ADDRESS
+        value: 8 The Green STE R Dover, DE 19901
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: GOOGLE_CREDENTIALS_JSON
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      - key: TIMEZONE
+        value: UTC
+      - key: AUTO_PDF_CLEANUP
+        value: "true"
+      - key: PDF_CLEANUP_ON_STARTUP
+        value: "false"
+      - key: PDF_CLEANUP_SCHEDULE
+        value: "0 2 * * *"
+      - key: PDF_MAX_AGE_DAYS
+        value: "1"
